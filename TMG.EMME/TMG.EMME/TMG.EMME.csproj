@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
+    <PackageReference Include="System.IO.Pipes" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\TMG-Framework\TMG-Framework\TMG-Framework\TMG-Framework.csproj" />
+    <ProjectReference Include="..\..\TMG-Framework\XTMF2\XTMF2\XTMF2\XTMF2.csproj" />
+    <ProjectReference Include="..\..\TMG-Framework\XTMF2\XTMF2\XTMFInterfaces\XTMFInterfaces.csproj" />
+  </ItemGroup>
+
+</Project>

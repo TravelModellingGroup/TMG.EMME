@@ -1,0 +1,4 @@
+[submodule "TMG-Framework"]
+	path = TMG-Framework
+	url = https://github.com/TravelModellingGroup/TMG-Framework
+	branch = dev
