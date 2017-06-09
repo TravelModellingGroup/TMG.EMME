@@ -144,24 +144,6 @@ namespace TMG.Emme
             ProjectFile = projectFile;
             string args = "-ng ";
             string workingDirectory = ProjectFile;
-            Emme = new Process();
-            Emme.StartInfo.FileName = "emme";
-            Emme.StartInfo.Arguments = args;
-            Emme.StartInfo.CreateNoWindow = true;
-            Emme.StartInfo.UseShellExecute = false;
-            Emme.StartInfo.RedirectStandardInput = true;
-            //Emme.StartInfo.RedirectStandardOutput = true;
-            Emme.StartInfo.WorkingDirectory = workingDirectory;
-            try
-            {
-                Emme.Start();
-            }
-            catch
-            {
-                throw new XTMFRuntimeException(caller, "Unable to create a link to EMME!  Please make sure that it is on the system PATH!");
-            }
-            ToEmme = Emme.StandardInput;
-            ToEmme.WriteLine("TMG");
 
             //Python invocation command:
             //[FullPath...python.exe] -u [FullPath...ModellerBridge.py] [FullPath...EmmeProject.emp] [User initials] [[Performance (optional)]] 
@@ -179,22 +161,9 @@ namespace TMG.Emme
             // Get the path of ModellerBridge
             // Learn where the modules are stored so we can find the python script
             // The Entry assembly will be the XTMF.GUI or XTMF.RemoteClient
-            var codeBase = Assembly.GetEntryAssembly().CodeBase;
-            string programPath;
-            // make sure that the path is not relative
-            try
-            {
-                programPath = Path.GetFullPath(codeBase);
-            }
-            catch
-            {
-                programPath = codeBase.Replace("file:///", String.Empty);
-            }
-            // Since the modules are always located in the ~/Modules subdirectory for XTMF,
-            // we can just go in there to find the script
-            var modulesDirectory = Path.Combine(Path.GetDirectoryName(programPath), "Modules");
+            var codeBase = typeof(ModellerController).GetTypeInfo().Assembly.Location;
             // When EMME is installed it will link the .py to their python interpreter properly
-            string argumentString = AddQuotes(Path.Combine(modulesDirectory, "ModellerBridge.py"));
+            string argumentString = AddQuotes(Path.Combine(Path.GetDirectoryName(codeBase), "ModellerBridge.py"));
             var pipeName = Guid.NewGuid().ToString();
             PipeFromEMME = new NamedPipeServerStream(pipeName, PipeDirection.In);
             //The first argument that gets passed into the Bridge is the name of the Emme project file
