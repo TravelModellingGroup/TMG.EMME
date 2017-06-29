@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.6
+VisualStudioVersion = 15.0.26430.13
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TMG.EMME", "TMG.EMME\TMG.EMME.csproj", "{ACC63468-6E2E-4445-A37E-293FC645FB9D}"
 EndProject
@@ -19,6 +19,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TMG.EMME.Test", "TMG.EMME.Test\TMG.EMME.Test.csproj", "{6DE23BC9-D5D7-4230-9049-C1833985E668}"
+EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "TMGToolbox2", "TMGToolbox2\TMGToolbox2.pyproj", "{4DF03671-3110-422D-8A00-950DBAA44CF1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -50,6 +52,8 @@ Global
 		{6DE23BC9-D5D7-4230-9049-C1833985E668}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6DE23BC9-D5D7-4230-9049-C1833985E668}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6DE23BC9-D5D7-4230-9049-C1833985E668}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DF03671-3110-422D-8A00-950DBAA44CF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DF03671-3110-422D-8A00-950DBAA44CF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
