@@ -59,7 +59,7 @@ namespace TMG.Emme.Test.Import
                 new[]
                 {
                     new ModellerControllerParameter("xtmf_JSON", GetParameters()),
-                    new ModellerControllerParameter("xtmf_logbook_level", "NONE")
+                    new ModellerControllerParameter("xtmf_logbook_level", Helper.LogbookAll)
                 }));
         }
     }

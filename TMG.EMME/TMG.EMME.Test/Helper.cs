@@ -26,6 +26,9 @@ namespace TMG.Emme.Test
 {
     internal static class Helper
     {
+        internal static readonly string LogbookNone = "NONE";
+        internal static readonly string LogbookAll = "ALL";
+
         static Helper()
         {
             //Load the configuration

@@ -221,9 +221,8 @@ class ImportNetworkPackage(_m.Tool()):
         self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario %s created." % self.ScenarioId)'''
 
     def __call__(self, xtmf_JSON, xtmf_logbook_level):
+        logbook = _m.logbook_level()
         if xtmf_logbook_level == "NONE":
-            logbook = None
-            self.previous_level = _m.logbook_level()
             _m.logbook_level(_m.LogbookLevel.NONE)
 
         parameters_JSON = json.loads(xtmf_JSON)
@@ -242,8 +241,8 @@ class ImportNetworkPackage(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc(e)
             raise Exception(msg)
         finally:
-            if logbook == None:
-                _m.logbook_level(self.previous_level)
+            if logbook != None:
+                _m.logbook_level(logbook)
 
     def _execute(self):
         with _m.logbook_trace(
