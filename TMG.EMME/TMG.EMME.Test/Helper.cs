@@ -19,9 +19,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Text;
 
 namespace TMG.Emme.Test
 {
@@ -53,10 +52,47 @@ namespace TMG.Emme.Test
                     }
                 }
             }
-            Modeller = new ModellerController(null, ProjectFile);
+            // in this case we are debugging the unit test
+            if (Debugger.IsAttached)
+            {
+                Modeller = new ModellerController(null, ProjectFile, "DEBUG_EMME", launchInNewProcess:false);
+            }
+            else
+            {
+                Modeller = new ModellerController(null, ProjectFile);
+            }
         }
 
         public static string ProjectFile { get; private set; }
         public static ModellerController Modeller { get; private set; }
+
+        public static void WriteProperty<T>(JsonWriter writer, string name, T value)
+        {
+            writer.WritePropertyName(name);
+            if(typeof(T) == typeof(string))
+            {
+                writer.WriteValue((string)(object)value);
+            }
+            else if (typeof(T) == typeof(int))
+            {
+                writer.WriteValue((int)(object)value);
+            }
+            else if(typeof(T) == typeof(float))
+            {
+                writer.WriteValue((float)(object)value);
+            }
+            else if (typeof(T) == typeof(double))
+            {
+                writer.WriteValue((double)(object)value);
+            }
+            else if(typeof(T) == typeof(bool))
+            {
+                writer.WriteValue((bool)(object)value);
+            }
+            else
+            {
+                throw new NotSupportedException($"Unsupported type {typeof(T).FullName}!");
+            }
+        }
     }
 }

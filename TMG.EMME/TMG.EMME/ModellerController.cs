@@ -23,6 +23,7 @@ using System.IO.Pipes;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using XTMF2;
 
 namespace TMG.Emme
@@ -30,10 +31,6 @@ namespace TMG.Emme
     public sealed class ModellerController : IDisposable
     {
         private Process Emme;
-
-        private StreamReader FromEmme;
-
-        private StreamWriter ToEmme;
 
         /// <summary>
         /// Tell the bridge to clean out the modeller's logbook
@@ -115,7 +112,7 @@ namespace TMG.Emme
                 try
                 {
                     EnsureWriteAvailable(caller);
-                    BinaryWriter writer = new BinaryWriter(ToEmme.BaseStream);
+                    BinaryWriter writer = new BinaryWriter(EMMEPipe);
                     writer.Write(enable ? SignalEnableLogbook : SignalDisableLogbook);
                     writer.Flush();
                 }
@@ -126,14 +123,9 @@ namespace TMG.Emme
             }
         }
 
-        private NamedPipeServerStream PipeFromEMME;
-
-        /// <summary>
-        /// </summary>
-        /// <param name="projectFile"></param>
-        /// <param name="performanceAnalysis"></param>
-        /// <param name="userInitials"></param>
-        public ModellerController(IModule caller, string projectFile, bool performanceAnalysis = false, string userInitials = "XTMF")
+        private NamedPipeServerStream EMMEPipe;
+        public ModellerController(IModule caller, string projectFile, string pipeName,
+            bool performanceAnalysis = false, string userInitials = "XTMF", bool launchInNewProcess = true)
         {
             if (!projectFile.EndsWith(".emp") | !File.Exists(projectFile))
             {
@@ -142,7 +134,6 @@ namespace TMG.Emme
 
             FailTimer = 30;
             ProjectFile = projectFile;
-            string args = "-ng ";
             string workingDirectory = ProjectFile;
 
             //Python invocation command:
@@ -164,37 +155,55 @@ namespace TMG.Emme
             var codeBase = typeof(ModellerController).GetTypeInfo().Assembly.Location;
             // When EMME is installed it will link the .py to their python interpreter properly
             string argumentString = AddQuotes(Path.Combine(Path.GetDirectoryName(codeBase), "ModellerBridge.py"));
-            var pipeName = Guid.NewGuid().ToString();
-            PipeFromEMME = new NamedPipeServerStream(pipeName, PipeDirection.In);
-            //The first argument that gets passed into the Bridge is the name of the Emme project file
-            argumentString += " " + AddQuotes(projectFile) + " " + userInitials + " " + (performanceAnalysis ? 1 : 0) + " \"" + pipeName + "\"";
+            EMMEPipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+            Parallel.Invoke(() =>
+           {
+               // no more standard out
+               EMMEPipe.WaitForConnection();
+               using (BinaryReader reader = new BinaryReader(EMMEPipe, Encoding.UTF8, true))
+               {
+                   // wait for the start
+                   reader.ReadInt32();
+               }
+           }, () =>
+           {
+               //The first argument that gets passed into the Bridge is the name of the Emme project file
+               argumentString += " " + AddQuotes(projectFile) + " " + userInitials + " " + (performanceAnalysis ? 1 : 0) + " \"" + pipeName + "\"";
+               if (launchInNewProcess)
+               {
+                   //Setup up the new process
+                   // When creating this process, we can not start in our own window because we are re-directing the I/O
+                   // and windows won't allow us to have a window and take its standard I/O streams at the same time
+                   Emme = new Process();
+                   var startInfo = new ProcessStartInfo(pythonPath, argumentString);
+                   startInfo.Environment["PATH"] += ";" + pythonLib + ";" + Path.Combine(emmePath, "programs");
+                   Emme.StartInfo = startInfo;
+                   Emme.StartInfo.CreateNoWindow = false;
+                   Emme.StartInfo.UseShellExecute = false;
+                   Emme.StartInfo.RedirectStandardInput = false;
+                   Emme.StartInfo.RedirectStandardOutput = false;
 
-            //Setup up the new process
-            // When creating this process, we can not start in our own window because we are re-directing the I/O
-            // and windows won't allow us to have a window and take its standard I/O streams at the same time
-            Emme = new Process();
-            var startInfo = new ProcessStartInfo(pythonPath, "-u " + argumentString);
-            startInfo.Environment["PATH"] += ";" + pythonLib + ";" + Path.Combine(emmePath, "programs");
-            Emme.StartInfo = startInfo;
-            Emme.StartInfo.CreateNoWindow = true;
-            Emme.StartInfo.UseShellExecute = false;
-            Emme.StartInfo.RedirectStandardInput = true;
-            Emme.StartInfo.RedirectStandardOutput = true;
+                   //Start the new process
+                   try
+                   {
+                       Emme.Start();
+                   }
+                   catch
+                   {
+                       throw new XTMFRuntimeException(caller, "Unable to create a bridge to EMME to '" + AddQuotes(projectFile) + "'!");
+                   }
+               }
+           });
+        }
+        /// <summary>
+        /// </summary>
+        /// <param name="projectFile"></param>
+        /// <param name="performanceAnalysis"></param>
+        /// <param name="userInitials"></param>
+        public ModellerController(IModule caller, string projectFile, bool performanceAnalysis = false, string userInitials = "XTMF")
+            : this(caller, projectFile, Guid.NewGuid().ToString(), performanceAnalysis, userInitials)
+        {
 
-            //Start the new process
-            try
-            {
-                Emme.Start();
-            }
-            catch
-            {
-                throw new XTMFRuntimeException(caller, "Unable to create a bridge to EMME to '" + AddQuotes(projectFile) + "'!");
-            }
-            // Give some short names for the streams that we will be using
-            ToEmme = Emme.StandardInput;
-            // no more standard out
-            PipeFromEMME.WaitForConnection();
-            //this.FromEmme = this.Emme.StandardOutput;
         }
 
         ~ModellerController()
@@ -210,7 +219,7 @@ namespace TMG.Emme
                 string toPrint;
                 while (true)
                 {
-                    BinaryReader reader = new BinaryReader(PipeFromEMME);
+                    BinaryReader reader = new BinaryReader(EMMEPipe);
                     int result = reader.ReadInt32();
                     switch (result)
                     {
@@ -272,67 +281,12 @@ namespace TMG.Emme
             }
         }
 
-        public bool CheckToolExists(IModule caller, string toolNamespace)
-        {
-            lock (this)
-            {
-                try
-                {
-                    EnsureWriteAvailable(caller);
-                    BinaryWriter writer = new BinaryWriter(ToEmme.BaseStream);
-                    writer.Write(SignalCheckToolExists);
-                    writer.Write(toolNamespace);
-                    writer.Flush();
-                }
-                catch (IOException e)
-                {
-                    throw new XTMFRuntimeException(caller, "I/O Connection with EMME while sending data, with:\r\n" + e.Message);
-                }
-                // now we need to wait
-                string unused = null;
-                return WaitForEmmeResponce(caller, ref unused, null);
-            }
-        }
-
-        public bool Run(IModule caller, string macroName, string arguments)
-        {
-            string unused = null;
-            return Run(caller, macroName, arguments, null, ref unused);
-        }
-
-        public bool Run(IModule caller, string macroName, string arguments, ref string returnValue)
-        {
-            return Run(caller, macroName, arguments, null, ref returnValue);
-        }
-
-        public bool Run(IModule caller, string macroName, string arguments, Action<float> progressUpdate, ref string returnValue)
-        {
-            lock (this)
-            {
-                try
-                {
-                    EnsureWriteAvailable(caller);
-                    // clear out all of the old input before starting
-                    BinaryWriter writer = new BinaryWriter(ToEmme.BaseStream);
-                    writer.Write(SignalStartModule);
-                    writer.Write(macroName);
-                    writer.Write(arguments);
-                    writer.Flush();
-                }
-                catch (IOException e)
-                {
-                    throw new XTMFRuntimeException(caller, "I/O Connection with EMME while sending data, with:\r\n" + e.Message);
-                }
-                return WaitForEmmeResponce(caller, ref returnValue, progressUpdate);
-            }
-        }
-
         /// <summary>
         /// Throws an exception if the bridge has been disposed
         /// </summary>
         private void EnsureWriteAvailable(IModule caller)
         {
-            if (ToEmme == null)
+            if (EMMEPipe == null)
             {
                 throw new XTMFRuntimeException(caller, "EMME Bridge was invoked even though it has already been disposed.");
             }
@@ -357,24 +311,27 @@ namespace TMG.Emme
                 {
                     EnsureWriteAvailable(caller);
                     // clear out all of the old input before starting
-                    BinaryWriter writer = new BinaryWriter(ToEmme.BaseStream);
+                    BinaryWriter writer = new BinaryWriter(EMMEPipe, Encoding.Unicode, true);
                     writer.Write(SignalStartModuleBinaryParameters);
-                    writer.Write(macroName);
+                    writer.Write(macroName.Length);
+                    writer.Write(macroName.ToCharArray());
                     if (arguments != null)
                     {
-                        writer.Write(arguments.Length.ToString());
+                        writer.Write((int)arguments.Length);
                         for (int i = 0; i < arguments.Length; i++)
                         {
-                            writer.Write(arguments[i].Name);
+                            writer.Write(arguments[i].Name.Length);
+                            writer.Write(arguments[i].Name.ToCharArray());
                         }
                         for (int i = 0; i < arguments.Length; i++)
                         {
-                            writer.Write(arguments[i].Value);
+                            writer.Write(arguments[i].Value.Length);
+                            writer.Write(arguments[i].Value.ToCharArray());
                         }
                     }
                     else
                     {
-                        writer.Write("0");
+                        writer.Write((int)0);
                     }
                     writer.Flush();
                 }
@@ -395,30 +352,18 @@ namespace TMG.Emme
         {
             lock (this)
             {
-                if (FromEmme != null)
-                {
-                    FromEmme.Dispose();
-                    FromEmme = null;
-                }
-
-                if (PipeFromEMME != null)
-                {
-                    PipeFromEMME.Dispose();
-                    PipeFromEMME = null;
-                }
-
-                if (ToEmme != null)
+                if (EMMEPipe != null)
                 {
                     // Send our termination message first
                     try
                     {
-                        BinaryWriter writer = new BinaryWriter(ToEmme.BaseStream);
+                        BinaryWriter writer = new BinaryWriter(EMMEPipe);
                         writer.Write(SignalTermination);
                         writer.Flush();
-                        ToEmme.Flush();
+                        EMMEPipe.Flush();
                         // after our message has been sent then we can go and kill the stream
-                        ToEmme.Dispose();
-                        ToEmme = null;
+                        EMMEPipe.Dispose();
+                        EMMEPipe = null;
                     }
                     catch (IOException)
                     {

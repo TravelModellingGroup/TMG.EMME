@@ -1,5 +1,5 @@
-'''
-    Copyright 2017 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+﻿'''
+    Copyright 2015 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -720,7 +720,10 @@ class ProgressTracker():
         self._activeTool = tool
         self._toolIsRunning = True
         #actually run the tool. no knowledge of the arguments is required.
-        ret = self._activeTool(*args, **kwargs) 
+        try:
+            ret = self._activeTool(*args, **kwargs) 
+        except Exception, e:
+            print e
         self._toolIsRunning = False
         self._activeTool = None
         self.completeTask()

@@ -5,14 +5,17 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{4df03671-3110-422d-8a00-950dbaa44cf1}</ProjectGuid>
     <ProjectHome />
-    <StartupFile />
+    <StartupFile>ModellerBridge.py</StartupFile>
     <SearchPath />
-    <WorkingDirectory>.</WorkingDirectory>
+    <WorkingDirectory>C:\Users\phibr\Source\Repos\TMG.EMME\TMG.EMME\TMG.EMME.Test\bin\Release\netcoreapp1.1</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <InterpreterId>Global|VisualStudio|EMME Python</InterpreterId>
+    <InterpreterId>Global|PythonCore|2.7</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
+    <CommandLineArguments>"C:\Users\phibr\Documents\XTMF\Projects\EMMENetworks\GTAModel_V4\GTAModel_V4.emp" XTMF 0 DEBUG_EMME</CommandLineArguments>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <Environment>Path="C:\Program Files\INRO\Emme\Emme 4\Emme-4.3.3\Python27";"C:\Program Files\INRO\Emme\Emme 4\Emme-4.3.3\python-lib\win64\2.7";"C:\Program Files\INRO\Emme\Emme 4\Emme-4.3.3\Programs"</Environment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -20,19 +23,31 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
-    <InterpreterReference Include="Global|VisualStudio|EMME Python" />
+    <InterpreterReference Include="Global|PythonCore|2.7" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="src\import_network_package.py">
+    <Compile Include="build_toolbox.py" />
+    <Compile Include="ModellerBridge.py" />
+    <Compile Include="src\Import\import_network_package.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="src\utilities\general_utilities.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="src\utilities\merge_functions.py" />
+    <Compile Include="src\utilities\TMG_tool_page_builder.py" />
+    <Compile Include="src\utilities\general_utilities.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="src\" />
+    <Folder Include="src\Import\" />
+    <Folder Include="src\Export\" />
+    <Folder Include="src\Evaluate\" />
+    <Folder Include="src\Process\" />
+    <Folder Include="src\Process\Transit\" />
+    <Folder Include="src\Process\Road\" />
     <Folder Include="src\utilities\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Build Consolidated Toolbox.bat" />
+    <Content Include="Build Toolbox.bat" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>

@@ -30,7 +30,7 @@ _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 _bank = _MODELLER.emmebank
 _util = _MODELLER.module('tmg2.utilities.general_utilities')
 _tmg_tpb = _MODELLER.module('tmg2.utilities.TMG_tool_page_builder')
-merge_functions = _MODELLER.tool('tmg2.input_output.merge_functions')
+merge_functions = _MODELLER.tool('tmg2.utilities.merge_functions')
 import_modes = _MODELLER.tool('inro.emme.data.network.mode.mode_transaction')
 import_vehicles = _MODELLER.tool('inro.emme.data.network.transit.vehicle_transaction')
 import_base = _MODELLER.tool('inro.emme.data.network.base.base_network_transaction')
@@ -84,8 +84,8 @@ class ImportNetworkPackage(_m.Tool()):
     #    need to be placed here. Internal parameters (such as lists and dicts)
     #    get initialized during construction (__init__)
 
-    xtmf_JSON = _m.attribute(int)
-    xtmf_logbook_level = _m.attribute(int)
+    xtmf_JSON = _m.Attribute(str)
+    xtmf_logbook_level = _m.Attribute(str)
     '''ScenarioId = _m.Attribute(int)  # common variable or parameter
     NetworkPackageFile = _m.Attribute(str)
     ScenarioDescription = _m.Attribute(str)
@@ -223,10 +223,10 @@ class ImportNetworkPackage(_m.Tool()):
     def __call__(self, xtmf_JSON, xtmf_logbook_level):
         if xtmf_logbook_level == "NONE":
             logbook = None
-            self.previous_level = inro.modeller.logbook_level()
-            _m.logbook_level(inro.modeller.LogbookLevel.NONE)
+            self.previous_level = _m.logbook_level()
+            _m.logbook_level(_m.LogbookLevel.NONE)
 
-        parameters_JSON = json.loads(XMLFareRules.replace("\'","\"").replace("\\","/"))
+        parameters_JSON = json.loads(xtmf_JSON)
         self.network_package_file = parameters_JSON['network_package_file']
         self.scenario_description = ""
         self.scenario_Id = parameters_JSON['scenario_number']
@@ -236,15 +236,6 @@ class ImportNetworkPackage(_m.Tool()):
             self.conflict_option = parameters_JSON['conflict_option']
         else:
             self.conflict_option = 'PRESERVE'
-
-
-        self.NetworkPackageFile = NetworkPackageFile
-        self.ScenarioDescription = ""
-        self.ScenarioId = ScenarioId
-        self.OverwriteScenarioFlag = True
-        self.ConflictOption = ConflictOption
-        self.AddFunction = AddFunction
-
         try:
             self._execute()
         except Exception, e:
@@ -369,7 +360,7 @@ class ImportNetworkPackage(_m.Tool()):
 
     def _batchin_functions(self, temp_folder, zf):
         zf.extract(self._components.functions_file, temp_folder)
-        merge_functions.FunctionFile = _path.join(temp_folder, self._components.functions_file)
+        merge_functions.function_file = _path.join(temp_folder, self._components.functions_file)
         merge_functions.conflict_option = self.conflict_option
         merge_functions.run()
     
