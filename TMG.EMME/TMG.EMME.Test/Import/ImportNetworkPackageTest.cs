@@ -59,8 +59,20 @@ namespace TMG.Emme.Test.Import
                 new[]
                 {
                     new ModellerControllerParameter("xtmf_JSON", GetParameters()),
-                    new ModellerControllerParameter("xtmf_logbook_level", Helper.LogbookAll)
+                    new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
                 }));
+        }
+
+        [TestMethod]
+        public void ImportNetworkPackageModule()
+        {
+            TMG.Emme.Import.ImportNetworkPackage importModule = new Emme.Import.ImportNetworkPackage()
+            {
+                Name = "Importer",
+                ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
+                NetworkPackageFile = Helper.CreateParameter("test.nwp")
+            };
+            importModule.Invoke(Helper.Modeller);
         }
     }
 }

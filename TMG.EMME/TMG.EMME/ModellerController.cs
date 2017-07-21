@@ -30,6 +30,9 @@ namespace TMG.Emme
 {
     public sealed class ModellerController : IDisposable
     {
+        public static readonly string LogbookNone = "NONE";
+        public static readonly string LogbookAll = "ALL";
+
         private Process Emme;
 
         /// <summary>

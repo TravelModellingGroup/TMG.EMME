@@ -21,14 +21,13 @@ using Newtonsoft.Json;
 using System;
 using System.Diagnostics;
 using System.IO;
+using XTMF2;
+using XTMF2.RuntimeModules;
 
 namespace TMG.Emme.Test
 {
     internal static class Helper
     {
-        internal static readonly string LogbookNone = "NONE";
-        internal static readonly string LogbookAll = "ALL";
-
         static Helper()
         {
             //Load the configuration
@@ -96,6 +95,15 @@ namespace TMG.Emme.Test
             {
                 throw new NotSupportedException($"Unsupported type {typeof(T).FullName}!");
             }
+        }
+
+        internal static IFunction<T> CreateParameter<T>(T value, string moduleName = null)
+        {
+            return new BasicParameter<T>()
+            {
+                Name = moduleName,
+                Value = value
+            };
         }
     }
 }
