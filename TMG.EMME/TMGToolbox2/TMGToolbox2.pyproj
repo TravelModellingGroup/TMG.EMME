@@ -28,6 +28,9 @@
   <ItemGroup>
     <Compile Include="build_toolbox.py" />
     <Compile Include="ModellerBridge.py" />
+    <Compile Include="src\Copy\copy_scenario.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="src\Import\import_network_package.py">
       <SubType>Code</SubType>
     </Compile>
@@ -40,6 +43,7 @@
     <Folder Include="src\Import\" />
     <Folder Include="src\Export\" />
     <Folder Include="src\Evaluate\" />
+    <Folder Include="src\Copy\" />
     <Folder Include="src\Process\" />
     <Folder Include="src\Process\Transit\" />
     <Folder Include="src\Process\Road\" />

@@ -16,19 +16,27 @@
     You should have received a copy of the GNU General Public License
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
-using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using XTMF2;
 
-namespace TMG.Emme.Test.Copy
+namespace TMG.Emme.Copy
 {
-    [TestClass]
-    public class CopyScenarioTest
+    public class CopyScenario : BaseAction<ModellerController>
     {
-        [TestMethod]
-        public void CopyScenario()
+        [Parameter(DefaultValue = "1", Index = 0, Name = "From Scenario", Description = "The scenario to copy from.")]
+        public IFunction<int> FromScenario;
+
+        [Parameter(DefaultValue = "2", Index = 1, Name = "To Scenario", Description = "The scenario to copy to.")]
+        public IFunction<int> ToScenario;
+
+        [Parameter(DefaultValue = "false", Index = 2, Name = "Copy Strategy", Description = "Should assignment strategies also be copied?")]
+        public IFunction<bool> CopyStrategy;
+
+        public override void Invoke(ModellerController context)
         {
             string GetParameters()
             {
@@ -39,9 +47,12 @@ namespace TMG.Emme.Test.Copy
                     using (JsonWriter writer = new JsonTextWriter(sWriter))
                     {
                         writer.WriteStartObject();
-                        Helper.WriteProperty(writer, "from_scenario", 1);
-                        Helper.WriteProperty(writer, "to_scenario", 2);
-                        Helper.WriteProperty(writer, "copy_strategy", false);
+                        writer.WritePropertyName("from_scenario");
+                        writer.WriteValue(FromScenario.Invoke());
+                        writer.WritePropertyName("to_scenario");
+                        writer.WriteValue(ToScenario.Invoke());
+                        writer.WritePropertyName("copy_strategy");
+                        writer.WriteValue(CopyStrategy.Invoke());
                         writer.WriteEndObject();
                         writer.Flush();
                         sWriter.Flush();
@@ -54,25 +65,12 @@ namespace TMG.Emme.Test.Copy
                 }
                 return ret;
             }
-            Assert.IsTrue(Helper.Modeller.Run(null, "tmg2.Copy.copy_scenario",
+            context.Run(null, "tmg2.Copy.copy_scenario",
                 new[]
                 {
                     new ModellerControllerParameter("xtmf_JSON", GetParameters()),
                     new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-                }));
-        }
-
-        [TestMethod]
-        public void CopyScenarioModule()
-        {
-            var module = new Emme.Copy.CopyScenario()
-            {
-                Name = "CopyScenario",
-                FromScenario = Helper.CreateParameter(1, "From"),
-                ToScenario = Helper.CreateParameter(2, "To"),
-                CopyStrategy = Helper.CreateParameter(false, "Copy Assignments")
-            };
-            module.Invoke(Helper.Modeller);
+                });
         }
     }
 }
