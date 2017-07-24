@@ -298,7 +298,6 @@ class XTMFBridge:
         self.IOLock.acquire()
         self.SendSignal(self.SignalSendToolDoesNotExistsError)
         self.SendString("A tool with the following namespace could not be found: %s" % namespace)
-        self.XTMFPipe.flush()
         self.IOLock.release()
         return
 
@@ -306,7 +305,6 @@ class XTMFBridge:
         self.IOLock.acquire()
         self.SendSignal(self.SignalParameterError)
         self.SendString(problem)
-        self.XTMFPipe.flush()
         self.IOLock.release()
         return
         
@@ -329,6 +327,12 @@ class XTMFBridge:
         self.IOLock.acquire()
         self.SendSignal(self.SignalRunCompleteWithParameter)
         self.SendString(str(returnValue))
+        self.IOLock.release()
+        return
+
+    def SignalToolExists(self):
+        self.IOLock.acquire()
+        self.SendSignal(self.SignalCheckToolExists)
         self.IOLock.release()
         return
     
@@ -408,6 +412,7 @@ class XTMFBridge:
             macroName = self.ReadString()
             if not self.EnsureModellerToolExists(macroName):
                 return
+            self.SignalToolExists()
             tool = self.CreateTool(macroName)
             toolParameterTypes = self.GetToolParameterTypes(tool)
             if toolParameterTypes == None:

@@ -255,6 +255,10 @@ namespace TMG.Emme
                             {
                                 throw new EmmeToolCouldNotBeFoundException(caller, reader.ReadString());
                             }
+                        case SignalCheckToolExists:
+                            {
+                                return true;
+                            }
                         case SignalSentPrintMessage:
                             {
                                 toPrint = reader.ReadString();
@@ -318,25 +322,35 @@ namespace TMG.Emme
                     writer.Write(SignalStartModuleBinaryParameters);
                     writer.Write(macroName.Length);
                     writer.Write(macroName.ToCharArray());
-                    if (arguments != null)
+                    writer.Flush();
+                    // make sure the tool exists before continuing
+                    if (WaitForEmmeResponce(caller, ref returnValue, progressUpdate))
                     {
-                        writer.Write((int)arguments.Length);
-                        for (int i = 0; i < arguments.Length; i++)
+                        if (arguments != null)
                         {
-                            writer.Write(arguments[i].Name.Length);
-                            writer.Write(arguments[i].Name.ToCharArray());
+                            writer.Write((int)arguments.Length);
+                            for (int i = 0; i < arguments.Length; i++)
+                            {
+                                writer.Write(arguments[i].Name.Length);
+                                writer.Write(arguments[i].Name.ToCharArray());
+                            }
+                            for (int i = 0; i < arguments.Length; i++)
+                            {
+                                writer.Write(arguments[i].Value.Length);
+                                writer.Write(arguments[i].Value.ToCharArray());
+                            }
                         }
-                        for (int i = 0; i < arguments.Length; i++)
+                        else
                         {
-                            writer.Write(arguments[i].Value.Length);
-                            writer.Write(arguments[i].Value.ToCharArray());
+                            writer.Write((int)0);
                         }
+                        writer.Flush();
                     }
                     else
                     {
-                        writer.Write((int)0);
+                        // if the tool does not exist, we have failed!
+                        return false;
                     }
-                    writer.Flush();
                 }
                 catch (IOException e)
                 {
