@@ -25,6 +25,8 @@ using XTMF2;
 
 namespace TMG.Emme.Copy
 {
+    [Module(Name = "Copy Scenario", Description = "Copy an EMME scenario optionally also copying the assignments.",
+        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
     public class CopyScenario : BaseAction<ModellerController>
     {
         [Parameter(DefaultValue = "1", Index = 0, Name = "From Scenario", Description = "The scenario to copy from.")]
