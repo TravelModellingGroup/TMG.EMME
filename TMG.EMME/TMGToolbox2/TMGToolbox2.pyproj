@@ -5,8 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{4df03671-3110-422d-8a00-950dbaa44cf1}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>
-    </StartupFile>
+    <StartupFile>..\TMG.EMME\ModellerBridge.py</StartupFile>
     <SearchPath>..\TMG.EMME</SearchPath>
     <WorkingDirectory>C:\Users\phibr\Source\Repos\TMG.EMME\TMG.EMME\TMG.EMME.Test\bin\Release\netcoreapp1.1</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -34,6 +33,7 @@
     <Compile Include="src\Copy\copy_scenario.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="src\Export\export_binary_matrix.py" />
     <Compile Include="src\Import\import_binary_matrix.py" />
     <Compile Include="src\Import\import_network_package.py">
       <SubType>Code</SubType>
