@@ -34,6 +34,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="src\Export\export_binary_matrix.py" />
+    <Compile Include="src\Export\export_network_package.py" />
     <Compile Include="src\Import\import_binary_matrix.py" />
     <Compile Include="src\Import\import_network_package.py">
       <SubType>Code</SubType>
