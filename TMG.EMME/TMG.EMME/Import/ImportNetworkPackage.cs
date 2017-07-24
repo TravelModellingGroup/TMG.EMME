@@ -26,7 +26,7 @@ using XTMF2;
 
 namespace TMG.Emme.Import
 {
-    [Module(Name = "Import Network Package", Description = "Import an EMME scenario from a network package into the dataank.",
+    [Module(Name = "Import Network Package", Description = "Import an EMME scenario from a network package into the databank.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
     public class ImportNetworkPackage : BaseAction<ModellerController>
     {

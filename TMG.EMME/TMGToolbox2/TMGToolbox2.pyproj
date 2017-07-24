@@ -31,6 +31,7 @@
     <Compile Include="src\Copy\copy_scenario.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="src\Import\import_binary_matrix.py" />
     <Compile Include="src\Import\import_network_package.py">
       <SubType>Code</SubType>
     </Compile>
