@@ -49,32 +49,13 @@ namespace TMG.Emme.Import
 
         private string GetParameters()
         {
-            string ret = null;
-            using (MemoryStream backing = new MemoryStream())
+            return JSONParameterBuilder.BuildParameters(writer =>
             {
-                using (StreamWriter sWriter = new StreamWriter(backing, Encoding.Unicode, 0x4000, true))
-                using (JsonWriter writer = new JsonTextWriter(sWriter))
-                {
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("network_package_file");
-                    writer.WriteValue(Path.GetFullPath(NetworkPackageFile.Invoke()));
-                    writer.WritePropertyName("scenario_number");
-                    writer.WriteValue(ScenarioNumber.Invoke());
-                    writer.WritePropertyName("add_functions");
-                    writer.WriteValue(true);
-                    writer.WritePropertyName("conflict_option");
-                    writer.WriteValue("OVERWRITE");
-                    writer.WriteEndObject();
-                    writer.Flush();
-                    sWriter.Flush();
-                }
-                backing.Position = 0;
-                using (StreamReader reader = new StreamReader(backing))
-                {
-                    ret = reader.ReadToEnd();
-                }
-            }
-            return ret;
+                writer.WriteParameter("network_package_file", Path.GetFullPath(NetworkPackageFile.Invoke()));
+                writer.WriteParameter("scenario_number", ScenarioNumber.Invoke());
+                writer.WriteParameter("add_functions", true);
+                writer.WriteParameter("conflict_option", "OVERWRITE");
+            });
         }
     }
 }

@@ -40,37 +40,15 @@ namespace TMG.Emme.Copy
 
         public override void Invoke(ModellerController context)
         {
-            string GetParameters()
-            {
-                string ret = null;
-                using (MemoryStream backing = new MemoryStream())
-                {
-                    using (StreamWriter sWriter = new StreamWriter(backing, Encoding.Unicode, 0x4000, true))
-                    using (JsonWriter writer = new JsonTextWriter(sWriter))
-                    {
-                        writer.WriteStartObject();
-                        writer.WritePropertyName("from_scenario");
-                        writer.WriteValue(FromScenario.Invoke());
-                        writer.WritePropertyName("to_scenario");
-                        writer.WriteValue(ToScenario.Invoke());
-                        writer.WritePropertyName("copy_strategy");
-                        writer.WriteValue(CopyStrategy.Invoke());
-                        writer.WriteEndObject();
-                        writer.Flush();
-                        sWriter.Flush();
-                    }
-                    backing.Position = 0;
-                    using (StreamReader reader = new StreamReader(backing))
-                    {
-                        ret = reader.ReadToEnd();
-                    }
-                }
-                return ret;
-            }
             context.Run(null, "tmg2.Copy.copy_scenario",
                 new[]
                 {
-                    new ModellerControllerParameter("xtmf_JSON", GetParameters()),
+                    new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
+                    {
+                        writer.WriteParameter("from_scenario", FromScenario.Invoke());
+                        writer.WriteParameter("to_scenario", ToScenario.Invoke());
+                        writer.WriteParameter("copy_strategy", CopyStrategy.Invoke());
+                    })),
                     new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
                 });
         }
