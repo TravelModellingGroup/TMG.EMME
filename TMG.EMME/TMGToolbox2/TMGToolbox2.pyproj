@@ -13,7 +13,7 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterId>Global|PythonCore|2.7</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>"C:\Users\xiyang\source\repos\lunaxi7\TMG.EMME\TMG.EMME\TMG.EMME.Test\bin\Debug\netcoreapp1.1\EMMENetwork\DebugProject.emp" XTMF 0 DEBUG_EMME</CommandLineArguments>
+    <CommandLineArguments>"C:\Users\xiyang\Documents\GitHub\lunaxi7.TMG.EMME\TMG.EMME\TMG.EMME.Test\bin\Debug\netcoreapp1.1\EMMENetwork\DebugProject.emp" XTMF 0 DEBUG_EMME</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <Environment>Path="C:\Program Files\INRO\Emme\Emme 4\Emme-4.3.7\Python27";"C:\Program Files\INRO\Emme\Emme 4\Emme-4.3.7\python-lib\win64\2.7";"C:\Program Files\INRO\Emme\Emme 4\Emme-4.3.7\Programs"</Environment>
   </PropertyGroup>
