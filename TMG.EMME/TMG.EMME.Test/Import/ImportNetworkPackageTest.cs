@@ -16,7 +16,6 @@
     You should have received a copy of the GNU General Public License
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
-using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using System.IO;
@@ -25,7 +24,7 @@ using System.Text;
 namespace TMG.Emme.Test.Import
 {
     [TestClass]
-    public class ImportNetworkPackageTest
+    public class ImportNetworkPackageTest : TestBase
     {
         [TestMethod]
         public void ImportNetworkPackage()

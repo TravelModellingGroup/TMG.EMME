@@ -46,9 +46,9 @@ namespace TMG.Emme.Export
                 {
                     new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
                     {
-                        writer.WriteParameter("export_file", Path.GetFullPath(SaveTo.Invoke()));
-                        writer.WriteParameter("scenario_number", ScenarioNumber.Invoke());
-                        writer.WriteParameter("extra_attributes", Attributes.Invoke());
+                        writer.WriteString("export_file", Path.GetFullPath(SaveTo.Invoke()));
+                        writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
+                        writer.WriteString("extra_attributes", Attributes.Invoke());
                     })),
                     new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
                 });

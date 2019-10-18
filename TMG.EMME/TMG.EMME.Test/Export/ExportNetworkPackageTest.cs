@@ -27,7 +27,7 @@ using XTMF2;
 namespace TMG.Emme.Test.Export
 {
     [TestClass]
-    public class ExportNetworkPackageTest
+    public class ExportNetworkPackageTest : TestBase
     {
         [TestMethod]
         public void ExportNetworkPackage()
@@ -37,9 +37,9 @@ namespace TMG.Emme.Test.Export
                 {
                     new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
                     {
-                        writer.WriteParameter("export_file", Path.GetFullPath("exported.nwp"));
-                        writer.WriteParameter("scenario_number", 1);
-                        writer.WriteParameter("extra_attributes", "all");                       
+                        writer.WriteString("export_file", Path.GetFullPath("exported.nwp"));
+                        writer.WriteNumber("scenario_number", 1);
+                        writer.WriteString("extra_attributes", "all");                       
                     })),
                     new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
                 }));

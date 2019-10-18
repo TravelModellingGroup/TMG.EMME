@@ -28,40 +28,49 @@ namespace TMG.Emme.Test
 {
     internal static class Helper
     {
-        static Helper()
+        internal static void InitializeEMME()
         {
-            //Load the configuration
-            var configFile = new FileInfo("TMG.EMME.Test.Configuration.json");
-            if (!configFile.Exists)
+            if (Modeller == null)
             {
-                Assert.Fail("Configuration file \"TMG.EMME.Test.Configuration.json\" does not exist please create it to run tests.");
-            }
-            else
-            {
-                using (var reader = new JsonTextReader(configFile.OpenText()))
+                lock (typeof(Helper))
                 {
-                    while(reader.Read())
+                    if (Modeller == null)
                     {
-                        if(reader.TokenType == JsonToken.PropertyName)
+                        //Load the configuration
+                        var configFile = new FileInfo("TMG.EMME.Test.Configuration.json");
+                        if (!configFile.Exists)
                         {
-                            switch(reader.Value)
+                            Assert.Fail("Configuration file \"TMG.EMME.Test.Configuration.json\" does not exist please create it to run tests.");
+                        }
+                        else
+                        {
+                            using (var reader = new JsonTextReader(configFile.OpenText()))
                             {
-                                case "ProjectFile":
-                                    ProjectFile = reader.ReadAsString();
-                                    break;
+                                while (reader.Read())
+                                {
+                                    if (reader.TokenType == JsonToken.PropertyName)
+                                    {
+                                        switch (reader.Value)
+                                        {
+                                            case "ProjectFile":
+                                                ProjectFile = reader.ReadAsString();
+                                                break;
+                                        }
+                                    }
+                                }
                             }
+                        }
+                        // in this case we are debugging the unit test
+                        if (Debugger.IsAttached)
+                        {
+                            Modeller = new ModellerController(null, ProjectFile, "DEBUG_EMME", launchInNewProcess: false);
+                        }
+                        else
+                        {
+                            Modeller = new ModellerController(null, ProjectFile);
                         }
                     }
                 }
-            }
-            // in this case we are debugging the unit test
-            if (Debugger.IsAttached)
-            {
-                Modeller = new ModellerController(null, ProjectFile, "DEBUG_EMME", launchInNewProcess:false);
-            }
-            else
-            {
-                Modeller = new ModellerController(null, ProjectFile);
             }
         }
 

@@ -17,17 +17,13 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using XTMF2;
 
 
 namespace TMG.Emme.Test.Export
 {
     [TestClass]
-    public class ExportBinaryMatrixTest
+    public class ExportBinaryMatrixTest : TestBase
     {
         [TestMethod]
         public void ExportBinaryMatrix()
@@ -37,10 +33,10 @@ namespace TMG.Emme.Test.Export
                 {
                     new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
                     {
-                        writer.WriteParameter("matrix_type", 4);
-                        writer.WriteParameter("matrix_number", 1);
-                        writer.WriteParameter("file_location", Path.GetFullPath("exported.mtx"));
-                        writer.WriteParameter("scenario_number", 1);
+                        writer.WriteNumber("matrix_type", 4);
+                        writer.WriteNumber("matrix_number", 1);
+                        writer.WriteString("file_location", Path.GetFullPath("exported.mtx"));
+                        writer.WriteNumber("scenario_number", 1);
                     })),
                     new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
                 }));

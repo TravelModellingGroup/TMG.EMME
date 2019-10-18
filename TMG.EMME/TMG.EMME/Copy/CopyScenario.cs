@@ -16,11 +16,10 @@
     You should have received a copy of the GNU General Public License
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using System.Text.Json;
 using XTMF2;
 
 namespace TMG.Emme.Copy
@@ -45,9 +44,9 @@ namespace TMG.Emme.Copy
                 {
                     new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
                     {
-                        writer.WriteParameter("from_scenario", FromScenario.Invoke());
-                        writer.WriteParameter("to_scenario", ToScenario.Invoke());
-                        writer.WriteParameter("copy_strategy", CopyStrategy.Invoke());
+                        writer.WriteNumber("from_scenario", FromScenario.Invoke());
+                        writer.WriteNumber("to_scenario", ToScenario.Invoke());
+                        writer.WriteBoolean("copy_strategy", CopyStrategy.Invoke());
                     })),
                     new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
                 });

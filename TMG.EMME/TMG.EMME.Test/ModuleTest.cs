@@ -24,7 +24,7 @@ using System.Reflection;
 
 namespace TMG.Emme.Test
 {
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
+    [TestClass]
     public class ModuleTest
     {
         [TestMethod]

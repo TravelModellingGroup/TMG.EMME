@@ -46,10 +46,10 @@ namespace TMG.Emme.Export
                 {
                     new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
                     {
-                        writer.WriteParameter("matrix_type", 4);
-                        writer.WriteParameter("matrix_number", MatrixNumber.Invoke());
-                        writer.WriteParameter("file_location", Path.GetFullPath(SaveTo.Invoke()));
-                        writer.WriteParameter("scenario_number", ScenarioNumber.Invoke());
+                        writer.WriteNumber("matrix_type", 4);
+                        writer.WriteNumber("matrix_number", MatrixNumber.Invoke());
+                        writer.WriteString("file_location", Path.GetFullPath(SaveTo.Invoke()));
+                        writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                     })),
                     new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
                 });
