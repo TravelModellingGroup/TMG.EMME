@@ -16,7 +16,6 @@
     You should have received a copy of the GNU General Public License
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -51,10 +50,10 @@ namespace TMG.Emme.Import
         {
             return JSONParameterBuilder.BuildParameters(writer =>
             {
-                writer.WriteParameter("network_package_file", Path.GetFullPath(NetworkPackageFile.Invoke()));
-                writer.WriteParameter("scenario_number", ScenarioNumber.Invoke());
-                writer.WriteParameter("add_functions", true);
-                writer.WriteParameter("conflict_option", "OVERWRITE");
+                writer.WriteString("network_package_file", Path.GetFullPath(NetworkPackageFile.Invoke()));
+                writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
+                writer.WriteBoolean("add_functions", true);
+                writer.WriteString("conflict_option", "OVERWRITE");
             });
         }
     }
