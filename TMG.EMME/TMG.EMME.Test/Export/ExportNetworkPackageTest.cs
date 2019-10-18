@@ -27,7 +27,7 @@ using XTMF2;
 namespace TMG.Emme.Test.Export
 {
     [TestClass]
-    public class ExportNetworkPackageTest
+    public class ExportNetworkPackageTest : TestBase
     {
         [TestMethod]
         public void ExportNetworkPackage()

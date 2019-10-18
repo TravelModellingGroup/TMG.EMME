@@ -159,44 +159,51 @@ namespace TMG.Emme
             // When EMME is installed it will link the .py to their python interpreter properly
             string argumentString = AddQuotes(Path.Combine(Path.GetDirectoryName(codeBase), "ModellerBridge.py"));
             EMMEPipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
-            Parallel.Invoke(() =>
-           {
-               // no more standard out
-               EMMEPipe.WaitForConnection();
-               using (BinaryReader reader = new BinaryReader(EMMEPipe, Encoding.UTF8, true))
+            try
+            {
+                Parallel.Invoke(() =>
                {
-                   // wait for the start
-                   reader.ReadInt32();
-               }
-           }, () =>
-           {
-               //The first argument that gets passed into the Bridge is the name of the Emme project file
-               argumentString += " " + AddQuotes(projectFile) + " " + userInitials + " " + (performanceAnalysis ? 1 : 0) + " \"" + pipeName + "\"";
-               if (launchInNewProcess)
+                   // no more standard out
+                   EMMEPipe.WaitForConnection();
+                   using (BinaryReader reader = new BinaryReader(EMMEPipe, Encoding.UTF8, true))
+                   {
+                       // wait for the start
+                       reader.ReadInt32();
+                   }
+               }, () =>
                {
-                   //Setup up the new process
-                   // When creating this process, we can not start in our own window because we are re-directing the I/O
-                   // and windows won't allow us to have a window and take its standard I/O streams at the same time
-                   Emme = new Process();
-                   var startInfo = new ProcessStartInfo(pythonPath, argumentString);
-                   startInfo.Environment["PATH"] += ";" + pythonLib + ";" + Path.Combine(emmePath, "programs");
-                   Emme.StartInfo = startInfo;
-                   Emme.StartInfo.CreateNoWindow = false;
-                   Emme.StartInfo.UseShellExecute = false;
-                   Emme.StartInfo.RedirectStandardInput = false;
-                   Emme.StartInfo.RedirectStandardOutput = false;
+                   //The first argument that gets passed into the Bridge is the name of the Emme project file
+                   argumentString += " " + AddQuotes(projectFile) + " " + userInitials + " " + (performanceAnalysis ? 1 : 0) + " \"" + pipeName + "\"";
+                   if (launchInNewProcess)
+                   {
+                       //Setup up the new process
+                       // When creating this process, we can not start in our own window because we are re-directing the I/O
+                       // and windows won't allow us to have a window and take its standard I/O streams at the same time
+                       Emme = new Process();
+                       var startInfo = new ProcessStartInfo(pythonPath, argumentString);
+                       startInfo.Environment["PATH"] += ";" + pythonLib + ";" + Path.Combine(emmePath, "programs");
+                       Emme.StartInfo = startInfo;
+                       Emme.StartInfo.CreateNoWindow = false;
+                       Emme.StartInfo.UseShellExecute = false;
+                       Emme.StartInfo.RedirectStandardInput = false;
+                       Emme.StartInfo.RedirectStandardOutput = false;
 
-                   //Start the new process
-                   try
-                   {
-                       Emme.Start();
+                       //Start the new process
+                       try
+                       {
+                           Emme.Start();
+                       }
+                       catch
+                       {
+                           throw new XTMFRuntimeException(caller, "Unable to create a bridge to EMME to '" + AddQuotes(projectFile) + "'!");
+                       }
                    }
-                   catch
-                   {
-                       throw new XTMFRuntimeException(caller, "Unable to create a bridge to EMME to '" + AddQuotes(projectFile) + "'!");
-                   }
-               }
-           });
+               });
+            }
+            catch (AggregateException e)
+            {
+                throw e.InnerException;
+            }
         }
         /// <summary>
         /// </summary>

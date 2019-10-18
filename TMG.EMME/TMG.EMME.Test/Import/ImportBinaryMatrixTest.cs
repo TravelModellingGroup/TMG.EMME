@@ -17,23 +17,19 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using XTMF2;
 
 namespace TMG.Emme.Test.Import
 {
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-    public class ImportBinaryMatrixTest
+    [TestClass]
+    public class ImportBinaryMatrixTest : TestBase
     {
         [TestMethod]
         public void ImportBinaryMatrix()
         {
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Import.import_binary_matrix",
-                new []
+                new[]
                 {
                     new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
                     {
