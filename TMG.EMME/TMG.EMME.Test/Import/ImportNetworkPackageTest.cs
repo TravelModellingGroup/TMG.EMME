@@ -17,9 +17,10 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
+using System;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 
 namespace TMG.Emme.Test.Import
 {
@@ -31,28 +32,20 @@ namespace TMG.Emme.Test.Import
         {
             string GetParameters()
             {
-                string ret = null;
                 using (MemoryStream backing = new MemoryStream())
                 {
-                    using (StreamWriter sWriter = new StreamWriter(backing, Encoding.Unicode, 0x4000, true))
-                    using (JsonWriter writer = new JsonTextWriter(sWriter))
+                    using var writer = new Utf8JsonWriter(backing);
                     {
                         writer.WriteStartObject();
-                        Helper.WriteProperty(writer, "network_package_file", Path.GetFullPath("test.nwp"));
-                        Helper.WriteProperty(writer, "scenario_number", 1);
-                        Helper.WriteProperty(writer, "add_functions", false);
-                        Helper.WriteProperty(writer, "conflict_option", "PRESERVE");
+                        writer.WriteString("network_package_file", Path.GetFullPath("test.nwp"));
+                        writer.WriteNumber("scenario_number", 1);
+                        writer.WriteBoolean("add_functions", false);
+                        writer.WriteString("conflict_option", "PRESERVE");
                         writer.WriteEndObject();
                         writer.Flush();
-                        sWriter.Flush();
                     }
-                    backing.Position = 0;
-                    using (StreamReader reader = new StreamReader(backing))
-                    {
-                        ret = reader.ReadToEnd();
-                    }
+                    return Encoding.UTF8.GetString(backing.GetBuffer().AsSpan(0, (int)backing.Length));
                 }
-                return ret;
             }
             Assert.IsTrue(Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
                 new[]

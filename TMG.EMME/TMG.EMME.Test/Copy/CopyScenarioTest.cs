@@ -17,9 +17,8 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
 using System.IO;
-using System.Text;
+using System.Text.Json;
 
 namespace TMG.Emme.Test.Copy
 {
@@ -29,36 +28,17 @@ namespace TMG.Emme.Test.Copy
         [TestMethod]
         public void CopyScenario()
         {
-            string GetParameters()
+            Assert.IsTrue(
+            Helper.Modeller.Run(null, "tmg2.Copy.copy_scenario", new[]
             {
-                string ret = null;
-                using (MemoryStream backing = new MemoryStream())
+                new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
                 {
-                    using (StreamWriter sWriter = new StreamWriter(backing, Encoding.Unicode, 0x4000, true))
-                    using (JsonWriter writer = new JsonTextWriter(sWriter))
-                    {
-                        writer.WriteStartObject();
-                        Helper.WriteProperty(writer, "from_scenario", 1);
-                        Helper.WriteProperty(writer, "to_scenario", 2);
-                        Helper.WriteProperty(writer, "copy_strategy", false);
-                        writer.WriteEndObject();
-                        writer.Flush();
-                        sWriter.Flush();
-                    }
-                    backing.Position = 0;
-                    using (StreamReader reader = new StreamReader(backing))
-                    {
-                        ret = reader.ReadToEnd();
-                    }
-                }
-                return ret;
-            }
-            Assert.IsTrue(Helper.Modeller.Run(null, "tmg2.Copy.copy_scenario",
-                new[]
-                {
-                    new ModellerControllerParameter("xtmf_JSON", GetParameters()),
+                    writer.WriteNumber("from_scenario", 1);
+                    writer.WriteNumber("to_scenario", 2);
+                    writer.WriteBoolean("copy_strategy", false);
+                })),
                     new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-                }));
+            }));
         }
 
         [TestMethod]

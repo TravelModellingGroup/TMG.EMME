@@ -30,7 +30,6 @@ namespace TMG.Emme
     {
         public static string BuildParameters(Action<Utf8JsonWriter> toExecute)
         {
-            string ret = null;
             using (MemoryStream backing = new MemoryStream())
             {
                 using (Utf8JsonWriter writer = new Utf8JsonWriter(backing))
@@ -40,13 +39,8 @@ namespace TMG.Emme
                     writer.WriteEndObject();
                     writer.Flush();
                 }
-                backing.Position = 0;
-                using (StreamReader reader = new StreamReader(backing))
-                {
-                    ret = reader.ReadToEnd();
-                }
+                return Encoding.UTF8.GetString(backing.GetBuffer().AsSpan(0, (int)backing.Length));
             }
-            return ret;
         }
     }
 }
