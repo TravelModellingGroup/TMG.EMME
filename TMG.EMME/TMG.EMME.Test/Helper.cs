@@ -21,6 +21,7 @@ using Newtonsoft.Json;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
 using XTMF2;
 using XTMF2.RuntimeModules;
 
@@ -28,6 +29,8 @@ namespace TMG.Emme.Test
 {
     internal static class Helper
     {
+        private const string ProjectFileProperty = "ProjectFile";
+
         internal static void InitializeEMME()
         {
             if (Modeller == null)
@@ -44,18 +47,15 @@ namespace TMG.Emme.Test
                         }
                         else
                         {
-                            using (var reader = new JsonTextReader(configFile.OpenText()))
+                            var reader = new Utf8JsonReader(File.ReadAllBytes(configFile.FullName));
+                            while (reader.Read())
                             {
-                                while (reader.Read())
+                                if (reader.TokenType == JsonTokenType.PropertyName)
                                 {
-                                    if (reader.TokenType == JsonToken.PropertyName)
+                                    if(reader.ValueTextEquals(ProjectFileProperty))
                                     {
-                                        switch (reader.Value)
-                                        {
-                                            case "ProjectFile":
-                                                ProjectFile = reader.ReadAsString();
-                                                break;
-                                        }
+                                        reader.Read();
+                                        ProjectFile = reader.GetString();
                                     }
                                 }
                             }
@@ -76,35 +76,6 @@ namespace TMG.Emme.Test
 
         public static string ProjectFile { get; private set; }
         public static ModellerController Modeller { get; private set; }
-
-        public static void WriteProperty<T>(JsonWriter writer, string name, T value)
-        {
-            writer.WritePropertyName(name);
-            if(typeof(T) == typeof(string))
-            {
-                writer.WriteValue((string)(object)value);
-            }
-            else if (typeof(T) == typeof(int))
-            {
-                writer.WriteValue((int)(object)value);
-            }
-            else if(typeof(T) == typeof(float))
-            {
-                writer.WriteValue((float)(object)value);
-            }
-            else if (typeof(T) == typeof(double))
-            {
-                writer.WriteValue((double)(object)value);
-            }
-            else if(typeof(T) == typeof(bool))
-            {
-                writer.WriteValue((bool)(object)value);
-            }
-            else
-            {
-                throw new NotSupportedException($"Unsupported type {typeof(T).FullName}!");
-            }
-        }
 
         internal static IFunction<T> CreateParameter<T>(T value, string moduleName = null)
         {
