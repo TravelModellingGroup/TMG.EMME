@@ -30,17 +30,13 @@ namespace TMG.Emme
     {
         public static string BuildParameters(Action<Utf8JsonWriter> toExecute)
         {
-            using (MemoryStream backing = new MemoryStream())
-            {
-                using (Utf8JsonWriter writer = new Utf8JsonWriter(backing))
-                {
-                    writer.WriteStartObject();
-                    toExecute(writer);
-                    writer.WriteEndObject();
-                    writer.Flush();
-                }
-                return Encoding.UTF8.GetString(backing.GetBuffer().AsSpan(0, (int)backing.Length));
-            }
+            using var backing = new MemoryStream();
+            using var writer = new Utf8JsonWriter(backing);
+            writer.WriteStartObject();
+            toExecute(writer);
+            writer.WriteEndObject();
+            writer.Flush();
+            return Encoding.UTF8.GetString(backing.GetBuffer().AsSpan(0, (int)backing.Length));
         }
     }
 }
