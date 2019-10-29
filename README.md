@@ -78,7 +78,7 @@ please do not implement those functions.
 
 ```python
 import inro.modeller as _m
-_tmg_tpb = _MODELLER.module('tmg.common.TMG_tool_page_builder')
+_tmg_tpb = _MODELLER.module('tmg2.utilities.TMG_tool_page_builder')
 class HelloWorld(m.tool()):
 
   version = '1.0.0'
