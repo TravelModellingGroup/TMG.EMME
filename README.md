@@ -97,9 +97,11 @@ class HelloWorld(m.tool()):
   def run(self):
     print "Hello World, Modeller!"
 
+  # The entry point for a Python script
   def __call__(self):
     print "Hello World, Python Script!"
 
+  # The entry point for a call from XTMF2
   def xtmf_run(self, xtmf_json, xtmf_logbook_level):
     print "Hello World, XTMF2"
 ```
