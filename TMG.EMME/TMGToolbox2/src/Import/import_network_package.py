@@ -24,7 +24,6 @@ import zipfile as _zipfile
 from os import path as _path
 import shutil as _shutil
 import tempfile as _tf
-import json
 
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 _bank = _MODELLER.emmebank
@@ -84,8 +83,6 @@ class ImportNetworkPackage(_m.Tool()):
     #    need to be placed here. Internal parameters (such as lists and dicts)
     #    get initialized during construction (__init__)
 
-    xtmf_JSON = _m.Attribute(str)
-    xtmf_logbook_level = _m.Attribute(str)
     '''ScenarioId = _m.Attribute(int)  # common variable or parameter
     NetworkPackageFile = _m.Attribute(str)
     ScenarioDescription = _m.Attribute(str)
@@ -220,19 +217,14 @@ class ImportNetworkPackage(_m.Tool()):
 
         self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario %s created." % self.ScenarioId)'''
 
-    def __call__(self, xtmf_JSON, xtmf_logbook_level):
-        logbook = _m.logbook_level()
-        if xtmf_logbook_level == "NONE":
-            _m.logbook_level(_m.LogbookLevel.NONE)
-
-        parameters_JSON = json.loads(xtmf_JSON)
-        self.network_package_file = parameters_JSON['network_package_file']
+    def run_xtmf(self, parameters):
+        self.network_package_file = parameters['network_package_file']
         self.scenario_description = ""
-        self.scenario_Id = parameters_JSON['scenario_number']
+        self.scenario_Id = parameters['scenario_number']
         self.overwrite_scenario_flag = True
-        self.add_functions = parameters_JSON['add_functions']
+        self.add_functions = parameters['add_functions']
         if self.add_functions == True or self.add_functions == 'True':
-            self.conflict_option = parameters_JSON['conflict_option']
+            self.conflict_option = parameters['conflict_option']
         else:
             self.conflict_option = 'PRESERVE'
         try:
@@ -240,9 +232,6 @@ class ImportNetworkPackage(_m.Tool()):
         except Exception, e:
             msg = str(e) + "\n" + _traceback.format_exc(e)
             raise Exception(msg)
-        finally:
-            if logbook != None:
-                _m.logbook_level(logbook)
 
     def _execute(self):
         with _m.logbook_trace(

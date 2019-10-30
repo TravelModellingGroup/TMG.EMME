@@ -33,16 +33,12 @@ namespace TMG.Emme.Test.Export
         public void ExportNetworkPackage()
         {
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Export.export_network_package", new[]
-                {
-                    new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
+                Helper.Modeller.Run(null, "tmg2.Export.export_network_package", JSONParameterBuilder.BuildParameters(writer =>
                     {
                         writer.WriteString("export_file", Path.GetFullPath("exported.nwp"));
                         writer.WriteNumber("scenario_number", 1);
-                        writer.WriteString("extra_attributes", "all");                       
-                    })),
-                    new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-                }));
+                        writer.WriteString("extra_attributes", "all");
+                    }), LogbookLevel.Standard));
         }
 
         [TestMethod]

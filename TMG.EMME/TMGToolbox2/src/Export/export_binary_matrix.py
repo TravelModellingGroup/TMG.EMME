@@ -43,7 +43,6 @@ import inro.modeller as _m
 import traceback as _traceback
 from contextlib import contextmanager
 from contextlib import nested
-import json
 _MODELLER = _m.Modeller() #Instantiate Modeller once.
 _util = _MODELLER.module('tmg2.utilities.general_utilities')
 _bank = _MODELLER.emmebank
@@ -60,12 +59,7 @@ class ExportBinaryMatrix(_m.Tool()):
                     2: 'mo',
                     3: 'md',
                     4: 'mf'}
-    
-    #---PARAMETERS
-    
-    xtmf_JSON = _m.Attribute(str)
-    xtmf_logbook_level = _m.Attribute(str)
-    
+       
     def __init__(self):
         #---Init internal variables
         self.TRACKER = _util.ProgressTracker(self.number_of_tasks) #init the ProgressTracker
@@ -97,12 +91,8 @@ class ExportBinaryMatrix(_m.Tool()):
     #---
     #---XTMF INTERFACE METHODS
     
-    def __call__(self, xtmf_JSON, xtmf_logbook_level):
-        logbook = _m.logbook_level()
-        if xtmf_logbook_level == "NONE":
-            _m.logbook_level(_m.LogbookLevel.NONE)
+    def run_xtmf(self, parameters):
         # xtmf_MatrixType, xtmf_MatrixNumber, ExportFile, xtmf_ScenarioNumber
-        parameters = json.loads(xtmf_JSON)
         xtmf_MatrixType = parameters["matrix_type"]
         xtmf_MatrixNumber = parameters["matrix_number"]
         self.ExportFile = parameters["file_location"]
@@ -128,9 +118,6 @@ class ExportBinaryMatrix(_m.Tool()):
         except Exception, e:
             msg = str(e) + "\n" + _traceback.format_exc(e)
             raise Exception(msg)
-        finally:
-            if logbook != None:
-                _m.logbook_level(logbook)
     
     ##########################################################################################################    
     

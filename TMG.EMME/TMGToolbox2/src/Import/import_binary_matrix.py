@@ -38,7 +38,6 @@ Import Binary Matrix
 import inro.modeller as _m
 import traceback as _traceback
 from inro.emme.matrix import MatrixData as _MatrixData
-import json
 _MODELLER = _m.Modeller() #Instantiate Modeller once.
 _util = _MODELLER.module('tmg2.utilities.general_utilities')
 _bank = _MODELLER.emmebank
@@ -55,11 +54,7 @@ class ImportBinaryMatrix(_m.Tool()):
                     2: 'mo',
                     3: 'md',
                     4: 'mf'}
-    
-    #---PARAMETERS
-    xtmf_JSON = _m.Attribute(str)
-    xtmf_logbook_level = _m.Attribute(str)
-    
+       
     def __init__(self):
         #---Init internal variables
         self.TRACKER = _util.ProgressTracker(self.number_of_tasks) #init the ProgressTracker
@@ -91,17 +86,13 @@ class ImportBinaryMatrix(_m.Tool()):
     #---
     #---XTMF INTERFACE METHODS
     
-    def __call__(self,  xtmf_JSON, xtmf_logbook_level):
-        logbook = _m.logbook_level()
-        if xtmf_logbook_level == "NONE":
-            _m.logbook_level(_m.LogbookLevel.NONE)
+    def run_xtmf(self,  parameters):
         #xtmf_MatrixType, xtmf_MatrixNumber, ImportFile, xtmf_ScenarioNumber,MatrixDescription
-        parameters_JSON = json.loads(xtmf_JSON)
-        xtmf_MatrixType = parameters_JSON["matrix_type"]
-        xtmf_MatrixNumber = parameters_JSON["matrix_number"]
-        ImportFile = parameters_JSON["binary_matrix_file"]
-        xtmf_ScenarioNumber = parameters_JSON["scenario_number"]
-        self.MatrixDescription = parameters_JSON["matrix_description"]
+        xtmf_MatrixType = parameters["matrix_type"]
+        xtmf_MatrixNumber = parameters["matrix_number"]
+        ImportFile = parameters["binary_matrix_file"]
+        xtmf_ScenarioNumber = parameters["scenario_number"]
+        self.MatrixDescription = parameters["matrix_description"]
         
         if not xtmf_MatrixType in self.MATRIX_TYPES:
             raise IOError("Matrix type '%s' is not recognized. Valid types are " %xtmf_MatrixType + 
@@ -118,15 +109,11 @@ class ImportBinaryMatrix(_m.Tool()):
                 raise Exception("A valid scenario must be specified as there are " +
                                     "multiple zone systems in this Emme project. "+
                                     "'%s' is not a valid scenario." %xtmf_ScenarioNumber)
-        
         try:
             self._Execute()
         except Exception, e:
             msg = str(e) + "\n" + _traceback.format_exc(e)
             raise Exception(msg)
-        finally:
-            if logbook != None:
-                _m.logbook_level(logbook)
     
     #---MAIN EXECUTION CODE
     

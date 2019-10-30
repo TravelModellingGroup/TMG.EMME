@@ -1,5 +1,5 @@
 /*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2019 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -30,15 +30,14 @@ namespace TMG.Emme
 {
     public sealed class ModellerController : IDisposable
     {
-        public static readonly string LogbookNone = "NONE";
-        public static readonly string LogbookAll = "ALL";
+        private static readonly char[] LogbookStandard = new[] { 'A', 'L', 'L' };
+        private static readonly char[] LogbookDebug = new[] { 'D', 'E', 'B', 'U', 'G' };
+        private static readonly char[] LogbookNone = new[] { 'N', 'O', 'N', 'E' };
 
-        private Process Emme;
+        private Process _emme;
+        private NamedPipeServerStream _emmePipe;
 
-        /// <summary>
-        /// Tell the bridge to clean out the modeller's logbook
-        /// </summary>
-        private const int SignalCleanLogbook = 6;
+        #region SignalCodes
 
         /// <summary>
         /// We receive this error if the bridge can not get the parameters to match
@@ -74,11 +73,6 @@ namespace TMG.Emme
         private const int SignalStart = 0;
 
         /// <summary>
-        /// We will send this signal when we want to start to run a new module
-        /// </summary>
-        private const int SignalStartModule = 2;
-
-        /// <summary>
         /// We will send this signal when we want to start to run a new module with binary parameters
         /// </summary>
         private const int SignalStartModuleBinaryParameters = 14;
@@ -104,29 +98,14 @@ namespace TMG.Emme
         /// </summary>
         private const int SignalSentPrintMessage = 11;
 
-        private const int SignalDisableLogbook = 12;
+        /// <summary>
+        /// A signal from the modeller bridge saying that the tool that was requested to execute does not
+        /// contain an entry point for a call from XTMF2.
+        /// </summary>
+        private const int SignalIncompatibleTool = 15;
 
-        private const int SignalEnableLogbook = 13;
+        #endregion
 
-        public void WriteToLogbook(IModule caller, bool enable)
-        {
-            lock (this)
-            {
-                try
-                {
-                    EnsureWriteAvailable(caller);
-                    BinaryWriter writer = new BinaryWriter(EMMEPipe);
-                    writer.Write(enable ? SignalEnableLogbook : SignalDisableLogbook);
-                    writer.Flush();
-                }
-                catch (IOException e)
-                {
-                    throw new XTMFRuntimeException(caller, "I/O Connection with EMME while sending data, with:\r\n" + e.Message);
-                }
-            }
-        }
-
-        private NamedPipeServerStream EMMEPipe;
         public ModellerController(IModule caller, string projectFile, string pipeName,
             bool performanceAnalysis = false, string userInitials = "XTMF", bool launchInNewProcess = true)
         {
@@ -158,18 +137,16 @@ namespace TMG.Emme
             var codeBase = typeof(ModellerController).GetTypeInfo().Assembly.Location;
             // When EMME is installed it will link the .py to their python interpreter properly
             string argumentString = AddQuotes(Path.Combine(Path.GetDirectoryName(codeBase), "ModellerBridge.py"));
-            EMMEPipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+            _emmePipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
             try
             {
                 Parallel.Invoke(() =>
                {
                    // no more standard out
-                   EMMEPipe.WaitForConnection();
-                   using (BinaryReader reader = new BinaryReader(EMMEPipe, Encoding.UTF8, true))
-                   {
-                       // wait for the start
-                       reader.ReadInt32();
-                   }
+                   _emmePipe.WaitForConnection();
+                   using var reader = new BinaryReader(_emmePipe, Encoding.UTF8, true);
+                   // wait for the start
+                   reader.ReadInt32();
                }, () =>
                {
                    //The first argument that gets passed into the Bridge is the name of the Emme project file
@@ -179,19 +156,19 @@ namespace TMG.Emme
                        //Setup up the new process
                        // When creating this process, we can not start in our own window because we are re-directing the I/O
                        // and windows won't allow us to have a window and take its standard I/O streams at the same time
-                       Emme = new Process();
+                       _emme = new Process();
                        var startInfo = new ProcessStartInfo(pythonPath, argumentString);
                        startInfo.Environment["PATH"] += ";" + pythonLib + ";" + Path.Combine(emmePath, "programs");
-                       Emme.StartInfo = startInfo;
-                       Emme.StartInfo.CreateNoWindow = false;
-                       Emme.StartInfo.UseShellExecute = false;
-                       Emme.StartInfo.RedirectStandardInput = false;
-                       Emme.StartInfo.RedirectStandardOutput = false;
+                       _emme.StartInfo = startInfo;
+                       _emme.StartInfo.CreateNoWindow = false;
+                       _emme.StartInfo.UseShellExecute = false;
+                       _emme.StartInfo.RedirectStandardInput = false;
+                       _emme.StartInfo.RedirectStandardOutput = false;
 
                        //Start the new process
                        try
                        {
-                           Emme.Start();
+                           _emme.Start();
                        }
                        catch
                        {
@@ -218,7 +195,7 @@ namespace TMG.Emme
 
         ~ModellerController()
         {
-            Dispose(true);
+            Dispose(false);
         }
 
         private bool WaitForEmmeResponce(IModule caller, ref string returnValue, Action<float> updateProgress)
@@ -229,7 +206,7 @@ namespace TMG.Emme
                 string toPrint;
                 while (true)
                 {
-                    BinaryReader reader = new BinaryReader(EMMEPipe);
+                    using var reader = new BinaryReader(_emmePipe, Encoding.UTF8, true);
                     int result = reader.ReadInt32();
                     switch (result)
                     {
@@ -261,6 +238,10 @@ namespace TMG.Emme
                         case SignalToolDoesNotExistError:
                             {
                                 throw new EmmeToolCouldNotBeFoundException(caller, reader.ReadString());
+                            }
+                        case SignalIncompatibleTool:
+                            {
+                                throw new EmmeToolIncompatibleError(caller, reader.ReadString());
                             }
                         case SignalCheckToolExists:
                             {
@@ -300,24 +281,24 @@ namespace TMG.Emme
         /// </summary>
         private void EnsureWriteAvailable(IModule caller)
         {
-            if (EMMEPipe == null)
+            if (_emmePipe == null)
             {
                 throw new XTMFRuntimeException(caller, "EMME Bridge was invoked even though it has already been disposed.");
             }
         }
 
-        public bool Run(IModule caller, string macroName, ModellerControllerParameter[] arguments)
+        public bool Run(IModule caller, string macroName, string jsonParameters, LogbookLevel level)
         {
             string unused = null;
-            return Run(caller, macroName, arguments, null, ref unused);
+            return Run(caller, macroName, jsonParameters, level, null, ref unused);
         }
 
-        public bool Run(IModule caller, string macroName, ModellerControllerParameter[] arguments, ref string returnValue)
+        public bool Run(IModule caller, string macroName, string jsonParameters, LogbookLevel level, ref string returnValue)
         {
-            return Run(caller, macroName, arguments, null, ref returnValue);
+            return Run(caller, macroName, jsonParameters, level, null, ref returnValue);
         }
 
-        public bool Run(IModule caller, string macroName, ModellerControllerParameter[] arguments, Action<float> progressUpdate, ref string returnValue)
+        public bool Run(IModule caller, string macroName, string jsonParameters, LogbookLevel level, Action<float> progressUpdate, ref string returnValue)
         {
             lock (this)
             {
@@ -325,35 +306,31 @@ namespace TMG.Emme
                 {
                     EnsureWriteAvailable(caller);
                     // clear out all of the old input before starting
-                    BinaryWriter writer = new BinaryWriter(EMMEPipe, Encoding.Unicode, true);
+                    using var writer = new BinaryWriter(_emmePipe, Encoding.Unicode, true);
                     writer.Write(SignalStartModuleBinaryParameters);
                     writer.Write(macroName.Length);
                     writer.Write(macroName.ToCharArray());
-                    writer.Flush();
-                    // make sure the tool exists before continuing
-                    if (WaitForEmmeResponce(caller, ref returnValue, progressUpdate))
+                    if (jsonParameters == null)
                     {
-                        if (arguments != null)
-                        {
-                            writer.Write((int)arguments.Length);
-                            for (int i = 0; i < arguments.Length; i++)
-                            {
-                                writer.Write(arguments[i].Name.Length);
-                                writer.Write(arguments[i].Name.ToCharArray());
-                            }
-                            for (int i = 0; i < arguments.Length; i++)
-                            {
-                                writer.Write(arguments[i].Value.Length);
-                                writer.Write(arguments[i].Value.ToCharArray());
-                            }
-                        }
-                        else
-                        {
-                            writer.Write((int)0);
-                        }
-                        writer.Flush();
+                        writer.Write((int)0);
                     }
                     else
+                    {
+                        writer.Write(jsonParameters.Length);
+                        writer.Write(jsonParameters.ToCharArray());
+                    }
+                    var logbookLevel = level switch
+                    {
+                        LogbookLevel.Standard => LogbookStandard,
+                        LogbookLevel.Debug => LogbookDebug,
+                        LogbookLevel.None => LogbookNone,
+                        _ => LogbookStandard
+                    };
+                    writer.Write(logbookLevel.Length);
+                    writer.Write(logbookLevel);
+                    writer.Flush();
+                    // make sure the tool exists before continuing
+                    if (!WaitForEmmeResponce(caller, ref returnValue, progressUpdate))
                     {
                         // if the tool does not exist, we have failed!
                         return false;
@@ -372,26 +349,30 @@ namespace TMG.Emme
             return String.Concat("\"", fileName, "\"");
         }
 
-        private void Dispose(bool finalizer)
+        private void Dispose(bool managed)
         {
             lock (this)
             {
-                if (EMMEPipe != null)
+                if (_emmePipe != null)
                 {
                     // Send our termination message first
                     try
                     {
-                        BinaryWriter writer = new BinaryWriter(EMMEPipe);
+                        using var writer = new BinaryWriter(_emmePipe, Encoding.UTF8, true);
                         writer.Write(SignalTermination);
                         writer.Flush();
-                        EMMEPipe.Flush();
+                        _emmePipe.Flush();
                         // after our message has been sent then we can go and kill the stream
-                        EMMEPipe.Dispose();
-                        EMMEPipe = null;
+                        _emmePipe.Dispose();
+                        _emmePipe = null;
                     }
                     catch (IOException)
                     {
                     }
+                }
+                if (managed)
+                {
+                    GC.SuppressFinalize(this);
                 }
             }
         }
@@ -427,16 +408,16 @@ namespace TMG.Emme
             var builder = new StringBuilder();
             builder.Append((int)number);
             number = (float)Math.Round(number, 6);
-            number = number - (int)number;
+            number -= (int)number;
             if (number > 0)
             {
                 var integerSize = builder.Length;
                 builder.Append('.');
                 for (int i = integerSize; i < 4; i++)
                 {
-                    number = number * 10;
+                    number *= 10;
                     builder.Append((int)number);
-                    number = number - (int)number;
+                    number -= (int)number;
                     // ReSharper disable once CompareOfFloatsByEqualityOperator
                     if (number == 0)
                     {
@@ -457,16 +438,16 @@ namespace TMG.Emme
         {
             builder.Clear();
             builder.Append((int)number);
-            number = number - (int)number;
+            number -= (int)number;
             if (number > 0)
             {
                 var integerSize = builder.Length;
                 builder.Append('.');
                 for (int i = integerSize; i < 4; i++)
                 {
-                    number = number * 10;
+                    number *= 10;
                     builder.Append((int)number);
-                    number = number - (int)number;
+                    number -= (int)number;
                     // ReSharper disable once CompareOfFloatsByEqualityOperator
                     if (number == 0)
                     {
@@ -491,7 +472,6 @@ namespace TMG.Emme
         public void Dispose()
         {
             Dispose(true);
-            GC.SuppressFinalize(this);
         }
     }
 }

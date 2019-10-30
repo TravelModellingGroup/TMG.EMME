@@ -25,7 +25,6 @@ from datetime import datetime as _dt
 import shutil as _shutil
 import zipfile as _zipfile
 import tempfile as _tf
-import json
 
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 _util = _MODELLER.module('tmg2.utilities.general_utilities')
@@ -46,9 +45,6 @@ class ExportNetworkPackage(_m.Tool()):
     tool_run_msg = ""
     number_of_tasks = 11  # For progress reporting, enter the integer number of tasks here
 
-    xtmf_JSON = _m.Attribute(str)
-    xtmf_logbook_level = _m.Attribute(str)
-
     def __init__(self):
         # Init internal variables
         self.TRACKER = _util.ProgressTracker(self.number_of_tasks)  # init the ProgressTracker
@@ -60,12 +56,8 @@ class ExportNetworkPackage(_m.Tool()):
     def page(self):
         return ""
 
-    def __call__(self, xtmf_JSON, xtmf_logbook_level):
-        logbook = _m.logbook_level()
-        if xtmf_logbook_level == "NONE":
-            _m.logbook_level(_m.LogbookLevel.NONE)
+    def run_xtmf(self, parameters):
         # xtmf_ScenarioNumber, ExportFile, xtmf_AttributeIdString
-        parameters = json.loads(xtmf_JSON)
         self.ExportFile = parameters["export_file"]
         self.Scenario = _m.Modeller().emmebank.scenario(parameters["scenario_number"])
         if self.Scenario is None:
@@ -82,9 +74,6 @@ class ExportNetworkPackage(_m.Tool()):
         except Exception, e:
             msg = str(e) + "\n" + _traceback.format_exc(e)
             raise Exception(msg)
-        finally:
-            if logbook != None:
-                _m.logbook_level(logbook)
 
     def _execute(self):
         with _m.logbook_trace(

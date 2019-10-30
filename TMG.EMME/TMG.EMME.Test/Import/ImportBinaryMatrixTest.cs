@@ -29,18 +29,14 @@ namespace TMG.Emme.Test.Import
         {
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Import.import_binary_matrix",
-                new[]
-                {
-                    new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
+                 JSONParameterBuilder.BuildParameters(writer =>
                     {
                         writer.WriteNumber("matrix_type", 4);
                         writer.WriteNumber("matrix_number", 1);
                         writer.WriteString("binary_matrix_file", Path.GetFullPath("test.mtx"));
                         writer.WriteNumber("scenario_number", 1);
                         writer.WriteString("matrix_description", "Test Matrix");
-                    })),
-                    new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-                }));
+                    }), LogbookLevel.Standard));
         }
 
         [TestMethod]

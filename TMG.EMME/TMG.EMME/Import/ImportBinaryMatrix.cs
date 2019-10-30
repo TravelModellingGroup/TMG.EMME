@@ -46,19 +46,14 @@ namespace TMG.Emme.Import
 
         public override void Invoke(ModellerController context)
         {
-            context.Run(this, "tmg2.Import.import_binary_matrix",
-                new[]
-                {
-                    new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
+            context.Run(this, "tmg2.Import.import_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
                     {
                         writer.WriteNumber("matrix_type", 4);
                         writer.WriteNumber("matrix_number", MatrixNumber.Invoke());
                         writer.WriteString("binary_matrix_file", Path.GetFullPath(FileLocation.Invoke()));
                         writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                         writer.WriteString("matrix_description", Description.Invoke());
-                    })),
-                    new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-                });
+                    }), LogbookLevel.Standard);
         }
     }
 }

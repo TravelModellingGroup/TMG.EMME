@@ -32,7 +32,7 @@ namespace TMG.Emme.Export
             Index = 0)]
         public IFunction<int> ScenarioNumber;
 
-        [Parameter(Name = "Attributes", Description = "A comma seperated list of attributes to load.  Enter 'all' to get all attributes.",
+        [Parameter(Name = "Attributes", Description = "A comma separated list of attributes to load.  Enter 'all' to get all attributes.",
             Index = 1)]
         public IFunction<string> Attributes;
 
@@ -42,16 +42,12 @@ namespace TMG.Emme.Export
 
         public override void Invoke(ModellerController context)
         {
-            context.Run(this, "tmg2.Export.export_network_package", new[]
-                {
-                    new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
+            context.Run(this, "tmg2.Export.export_network_package", JSONParameterBuilder.BuildParameters(writer =>
                     {
                         writer.WriteString("export_file", Path.GetFullPath(SaveTo.Invoke()));
                         writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                         writer.WriteString("extra_attributes", Attributes.Invoke());
-                    })),
-                    new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-                });
+                    }), LogbookLevel.Standard);
         }
     }
 }

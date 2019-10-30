@@ -31,12 +31,7 @@ namespace TMG.Emme.Import
     {
         public override void Invoke(ModellerController context)
         {
-            context.Run(null, "tmg2.Import.import_network_package",
-                new[]
-                {
-                    new ModellerControllerParameter("xtmf_JSON", GetParameters()),
-                    new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-                });
+            context.Run(this, "tmg2.Import.import_network_package", GetParameters(), LogbookLevel.Standard);
         }
 
         [Parameter(DefaultValue = "myNetwork.nwp", Index = 0, Name = "Network Package File",
