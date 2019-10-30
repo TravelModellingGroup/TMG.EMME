@@ -288,9 +288,9 @@ class XTMFBridge:
                 timer = ProgressTimer(tool.percent_completed, self)
                 timer.start()
             #Execute the tool, getting the return value
-            previous_logbook_level = _m.logbook_level(_m.LogbookLevel.TRACE | _m.LogbookLevel.LOG)
+            previous_logbook_level = _m.logbook_level()
             if logbook_level == 'STANDARD':
-                _m.logbook_level(_m.LogbookLevel.NONE)
+                _m.logbook_level(_m.LogbookLevel.TRACE | _m.LogbookLevel.LOG)
             elif logbook_level == "NONE":
                 _m.logbook_level(_m.LogbookLevel.NONE)
             else:
