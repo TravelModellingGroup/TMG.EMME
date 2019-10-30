@@ -37,7 +37,6 @@ Copy Scenario
 '''
 import inro.modeller as _m
 import traceback as _traceback
-import json
 _MODELLER = _m.Modeller() #Instantiate Modeller once.
 class CopyScenario(_m.Tool()):
     version = '0.0.1'
@@ -53,11 +52,7 @@ class CopyScenario(_m.Tool()):
     def run(self):
         pass
 
-    def run_xtmf(self, xtmf_JSON, xtmf_logbook_level):  
-        logbook = _m.logbook_level()
-        if xtmf_logbook_level == "NONE":
-            _m.logbook_level(_m.LogbookLevel.NONE)
-        parameters = json.loads(xtmf_JSON)
+    def run_xtmf(self, parameters):  
         FromScenario = parameters['from_scenario']
         ToScenario = parameters['to_scenario']
         CopyStrategy = parameters['copy_strategy']

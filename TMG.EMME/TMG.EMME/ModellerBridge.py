@@ -277,8 +277,8 @@ class XTMFBridge:
             if 'run_xtmf' not in dir(tool):
                 self.SendIncompatibleTool(macroName)
                 return
-            nameSpace = {'tool':tool, 'parameters':parameterString, 'logbook_level': logbook_level}
-            callString = 'tool.run_xtmf(parameters, logbook_level)'
+            nameSpace = {'tool':tool, 'parameters':json.loads(parameterString)}
+            callString = 'tool.run_xtmf(parameters)'
             
             #Now that everything is ready, attach an instance of ourselves into
             #the tool so they can send progress reports
@@ -288,7 +288,18 @@ class XTMFBridge:
                 timer = ProgressTimer(tool.percent_completed, self)
                 timer.start()
             #Execute the tool, getting the return value
-            ret = eval(callString, nameSpace, None)
+            previous_logbook_level = _m.logbook_level(_m.LogbookLevel.TRACE | _m.LogbookLevel.LOG)
+            if logbook_level == 'STANDARD':
+                _m.logbook_level(_m.LogbookLevel.NONE)
+            elif logbook_level == "NONE":
+                _m.logbook_level(_m.LogbookLevel.NONE)
+            else:
+                # Enable everything for debugging
+                _m.logbook_level(_m.LogbookLevel.TRACE | _m.LogbookLevel.LOG | _m.LogbookLevel.COOKIE | _m.LogbookLevel.ATTRIBUTE | _m.LogbookLevel.VALUE)
+            try:
+                ret = eval(callString, nameSpace, None)
+            finally:
+                _m.logbook_level(previous_logbook_level)
             
             if timer != None:
                 timer.stop()
