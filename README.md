@@ -102,6 +102,7 @@ class HelloWorld(m.tool()):
     print "Hello World, Python Script!"
 
   # The entry point for a call from XTMF2
-  def xtmf_run(self, xtmf_json, xtmf_logbook_level):
+  def xtmf_run(self, parameters):
+    # parameters is a parsed JSON object
     print "Hello World, XTMF2"
 ```
