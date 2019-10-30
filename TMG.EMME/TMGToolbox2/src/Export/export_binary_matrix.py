@@ -60,12 +60,7 @@ class ExportBinaryMatrix(_m.Tool()):
                     2: 'mo',
                     3: 'md',
                     4: 'mf'}
-    
-    #---PARAMETERS
-    
-    xtmf_JSON = _m.Attribute(str)
-    xtmf_logbook_level = _m.Attribute(str)
-    
+       
     def __init__(self):
         #---Init internal variables
         self.TRACKER = _util.ProgressTracker(self.number_of_tasks) #init the ProgressTracker
@@ -97,7 +92,7 @@ class ExportBinaryMatrix(_m.Tool()):
     #---
     #---XTMF INTERFACE METHODS
     
-    def __call__(self, xtmf_JSON, xtmf_logbook_level):
+    def run_xtmf(self, xtmf_JSON, xtmf_logbook_level):
         logbook = _m.logbook_level()
         if xtmf_logbook_level == "NONE":
             _m.logbook_level(_m.LogbookLevel.NONE)

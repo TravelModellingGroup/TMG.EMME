@@ -84,8 +84,6 @@ class ImportNetworkPackage(_m.Tool()):
     #    need to be placed here. Internal parameters (such as lists and dicts)
     #    get initialized during construction (__init__)
 
-    xtmf_JSON = _m.Attribute(str)
-    xtmf_logbook_level = _m.Attribute(str)
     '''ScenarioId = _m.Attribute(int)  # common variable or parameter
     NetworkPackageFile = _m.Attribute(str)
     ScenarioDescription = _m.Attribute(str)
@@ -220,7 +218,7 @@ class ImportNetworkPackage(_m.Tool()):
 
         self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario %s created." % self.ScenarioId)'''
 
-    def __call__(self, xtmf_JSON, xtmf_logbook_level):
+    def run_xtmf(self, xtmf_JSON, xtmf_logbook_level):
         logbook = _m.logbook_level()
         if xtmf_logbook_level == "NONE":
             _m.logbook_level(_m.LogbookLevel.NONE)

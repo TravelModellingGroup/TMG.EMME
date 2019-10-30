@@ -41,8 +41,6 @@ import json
 _MODELLER = _m.Modeller() #Instantiate Modeller once.
 class CopyScenario(_m.Tool()):
     version = '0.0.1'
-    xtmf_JSON = _m.Attribute(str)
-    xtmf_logbook_level = _m.Attribute(str)
     
     def page(self):
         pb = _m.ToolPageBuilder(self, title="Copy Scenario",
@@ -55,7 +53,7 @@ class CopyScenario(_m.Tool()):
     def run(self):
         pass
 
-    def __call__(self, xtmf_JSON, xtmf_logbook_level):  
+    def run_xtmf(self, xtmf_JSON, xtmf_logbook_level):  
         logbook = _m.logbook_level()
         if xtmf_logbook_level == "NONE":
             _m.logbook_level(_m.LogbookLevel.NONE)

@@ -46,9 +46,6 @@ class ExportNetworkPackage(_m.Tool()):
     tool_run_msg = ""
     number_of_tasks = 11  # For progress reporting, enter the integer number of tasks here
 
-    xtmf_JSON = _m.Attribute(str)
-    xtmf_logbook_level = _m.Attribute(str)
-
     def __init__(self):
         # Init internal variables
         self.TRACKER = _util.ProgressTracker(self.number_of_tasks)  # init the ProgressTracker
@@ -60,7 +57,7 @@ class ExportNetworkPackage(_m.Tool()):
     def page(self):
         return ""
 
-    def __call__(self, xtmf_JSON, xtmf_logbook_level):
+    def run_xtmf(self, xtmf_JSON, xtmf_logbook_level):
         logbook = _m.logbook_level()
         if xtmf_logbook_level == "NONE":
             _m.logbook_level(_m.LogbookLevel.NONE)
