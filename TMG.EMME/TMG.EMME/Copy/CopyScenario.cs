@@ -40,16 +40,12 @@ namespace TMG.Emme.Copy
         public override void Invoke(ModellerController context)
         {
             context.Run(null, "tmg2.Copy.copy_scenario",
-                new[]
-                {
-                    new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
+                    JSONParameterBuilder.BuildParameters(writer =>
                     {
                         writer.WriteNumber("from_scenario", FromScenario.Invoke());
                         writer.WriteNumber("to_scenario", ToScenario.Invoke());
                         writer.WriteBoolean("copy_strategy", CopyStrategy.Invoke());
-                    })),
-                    new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-                });
+                    }), LogbookLevel.None);
         }
     }
 }

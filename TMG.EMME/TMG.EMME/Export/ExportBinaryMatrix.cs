@@ -42,17 +42,13 @@ namespace TMG.Emme.Export
 
         public override void Invoke(ModellerController context)
         {
-            context.Run(null, "tmg2.Export.export_binary_matrix", new[]
-                {
-                    new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
+            context.Run(null, "tmg2.Export.export_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
                     {
                         writer.WriteNumber("matrix_type", 4);
                         writer.WriteNumber("matrix_number", MatrixNumber.Invoke());
                         writer.WriteString("file_location", Path.GetFullPath(SaveTo.Invoke()));
                         writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-                    })),
-                    new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-                });
+                    }), LogbookLevel.Standard);
         }
     }
 }

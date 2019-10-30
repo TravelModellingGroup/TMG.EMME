@@ -29,16 +29,12 @@ namespace TMG.Emme.Test.Copy
         public void CopyScenario()
         {
             Assert.IsTrue(
-            Helper.Modeller.Run(null, "tmg2.Copy.copy_scenario", new[]
-            {
-                new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
+            Helper.Modeller.Run(null, "tmg2.Copy.copy_scenario", JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("from_scenario", 1);
                     writer.WriteNumber("to_scenario", 2);
                     writer.WriteBoolean("copy_strategy", false);
-                })),
-                    new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-            }));
+                }), LogbookLevel.Standard));
         }
 
         [TestMethod]

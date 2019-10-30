@@ -47,12 +47,7 @@ namespace TMG.Emme.Test.Import
                     return Encoding.UTF8.GetString(backing.GetBuffer().AsSpan(0, (int)backing.Length));
                 }
             }
-            Assert.IsTrue(Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
-                new[]
-                {
-                    new ModellerControllerParameter("xtmf_JSON", GetParameters()),
-                    new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-                }));
+            Assert.IsTrue(Helper.Modeller.Run(null, "tmg2.Import.import_network_package", GetParameters(), LogbookLevel.Standard));
         }
 
         [TestMethod]

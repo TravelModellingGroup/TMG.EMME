@@ -29,17 +29,13 @@ namespace TMG.Emme.Test.Export
         public void ExportBinaryMatrix()
         {
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Export.export_binary_matrix", new[]
-                {
-                    new ModellerControllerParameter("xtmf_JSON", JSONParameterBuilder.BuildParameters(writer =>
+                Helper.Modeller.Run(null, "tmg2.Export.export_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
                     {
                         writer.WriteNumber("matrix_type", 4);
                         writer.WriteNumber("matrix_number", 1);
                         writer.WriteString("file_location", Path.GetFullPath("exported.mtx"));
                         writer.WriteNumber("scenario_number", 1);
-                    })),
-                    new ModellerControllerParameter("xtmf_logbook_level", ModellerController.LogbookAll)
-                }));
+                    }), LogbookLevel.Standard));
         }
 
         [TestMethod]
