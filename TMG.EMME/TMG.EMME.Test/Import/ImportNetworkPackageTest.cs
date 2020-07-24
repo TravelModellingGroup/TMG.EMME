@@ -30,36 +30,29 @@ namespace TMG.Emme.Test.Import
         [TestMethod]
         public void ImportNetworkPackage()
         {
-            string GetParameters()
-            {
-                using (MemoryStream backing = new MemoryStream())
+            Assert.IsTrue(
+                Helper.Modeller.Run(null, "tmg2.Import.import_network_package", JSONParameterBuilder.BuildParameters(writer =>
                 {
-                    using var writer = new Utf8JsonWriter(backing);
-                    {
-                        writer.WriteStartObject();
-                        writer.WriteString("network_package_file", Path.GetFullPath("test.nwp"));
-                        writer.WriteNumber("scenario_number", 1);
-                        writer.WriteBoolean("add_functions", false);
-                        writer.WriteString("conflict_option", "PRESERVE");
-                        writer.WriteEndObject();
-                        writer.Flush();
-                    }
-                    return Encoding.UTF8.GetString(backing.GetBuffer().AsSpan(0, (int)backing.Length));
-                }
-            }
-            Assert.IsTrue(Helper.Modeller.Run(null, "tmg2.Import.import_network_package", GetParameters(), LogbookLevel.Standard));
+                    writer.WriteString("network_package_file", Path.GetFullPath("test.nwp"));
+                    writer.WriteNumber("scenario_number", 1);
+                    writer.WriteString("scenario_description", "TestScenario");
+                    writer.WriteBoolean("skip_merging_functions", false);
+                    writer.WriteBoolean("add_functions", false);
+                    writer.WriteString("conflict_option", "PRESERVE");
+                }), LogbookLevel.Standard));
         }
+
 
         [TestMethod]
         public void ImportNetworkPackageModule()
         {
-            TMG.Emme.Import.ImportNetworkPackage importModule = new Emme.Import.ImportNetworkPackage()
+            var module = new Emme.Import.ImportNetworkPackage()
             {
                 Name = "Importer",
                 ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
                 NetworkPackageFile = Helper.CreateParameter("test.nwp")
             };
-            importModule.Invoke(Helper.Modeller);
+            module.Invoke(Helper.Modeller);
         }
     }
 }

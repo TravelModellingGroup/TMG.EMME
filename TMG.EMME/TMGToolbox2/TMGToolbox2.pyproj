@@ -41,6 +41,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="src\utilities\merge_functions.py" />
+    <Compile Include="src\utilities\pandas_utils.py" />
     <Compile Include="src\utilities\TMG_tool_page_builder.py" />
     <Compile Include="src\utilities\general_utilities.py" />
   </ItemGroup>
