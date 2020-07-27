@@ -21,6 +21,7 @@ import inro.modeller as _m
 import traceback as _traceback
 from contextlib import contextmanager
 import zipfile as _zipfile
+import os
 from os import path as _path
 import shutil as _shutil
 import tempfile as _tf
@@ -83,33 +84,35 @@ class ImportNetworkPackage(_m.Tool()):
     #    need to be placed here. Internal parameters (such as lists and dicts)
     #    get initialized during construction (__init__)
 
-    '''ScenarioId = _m.Attribute(int)  # common variable or parameter
-    NetworkPackageFile = _m.Attribute(str)
-    ScenarioDescription = _m.Attribute(str)
-    OverwriteScenarioFlag = _m.Attribute(bool)
-    ConflictOption = _m.Attribute(str)
-    AddFunction = _m.Attribute(bool)'''
+    scenario_Id = _m.Attribute(int)  # common variable or parameter
+    network_package_file = _m.Attribute(str)
+    scenario_description = _m.Attribute(str)
+    overwrite_scenario_flag = _m.Attribute(bool)
+    conflict_option = _m.Attribute(str)
+    add_functions = _m.Attribute(bool)
+    skip_merging_functions = _m.Attribute(bool)
 
     def __init__(self):
         # ---Init internal variables
         self.TRACKER = _util.ProgressTracker(self.number_of_tasks)  # init the ProgressTracker
 
         # ---Set the defaults of parameters used by Modeller
-        self.ScenarioDescription = ""
-        self.OverwriteScenarioFlag = False
-        self.ConflictOption = merge_functions.EDIT_OPTION
+        self.scenario_description = ""
+        self.overwrite_scenario_flag = False
+        self.conflict_option = merge_functions.EDIT_OPTION
         self._components = ComponentContainer()
+        self.skip_merging_functions = False
 
     def page(self):
         pb = _tmg_tpb.TmgToolPageBuilder(self, title="Import Network Package v%s" % self.version,
                                          description="Imports a new scenario from a compressed network package \
-                             (*.nwp) file. Not callable from Modeller. Please use XTMF2.",
+                             (*.nwp) file.",
                                          branding_text="- TMG Toolbox 2")
 
-        '''if self.tool_run_msg != "":  # to display messages in the page
+        if self.tool_run_msg != "":  # to display messages in the page
             pb.tool_run_status(self.tool_run_msg_status)
-
-        pb.add_select_file(tool_attribute_name='NetworkPackageFile',
+            
+        pb.add_select_file(tool_attribute_name='network_package_file',
                            window_type='file',
                            title="Network Package File",
                            file_filter='*.nwp')
@@ -117,23 +120,25 @@ class ImportNetworkPackage(_m.Tool()):
         pb.add_html("""<div class="t_element" id="NetworkPackageInfoDiv" style="padding: 0px inherit;">
         </div>""")
 
-        pb.add_text_box(tool_attribute_name='ScenarioId',
-                        size=4,
+        pb.add_text_box(tool_attribute_name='scenario_Id',
+                        size=5,
                         title="New Scenario Number",
                         note="Enter a new or existing scenario")
-        pb.add_new_scenario_select(tool_attribute_name='ScenarioId',
-                                  title="New Scenario Number",
-                                  note="'Next' picks the next available scenario.")
 
-        pb.add_text_box(tool_attribute_name='ScenarioDescription',
+        pb.add_text_box(tool_attribute_name='scenario_description',
                         size=60,
                         title="Scenario description")
 
-        pb.add_select(tool_attribute_name='ConflictOption',
+        pb.add_checkbox(tool_attribute_name='skip_merging_functions',
+                        label="Skip the merging of functions?",
+                        note="Set as TRUE to unchange the functional definitions in current Emmebank.")
+
+        pb.add_select(tool_attribute_name='conflict_option',
                       keyvalues=merge_functions.OPTIONS_LIST,
-                      title="Function Conflict Option",
+                      title="(Optional) Function Conflict Option",
                       note="Select an action to take if there are conflicts found \
-                      between the package and the current Emmebank.")
+                      between the package and the current Emmebank. \
+                      Ignore if 'Skip merging functions' is checked.")
 
         # ---JAVASCRIPT
         pb.add_html("""
@@ -142,14 +147,14 @@ class ImportNetworkPackage(_m.Tool()):
     {
         var tool = new inro.modeller.util.Proxy(%s) ;
         
-        $("#NetworkPackageFile").bind('change', function()
+        $("#network_package_file").bind('change', function()
         {
             $(this).commit();
             
             //Change the scenario description
-            $("#ScenarioDescription")
+            $("#scenario_description")
                 .val(tool.get_description_from_file())
-            $("#ScenarioDescription").trigger('change');
+            $("#scenario_description").trigger('change');
             
             //Change the package info
             var info = tool.get_file_info();
@@ -160,7 +165,7 @@ class ImportNetworkPackage(_m.Tool()):
         
         //$(this).parent().siblings(".t_after_widget").html(s);
         
-        $("#ScenarioId").bind('change', function()
+        $("#scenario_Id").bind('change', function()
         {
             $(this).commit();
             
@@ -185,7 +190,7 @@ class ImportNetworkPackage(_m.Tool()):
                     }
                 });
                 
-                $("#ScenarioDescription").val(tool.get_existing_scenario_title())
+                $("#scenario_description").val(tool.get_existing_scenario_title())
                                         .trigger('change');
                 
             } else {
@@ -193,36 +198,37 @@ class ImportNetworkPackage(_m.Tool()):
             }
         });
         
-        $("#ScenarioId").trigger('change');
+        $("#scenario_Id").trigger('change');
     });
-</script>""" % pb.tool_proxy_tag)'''
+</script>""" % pb.tool_proxy_tag)
 
         return pb.render()
-    '''
+
     def run(self):
         self.tool_run_msg = ""
         self.TRACKER.reset()
 
-        if self.ScenarioId < 1:
-            raise Exception("Scenario '%s' is not a valid scenario" % self.ScenarioId)
+        if self.scenario_Id < 1:
+            raise Exception("Scenario '%s' is not a valid scenario" % self.scenario_Id)
 
-        if self.NetworkPackageFile is None:
+        if self.network_package_file is None:
             raise IOError("Import file not specified")
-
+        
         try:
             self._execute()
         except Exception as e:
             self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc(e))
             raise
 
-        self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario %s created." % self.ScenarioId)'''
+        self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario %s created." % self.scenario_Id)
 
     def run_xtmf(self, parameters):
         self.network_package_file = parameters['network_package_file']
-        self.scenario_description = ""
+        self.scenario_description = parameters['scenario_description']
         self.scenario_Id = parameters['scenario_number']
         self.overwrite_scenario_flag = True
         self.add_functions = parameters['add_functions']
+        self.skip_merging_functions = parameters['skip_merging_functions']
         if self.add_functions == True or self.add_functions == 'True':
             self.conflict_option = parameters['conflict_option']
         else:
@@ -312,13 +318,15 @@ class ImportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Reading transit lines")
     def _batchin_lines(self, scenario, temp_folder, zf):
         zf.extract(self._components.lines_file, temp_folder)
+        if self.transit_file_change is True:
+            self._transit_line_file_update(temp_folder)
         self.TRACKER.runTool(import_lines,
                              transaction_file=_path.join(temp_folder, self._components.lines_file),
                              scenario=scenario)
 
     @_m.logbook_trace("Reading turns")
     def _batchin_turns(self, scenario, temp_folder, zf):
-        if self._components.turns_file != None and (self._components.turns_file in zf.namelist()):
+        if self._components.turns_file is not None and (self._components.turns_file in zf.namelist()):
             zf.extract(self._components.turns_file, temp_folder)
             self.TRACKER.runTool(import_turns,
                              transaction_file=_path.join(temp_folder, self._components.turns_file),
@@ -346,6 +354,7 @@ class ImportNetworkPackage(_m.Tool()):
                               scenario=scenario)
             self.TRACKER.completeSubtask()
 
+    @_m.logbook_trace("Reading functions")
     def _batchin_functions(self, temp_folder, zf):
         zf.extract(self._components.functions_file, temp_folder)
         merge_functions.function_file = _path.join(temp_folder, self._components.functions_file)
@@ -468,6 +477,8 @@ class ImportNetworkPackage(_m.Tool()):
 
         contents = package.namelist()
         processed = [self._getZipFileName(x) for x in contents]
+        self.transit_file_change = False 
+
         if 'version.txt' in processed:
             self._components.mode_file = self._getZipOriginalString(processed, contents, 'modes.201')
             self._components.vehicles_file = self._getZipOriginalString(processed, contents, 'vehicles.202')
@@ -476,14 +487,16 @@ class ImportNetworkPackage(_m.Tool()):
             self._components.turns_file = self._getZipOriginalString(processed, contents, 'turns.231')
             self._components.shape_file = self._getZipOriginalString(processed, contents, 'shapes.251')
             s = self._getZipOriginalString(processed, contents, 'version.txt')
-            if s != None:
+            if s is not None:
                  vf = package.open(s)
                  version = float(vf.readline())
                  if version >= 3:
                      self._components.functions_file = self._getZipOriginalString(processed, contents, 'functions.411')
+                 self.transit_file_change = (version >= 4.4)
+
                  s = self._getZipOriginalString(processed, contents, 'link_results.csv')
                  s2 = self._getZipOriginalString(processed, contents, 'turn_results.csv')
-                 if s != None and s2 != None:
+                 if s is not None and s2 is not None:
                      self._components.traffic_results_files = s, s2
                  self._components.transit_results_files = self._getZipOriginalString(processed, contents, 'segment_results.csv')
                  self._components.aux_transit_results_file = self._getZipOriginalString(processed, contents, 'aux_transit_results.csv')	     
@@ -537,6 +550,19 @@ class ImportNetworkPackage(_m.Tool()):
                     # strip called twice: once to remove the '\n' character, and once to remove both ' characters
                     types.add(att.type)
         return types
+    
+    def _transit_line_file_update(self, temp_folder):
+        lines = []
+        with open(_path.join(temp_folder, self._components.lines_file),"r") as infile, open(_path.join(temp_folder, 'temp.211'),"w") as outfile:
+            for line in infile:
+                if line[0] == 'c':
+                    outfile.write(line.replace("'",""))
+                else:
+                    outfile.write(line)
+        outfile.close()
+        os.remove(_path.join(temp_folder, self._components.lines_file))
+        os.renames(_path.join(temp_folder, 'temp.211'),_path.join(temp_folder, self._components.lines_file))
+        return None
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
