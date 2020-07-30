@@ -37,8 +37,6 @@ namespace TMG.Emme.Test.Import
                      writer.WriteString("network_package_file", Path.GetFullPath("test.nwp"));
                      writer.WriteString("scenario_description", "Test Network");
                      writer.WriteNumber("scenario_number", 1);
-                     writer.WriteBoolean("add_functions", false);
-                     writer.WriteBoolean("skip_merging_functions", false);
                      writer.WriteString("conflict_option", "PRESERVE");
                  }), LogbookLevel.Standard));
         }
@@ -50,8 +48,8 @@ namespace TMG.Emme.Test.Import
             {
                 Name = "Importer",
                 ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
-                FileLocation = Helper.CreateParameter("test.nwp", "NWP File Name"),
-                Description = Helper.CreateParameter("Module Loaded", "Description")
+                NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("test.nwp"), "NWP File Name"),
+                ScenarioDescription = Helper.CreateParameter("From XTMF","Description")
             };
             importModule.Invoke(Helper.Modeller);
         }
