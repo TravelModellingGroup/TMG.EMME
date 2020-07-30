@@ -89,8 +89,6 @@ class ImportNetworkPackage(_m.Tool()):
     scenario_description = _m.Attribute(str)
     overwrite_scenario_flag = _m.Attribute(bool)
     conflict_option = _m.Attribute(str)
-    add_functions = _m.Attribute(bool)
-    skip_merging_functions = _m.Attribute(bool)
 
     def __init__(self):
         # ---Init internal variables
@@ -101,7 +99,6 @@ class ImportNetworkPackage(_m.Tool()):
         self.overwrite_scenario_flag = False
         self.conflict_option = merge_functions.EDIT_OPTION
         self._components = ComponentContainer()
-        self.skip_merging_functions = False
 
     def page(self):
         pb = _tmg_tpb.TmgToolPageBuilder(self, title="Import Network Package v%s" % self.version,
@@ -129,16 +126,12 @@ class ImportNetworkPackage(_m.Tool()):
                         size=60,
                         title="Scenario description")
 
-        pb.add_checkbox(tool_attribute_name='skip_merging_functions',
-                        label="Skip the merging of functions?",
-                        note="Set as TRUE to unchange the functional definitions in current Emmebank.")
-
         pb.add_select(tool_attribute_name='conflict_option',
                       keyvalues=merge_functions.OPTIONS_LIST,
-                      title="(Optional) Function Conflict Option",
+                      title="Function Conflict Option",
                       note="Select an action to take if there are conflicts found \
                       between the package and the current Emmebank. \
-                      Ignore if 'Skip merging functions' is checked.")
+                      Or select 'SKIP' to ignore the importing of functions.")
 
         # ---JAVASCRIPT
         pb.add_html("""
@@ -227,12 +220,8 @@ class ImportNetworkPackage(_m.Tool()):
         self.scenario_description = parameters['scenario_description']
         self.scenario_Id = parameters['scenario_number']
         self.overwrite_scenario_flag = True
-        self.add_functions = parameters['add_functions']
-        self.skip_merging_functions = parameters['skip_merging_functions']
-        if self.add_functions == True or self.add_functions == 'True':
-            self.conflict_option = parameters['conflict_option']
-        else:
-            self.conflict_option = 'PRESERVE'
+        self.conflict_option = parameters['conflict_option']
+
         try:
             self._execute()
         except Exception, e:

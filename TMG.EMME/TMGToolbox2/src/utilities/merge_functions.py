@@ -73,17 +73,19 @@ class MergeFunctions(_m.Tool()):
     function_file = _m.Attribute(str)
     revert_on_error = _m.Attribute(bool)
     
-    ConflictOption = _m.Attribute(str)
+    conflict_option = _m.Attribute(str)
     
     RAISE_OPTION = "RAISE"
     PRESERVE_OPTION = "PRESERVE"
     OVERWRITE_OPTION = "OVERWRITE"
     EDIT_OPTION = "EDIT"
-    
+    SKIP_OPTION = "SKIP"
+
     OPTIONS_LIST = [(EDIT_OPTION, "EDIT - Launch an editor GUI to resolve conflicts manually."),
                   (RAISE_OPTION, "RAISE - Raise an error if any conflicsts are detected."),
                   (PRESERVE_OPTION, "PRESERVE - Preserve functional definitions from the current Emme project."),
-                  (OVERWRITE_OPTION, "OVERWRITE - Overwrite functional definitions from the function file.")]
+                  (OVERWRITE_OPTION, "OVERWRITE - Overwrite functional definitions from the function file."),
+                  (SKIP_OPTION, "SKIP - Do not import any functions to the current Emmebank.")]
     
     def __init__(self):
         #---Init internal variables
@@ -110,12 +112,12 @@ class MergeFunctions(_m.Tool()):
                            window_type='file', start_path=baseFolder,
                            title="Functions File")
         
-        pb.add_select(tool_attribute_name= 'ConflictOption',
+        pb.add_select(tool_attribute_name= 'conflict_option',
                       keyvalues= self.OPTIONS_LIST, title= "Conflict resolution option",
                       note= "Select an option for this tool to perform if \
                       conflicts in functional definitions are detected.")
         
-        pb.add_checkbox(tool_attribute_name='RevertOnError',
+        pb.add_checkbox(tool_attribute_name='revert_on_error',
                         label="Revert on error?")
         
         return pb.render()
@@ -149,14 +151,17 @@ class MergeFunctions(_m.Tool()):
             database_functions = self._LoadFunctionsInDatabank()
             self.TRACKER.completeTask()
             
-            newFuncCount, modFuncCount = self._MergeFunctions(database_functions, file_functions)
-            self.TRACKER.completeTask()
-            
-            msg = "Done."
-            if newFuncCount > 0:
-                msg += " %s functions added." %newFuncCount
-            if modFuncCount > 0:
-                msg += " %s functions modified." %modFuncCount
+            if self.conflict_option == self.SKIP_OPTION:
+                msg = "Skipped the import of functions."
+            else:
+                newFuncCount, modFuncCount = self._MergeFunctions(database_functions, file_functions)
+                self.TRACKER.completeTask()            
+                msg = "Done."
+                if newFuncCount > 0:
+                    msg += " %s functions added." %newFuncCount
+                if modFuncCount > 0:
+                    msg += " %s functions modified." %modFuncCount
+
             self.tool_run_msg = _m.PageBuilder.format_info(msg)
             _m.logbook_write(msg)
 
