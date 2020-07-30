@@ -106,7 +106,7 @@ class MergeFunctions(_m.Tool()):
             pb.tool_run_status(self.tool_run_msg_status)
         
         baseFolder = _path.dirname(_MODELLER.desktop.project_file_name())
-        pb.add_select_file(tool_attribute_name='FunctionFile',
+        pb.add_select_file(tool_attribute_name='function_file',
                            window_type='file', start_path=baseFolder,
                            title="Functions File")
         
