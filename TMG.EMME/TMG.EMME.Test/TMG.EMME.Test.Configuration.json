@@ -1,3 +1,5 @@
 {
-  "ProjectFile": "DebugProject/DebugProject.emp"
+  "ProjectFile": "DebugProject/DebugProject.emp",
+  "NWPFile": "test.nwp",
+  "MatrixFile": "Test.mtx"
 }
