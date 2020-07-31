@@ -32,6 +32,17 @@ namespace TMG.Emme.Test.Export
         [TestMethod]
         public void ExportNetworkPackage()
         {
+            /*Ensure the project has a valid network to be exported*/
+            Assert.IsTrue(
+                Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
+                 JSONParameterBuilder.BuildParameters(writer =>
+                 {
+                     writer.WriteString("network_package_file", Path.GetFullPath("test.nwp"));
+                     writer.WriteString("scenario_description", "Test Network");
+                     writer.WriteNumber("scenario_number", 1);
+                     writer.WriteString("conflict_option", "PRESERVE");
+                 }), LogbookLevel.Standard));
+
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Export.export_network_package", JSONParameterBuilder.BuildParameters(writer =>
                     {
@@ -44,6 +55,16 @@ namespace TMG.Emme.Test.Export
         [TestMethod]
         public void ExportNetworkPackageModule()
         {
+            /*Ensure the project has a valid network to be exported*/
+            var importModule = new Emme.Import.ImportNetworkPackage()
+            {
+                Name = "Importer",
+                ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
+                NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("test.nwp"), "NWP File Name"),
+                ScenarioDescription = Helper.CreateParameter("From XTMF", "Description")
+            };
+            importModule.Invoke(Helper.Modeller);
+
             var module = new TMG.Emme.Export.ExportNetworkPackage()
             {
                 ScenarioNumber = Helper.CreateParameter(1),
