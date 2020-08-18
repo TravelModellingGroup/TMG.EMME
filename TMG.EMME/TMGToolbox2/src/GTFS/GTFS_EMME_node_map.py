@@ -33,7 +33,7 @@ _tmgTPB = _MODELLER.module('tmg2.utilities.TMG_tool_page_builder')
 _geo = _MODELLER.module('tmg2.utilities.geometry')
 _spindex = _MODELLER.module('tmg2.utilities.spatial_index')
 networkExportTool = _MODELLER.tool('inro.emme.data.network.export_network_as_shapefile')
-gtfsExportTool = _MODELLER.tool('tmg.network_editing.GTFS_utilities.export_GTFS_stops_as_shapefile')
+gtfsExportTool = _MODELLER.tool('tmg2.GTFS.export_GTFS_stops_as_shapefile')
 EMME_VERSION = _util.getEmmeVersion(tuple)
 
 class GTFStoEmmeMap(_m.Tool()):
