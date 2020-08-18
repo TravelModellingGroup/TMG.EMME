@@ -27,7 +27,7 @@ class Face(_m.Tool()):
         pb = TmgToolPageBuilder(self, runnable=False, title="TMG ToolPageBuilder",
                                 description="A wrapped version of the standard inro.modeller.ToolPageBuilder\
                                 which adds some additional functionality",
-                                branding_text="- TMG Toolbox")
+                                branding_text="- TMG Toolbox 2")
         
         pb.add_text_element("To import, call inro.modeller.Modeller().module('%s')" %str(self))
         
