@@ -51,6 +51,21 @@ or "Build Consolidated Toolbox.bat".  If you are going to be editing the toolbox
 it is recommended to use "Build Toolbox.bat" so you only need to rebuild it if you add or remove
 a tool.
 
+The recommended database dimensions for the __DebugProject__ is shown below:
+
+| Component    | Dimension  |
+|----------|-------|
+| Scenarios | 5 |
+| Full matrices | 10 |
+| Centroids | 3750 |
+| Regular nodes | 43124 |
+| Links | 187500 |
+| Transit vehicles | 30 |
+| Transit lines | 15000 |
+| Transit segments | 600000 |
+| Extra attribute values | 5000000 |
+
+
 #### Unit Tests
 
 In addition to the command below you will also need to have an active license for EMME.
@@ -68,7 +83,7 @@ Tools in the TMGToolbox2 are designed to have up to three entry points. They are
 
 1. run() - An entry point called when using the Modeller interface from within EMME.
 2. \_\_call\_\_() - An entry point for scripting the tool into a Python script.
-3. xtmf_run() - An entry point for being called from XTMF2.
+3. run_xtmf() - An entry point for being called from XTMF2.
 
 ### Example
 
@@ -102,7 +117,7 @@ class HelloWorld(m.tool()):
     print "Hello World, Python Script!"
 
   # The entry point for a call from XTMF2
-  def xtmf_run(self, parameters):
+  def run_xtmf(self, parameters):
     # parameters is a parsed JSON object
     print "Hello World, XTMF2"
 ```
