@@ -123,7 +123,10 @@ class GTFStoEmmeMap(_m.Tool()):
             #find extents
             extents = self._FindExtents(convertedStops,nodes)
             #load and find nearest point
-            self._FindNearest(extents,convertedStops,nodes)
+            mapping = self._FindNearest(extents,convertedStops,nodes)
+            #write to file
+            self._StoreNearest(mapping)
+
 
 
     def _GetAtts(self):
@@ -239,7 +242,9 @@ class GTFStoEmmeMap(_m.Tool()):
             else:
                 cleanedNumber = int(nearestNode[0])
                 map.append([stop, cleanedNumber,convertedStops[stop][0],convertedStops[stop][1],nodes[cleanedNumber][0],nodes[cleanedNumber][1]])
+        return map
 
+    def _StoreNearest(self, map):
         with open(self.MappingFileName, 'wb') as csvfile:
             mapFile = csv.writer(csvfile, delimiter=',')
             header = ["stopID","emmeID","stop x", "stop y", "node x", "node y"]
