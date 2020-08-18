@@ -100,7 +100,7 @@ class MergeFunctions(_m.Tool()):
                          function transaction file. Delete and modify commands are ignored.\
                          <br><br>Detects conflicts in functional definitions and prompts \
                          user for input. New functions as simply merged in.",
-                     branding_text="- TMG Toolbox")
+                     branding_text="- TMG Toolbox 2")
         
         if self.tool_run_msg != "": # to display messages in the page
             pb.tool_run_status(self.tool_run_msg_status)
