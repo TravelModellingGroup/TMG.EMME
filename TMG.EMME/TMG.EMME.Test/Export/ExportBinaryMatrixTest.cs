@@ -33,7 +33,7 @@ namespace TMG.Emme.Test.Export
                 Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
                  JSONParameterBuilder.BuildParameters(writer =>
                  {
-                     writer.WriteString("network_package_file", Path.GetFullPath("test.nwp"));
+                     writer.WriteString("network_package_file", Path.GetFullPath("TestFiles/test.nwp"));
                      writer.WriteString("scenario_description", "Test Network");
                      writer.WriteNumber("scenario_number", 1);
                      writer.WriteString("conflict_option", "PRESERVE");
@@ -44,7 +44,7 @@ namespace TMG.Emme.Test.Export
                  {
                      writer.WriteNumber("matrix_type", 4);
                      writer.WriteNumber("matrix_number", 1);
-                     writer.WriteString("binary_matrix_file", Path.GetFullPath("test.mtx"));
+                     writer.WriteString("binary_matrix_file", Path.GetFullPath("TestFiles/Test.mtx"));
                      writer.WriteNumber("scenario_number", 1);
                      writer.WriteString("matrix_description", "Test Matrix");
                  }), LogbookLevel.Standard));
@@ -70,7 +70,7 @@ namespace TMG.Emme.Test.Export
             {
                 Name = "Importer",
                 ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
-                NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("test.nwp"), "NWP File Name"),
+                NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.nwp"), "NWP File Name"),
                 ScenarioDescription = Helper.CreateParameter("From XTMF", "Description")
             };
             importNetworkModule.Invoke(Helper.Modeller);
@@ -79,7 +79,7 @@ namespace TMG.Emme.Test.Export
                 Name = "Importer",
                 ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
                 MatrixNumber = Helper.CreateParameter(1, "Matrix Number"),
-                FileLocation = Helper.CreateParameter("Test.mtx", "Matrix File Name"),
+                FileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/Test.mtx"), "Matrix File Name"),
                 Description = Helper.CreateParameter("Module Loaded", "Description")
             };
             importMatrixModule.Invoke(Helper.Modeller);
