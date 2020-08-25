@@ -452,7 +452,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
             writer.write("emme_id,trip_depart,trip_arrive")
         
             # Setup the shortest-path algorithm
-            if self.LinkPriorityAttributeId is not None:
+            if self.LinkPriorityAttributeId is not None and not (self.LinkPriorityAttributeId):
                 def speed(link):
                     factor = link[self.LinkPriorityAttributeId]
                     if factor == 0:
