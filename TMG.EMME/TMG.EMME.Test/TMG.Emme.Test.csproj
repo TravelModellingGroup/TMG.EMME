@@ -6,6 +6,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\calendar.txt" />
+    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\frequencies.txt" />
+    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\routes.txt" />
+    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\stops.txt" />
+    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\stop_times.txt" />
+    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\trips.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\routes.csv" />
+    <None Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\stop_to_node.csv" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="1.1.11" />
     <PackageReference Include="MSTest.TestFramework" Version="1.1.11" />
