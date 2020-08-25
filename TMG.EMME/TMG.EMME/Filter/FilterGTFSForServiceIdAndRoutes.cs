@@ -38,8 +38,7 @@ namespace TMG.Emme.Filter
             Description = "Comma-separated list of Service IDs from the calendar.txt file")]
         public IFunction<string> ServiceID;
 
-        [Parameter(DefaultValue = "", Index = 2, Name = "Updated Routes File",
-            Description = "Optional Filtered Routes")]
+        [SubModule(Required = false, Name = "Updated Routes File", Description = "Optional Filtered Routes", Index = 2)]
         public IFunction<string> UpdatedRoutesFile;
 
         private string GetParameters()
