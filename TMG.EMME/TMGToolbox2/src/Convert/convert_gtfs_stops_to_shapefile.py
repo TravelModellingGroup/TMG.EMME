@@ -85,7 +85,16 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
         self.tool_run_msg = _m.PageBuilder.format_info("Tool is completed.")
     
     ##########################################################################################################    
-    
+
+    def run_xtmf(self, parameters):  
+        self.GtfsFolderName = parameters['gtfs_folder']
+        self.ShapefileName = parameters['shapefile_name']
+        try:
+            self._Execute()
+        except Exception, e:
+            raise Exception(_traceback.format_exc(e))
+
+    ##########################################################################################################  
     
     def _Execute(self):
         with _m.logbook_trace(name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),

@@ -39,7 +39,7 @@ namespace TMG.Emme.Copy
 
         public override void Invoke(ModellerController context)
         {
-            context.Run(null, "tmg2.Copy.copy_scenario",
+            context.Run(this, "tmg2.Copy.copy_scenario",
                     JSONParameterBuilder.BuildParameters(writer =>
                     {
                         writer.WriteNumber("from_scenario", FromScenario.Invoke());

@@ -85,7 +85,17 @@ class CleanGTFS(_m.Tool()):
     
     ##########################################################################################################    
     
-    
+    def run_xtmf(self, parameters):  
+        self.GTFSFolderName = parameters['gtfs_folder']
+        self.ServiceIdSet = parameters['service_id']
+        self.UpdatedRoutesFile = parameters['routes_file']
+        try:
+            self._Execute()
+        except Exception, e:
+            raise Exception(_traceback.format_exc(e))
+
+    ##########################################################################################################    
+
     def _Execute(self):
         cells = self.ServiceIdSet.split(",")
         serviceIdSet = set(cells)

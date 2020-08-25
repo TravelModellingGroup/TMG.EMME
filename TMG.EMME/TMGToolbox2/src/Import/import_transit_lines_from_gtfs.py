@@ -67,6 +67,7 @@ from contextlib import contextmanager
 from contextlib import nested
 from os import path as _path
 _MODELLER = _m.Modeller() #Instantiate Modeller once.
+_bank = _MODELLER.emmebank
 _editing = _MODELLER.module('tmg2.utilities.network_editing')
 _util = _MODELLER.module('tmg2.utilities.general_utilities')
 _tmgTPB = _MODELLER.module('tmg2.utilities.TMG_tool_page_builder')
@@ -97,7 +98,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
     #    need to be placed here. Internal parameters (such as lists and dicts)
     #    get intitialized during construction (__init__)
     
-    Scenario = _m.Attribute(_m.InstanceType) # common variable or parameter
+    Scenario = _m.Attribute(int) # common variable or parameter
     NewScenarioId = _m.Attribute(str)
     NewScenarioTitle = _m.Attribute(str)
     MaxNonStopNodes = _m.Attribute(int)
@@ -257,7 +258,27 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
         self.tool_run_msg = _m.PageBuilder.format_info("Tool complete.")
     
     ##########################################################################################################    
-    
+     
+    def run_xtmf(self, parameters):  
+        
+        self.Scenario = parameters['scenario_id']
+        self.MaxNonStopNodes = parameters['max_non_stop_nodes']
+        self.LinkPriorityAttributeId = parameters['link_priority_attribute']
+        self.GtfsFolder = parameters['gtfs_folder']
+        self.Stop2NodeFile = parameters['stop_to_node_file']
+        self.NewScenarioId = parameters['new_scenario_id']
+        self.NewScenarioTitle = parameters['new_scenario_title']
+        self.LineServiceTableFile = parameters['service_table_file']
+        self.MappingFileName = parameters['mapping_file']
+        self.PublishFlag = parameters['publish_flag']
+
+        try:
+            self._Execute()
+        except Exception, e:
+            raise Exception(_traceback.format_exc(e))
+
+    ##########################################################################################################    
+   
     
     def _Execute(self):
         with _m.logbook_trace(name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
@@ -265,7 +286,8 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
             routes = self._LoadCheckGtfsRoutesFile()
             self.TRACKER.completeTask()
             
-            network = self.Scenario.get_network()
+            sc = _bank.scenario(self.Scenario)
+            network = sc.get_network()
             print "Loaded network"
             self.TRACKER.completeTask()
             
@@ -290,7 +312,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
     
     def _GetAtts(self):
         atts = {
-                "Scenario" : str(self.Scenario.id),
+                "Scenario" : self.Scenario,
                 "Version": self.version, 
                 "self": self.__MODELLER_NAMESPACE__}
             
@@ -749,3 +771,4 @@ class ModeAndAttributeFilter():
     
     def __call__(self, link):
         return self.__mode in link.modes and link[self.__att] != 0
+
