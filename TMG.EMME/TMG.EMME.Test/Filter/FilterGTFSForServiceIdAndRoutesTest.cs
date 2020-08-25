@@ -30,7 +30,7 @@ namespace TMG.Emme.Test.Filter
                 Helper.Modeller.Run(null, "tmg2.Filter.filter_gtfs_for_service_id_and_routes",
                  JSONParameterBuilder.BuildParameters(writer =>
                  {
-                     writer.WriteString("gtfs_folder", Path.GetFullPath("FrabtiztownGTFS"));
+                     writer.WriteString("gtfs_folder", Path.GetFullPath("TestFiles/FrabtiztownGTFS"));
                      writer.WriteString("service_id", "FrabtiztownTransit");
                      writer.WriteString("routes_file", "");
                  }), LogbookLevel.Standard));
@@ -42,7 +42,7 @@ namespace TMG.Emme.Test.Filter
             var module = new Emme.Filter.FilterGTFSForServiceIdAndRoutes()
             {
                 Name = "FilterGTFS",
-                GTFSFolder = Helper.CreateParameter(Path.GetFullPath("FrabtiztownGTFS"), "GTFS Folder Names"),
+                GTFSFolder = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS"), "GTFS Folder Names"),
                 ServiceID = Helper.CreateParameter("FrabtiztownTransit", "Service ID"),
                 UpdatedRoutesFile = Helper.CreateParameter("", "Routes File")
             };

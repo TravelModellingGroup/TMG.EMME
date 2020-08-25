@@ -1,0 +1,15 @@
+route_id,route_short_name,route_long_name,route_desc,route_type
+"B001A","B001A","South Downtown A","",3
+"B001B","B001B","South Downtown B","",3
+"B002A","B002A","North Route A","",3
+"B002B","B002B","North Route B","",3
+"B003A","B003A","East Route A","",3
+"B003B","B003B","East Route B","",3
+"B004A","B004A","Downtown East A","",3
+"B004B","B004B","Downtown East B","",3
+"B005A","B005A","Express Route A","",3
+"B005B","B005B","Express Route B","",3
+"B007A","B007A","Narrows Loop East","",3
+"B007B","B007B","Narrows Loop West","",3
+"R001A","R001A","Rail Eastbound","",2
+"R001B","R001B","Rail Westbound","",2

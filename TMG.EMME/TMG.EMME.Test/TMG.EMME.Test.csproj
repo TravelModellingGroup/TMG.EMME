@@ -6,17 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\calendar.txt" />
-    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\frequencies.txt" />
-    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\routes.txt" />
-    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\stops.txt" />
-    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\stop_times.txt" />
-    <Content Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\trips.txt" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\routes.csv" />
-    <None Include="bin\Debug\netcoreapp3.1\FrabtiztownGTFS\stop_to_node.csv" />
+    <Compile Remove="bin\**" />
+    <EmbeddedResource Remove="bin\**" />
+    <None Remove="bin\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,10 +30,28 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Test.mtx">
+    <None Update="TestFiles\FrabtiztownGTFS\calendar.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="test.nwp">
+    <None Update="TestFiles\FrabtiztownGTFS\frequencies.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabtiztownGTFS\routes.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabtiztownGTFS\routes.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabtiztownGTFS\stop_times.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabtiztownGTFS\stop_to_node.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\Test.mtx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\test.nwp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TMG.EMME.Test.Configuration.json">

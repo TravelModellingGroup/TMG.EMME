@@ -30,7 +30,7 @@ namespace TMG.Emme.Test.Export
                 Helper.Modeller.Run(null, "tmg2.Export.export_matching_emme_nodes_for_gtfs_stops",
                  JSONParameterBuilder.BuildParameters(writer =>
                  {
-                     writer.WriteString("input_stop_file", Path.GetFullPath("FrabtiztownGTFS/stops.txt"));
+                     writer.WriteString("input_stop_file", Path.GetFullPath("TestFiles/FrabtiztownGTFS/stops.txt"));
                      writer.WriteString("output_mapping_file", "stop_to_node");
                  }), LogbookLevel.Standard));
         }
@@ -41,7 +41,7 @@ namespace TMG.Emme.Test.Export
             var module = new Emme.Export.ExportMatchingEmmeNodesForGtfsStops()
             {
                 Name = "MappingGtfsStopsToNodes",
-                StopsInputFile = Helper.CreateParameter(Path.GetFullPath("FrabtiztownGTFS/stops.txt"), "Stops Input File"),
+                StopsInputFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS/stops.txt"), "Stops Input File"),
                 MappingOutputFile = Helper.CreateParameter("stop_to_node", "Mapping Output File"),
             };
             module.Invoke(Helper.Modeller);

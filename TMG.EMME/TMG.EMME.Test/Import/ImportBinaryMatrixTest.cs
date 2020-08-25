@@ -33,7 +33,7 @@ namespace TMG.Emme.Test.Import
                     {
                         writer.WriteNumber("matrix_type", 4);
                         writer.WriteNumber("matrix_number", 1);
-                        writer.WriteString("binary_matrix_file", Path.GetFullPath("test.mtx"));
+                        writer.WriteString("binary_matrix_file", Path.GetFullPath("TestFiles/test.mtx"));
                         writer.WriteNumber("scenario_number", 1);
                         writer.WriteString("matrix_description", "Test Matrix");
                     }), LogbookLevel.Standard));
@@ -47,7 +47,7 @@ namespace TMG.Emme.Test.Import
                 Name = "Importer",
                 ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
                 MatrixNumber = Helper.CreateParameter(1, "Matrix Number"),
-                FileLocation = Helper.CreateParameter("Test.mtx", "Matrix File Name"),
+                FileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.mtx"), "Matrix File Name"),
                 Description = Helper.CreateParameter("Module Loaded", "Description")
             };
             importModule.Invoke(Helper.Modeller);

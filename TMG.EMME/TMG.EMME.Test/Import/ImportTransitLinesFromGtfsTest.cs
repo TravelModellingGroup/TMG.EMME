@@ -33,8 +33,8 @@ namespace TMG.Emme.Test.Import
                      writer.WriteNumber("scenario_id", 1);
                      writer.WriteNumber("max_non_stop_nodes", 15);
                      writer.WriteString("link_priority_attribute", "");
-                     writer.WriteString("gtfs_folder", Path.GetFullPath("FrabtiztownGTFS"));
-                     writer.WriteString("stop_to_node_file", Path.GetFullPath("FrabtiztownGTFS/stop_to_node.csv"));
+                     writer.WriteString("gtfs_folder", Path.GetFullPath("TestFiles/FrabtiztownGTFS"));
+                     writer.WriteString("stop_to_node_file", Path.GetFullPath("TestFiles/FrabtiztownGTFS/stop_to_node.csv"));
                      writer.WriteNumber("new_scenario_id", 2);
                      writer.WriteString("new_scenario_title", "Test Transit Network");
                      writer.WriteString("service_table_file", "ServiceTable");
@@ -52,8 +52,8 @@ namespace TMG.Emme.Test.Import
                 BaseScenario = Helper.CreateParameter(1, "Base Scenario ID"),
                 MaxNonStopNodes = Helper.CreateParameter(15, "Max Interstop Links"),
                 LinkPriorityAttributeId = Helper.CreateParameter("", "Link Priority Attribute"),
-                GtfsFolder = Helper.CreateParameter(Path.GetFullPath("FrabtiztownGTFS"), "GTFS Folder Names"),
-                StopToNodeFile = Helper.CreateParameter(Path.GetFullPath("FrabtiztownGTFS/stop_to_node.csv"), "Stop-to-node File"),
+                GtfsFolder = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS"), "GTFS Folder Names"),
+                StopToNodeFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS/stop_to_node.csv"), "Stop-to-node File"),
                 NewScenarioId = Helper.CreateParameter(2, "New Scenario ID"),
                 NewScenarioTitle = Helper.CreateParameter("Test Transit Network","New Scenario Title"),
                 LineServiceTableFile = Helper.CreateParameter("ServiceTable","Service Table Output File"),

@@ -30,7 +30,7 @@ namespace TMG.Emme.Test.Convert
                 Helper.Modeller.Run(null, "tmg2.Convert.convert_gtfs_stops_to_shapefile",
                  JSONParameterBuilder.BuildParameters(writer =>
                  {
-                     writer.WriteString("gtfs_folder", Path.GetFullPath("FrabtiztownGTFS"));
+                     writer.WriteString("gtfs_folder", Path.GetFullPath("TestFiles/FrabtiztownGTFS"));
                      writer.WriteString("shapefile_name", "FrabtiztownStopShp");
                  }), LogbookLevel.Standard));
         }
@@ -41,7 +41,7 @@ namespace TMG.Emme.Test.Convert
             var module = new Emme.Convert.ConvertGTFSStopsToShapefile()
             {
                 Name = "ConvertGtfsStops",
-                GTFSFolder = Helper.CreateParameter(Path.GetFullPath("FrabtiztownGTFS"), "GTFS Folder Names"),
+                GTFSFolder = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS"), "GTFS Folder Names"),
                 ShapefileName = Helper.CreateParameter("FrabtiztownStopShp", "Shapefile Name"),
             };
             module.Invoke(Helper.Modeller);
