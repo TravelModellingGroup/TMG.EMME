@@ -263,7 +263,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
         
         self.Scenario = parameters['scenario_id']
         self.MaxNonStopNodes = parameters['max_non_stop_nodes']
-        self.LinkPriorityAttributeId = parameters['link_priority_attribute']
+        link_priority = parameters['link_priority_attribute']
         self.GtfsFolder = parameters['gtfs_folder']
         self.Stop2NodeFile = parameters['stop_to_node_file']
         self.NewScenarioId = parameters['new_scenario_id']
@@ -271,6 +271,12 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
         self.LineServiceTableFile = parameters['service_table_file']
         self.MappingFileName = parameters['mapping_file']
         self.PublishFlag = parameters['publish_flag']
+
+        if len(link_priority) == 0:
+            self.LinkPriorityAttributeId = None
+        else:
+            self.LinkPriorityAttributeId = link_priority
+
 
         try:
             self._Execute()
@@ -452,7 +458,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
             writer.write("emme_id,trip_depart,trip_arrive")
         
             # Setup the shortest-path algorithm
-            if self.LinkPriorityAttributeId is not None and not (self.LinkPriorityAttributeId):
+            if self.LinkPriorityAttributeId is not None:
                 def speed(link):
                     factor = link[self.LinkPriorityAttributeId]
                     if factor == 0:
