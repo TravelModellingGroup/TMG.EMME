@@ -33,7 +33,7 @@ namespace TMG.Emme.Delete
 
         public override void Invoke(ModellerController context)
         {
-            context.Run(null, "tmg2.Delete.delete_scenario",
+            context.Run(this, "tmg2.Delete.delete_scenario",
                     JSONParameterBuilder.BuildParameters(writer =>
                     {
                         writer.WriteNumber("scenario", Scenario.Invoke());
