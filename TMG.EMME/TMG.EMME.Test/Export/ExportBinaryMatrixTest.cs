@@ -28,19 +28,63 @@ namespace TMG.Emme.Test.Export
         [TestMethod]
         public void ExportBinaryMatrix()
         {
+            /*Ensure the scenario has a valid network and at least one matrix to be exported*/
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Export.export_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
-                    {
+                Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
+                 JSONParameterBuilder.BuildParameters(writer =>
+                 {
+                     writer.WriteString("network_package_file", Path.GetFullPath("test.nwp"));
+                     writer.WriteString("scenario_description", "Test Network");
+                     writer.WriteNumber("scenario_number", 1);
+                     writer.WriteString("conflict_option", "PRESERVE");
+                 }), LogbookLevel.Standard));
+            Assert.IsTrue(
+                Helper.Modeller.Run(null, "tmg2.Import.import_binary_matrix",
+                 JSONParameterBuilder.BuildParameters(writer =>
+                 {
+                     writer.WriteNumber("matrix_type", 4);
+                     writer.WriteNumber("matrix_number", 1);
+                     writer.WriteString("binary_matrix_file", Path.GetFullPath("test.mtx"));
+                     writer.WriteNumber("scenario_number", 1);
+                     writer.WriteString("matrix_description", "Test Matrix");
+                 }), LogbookLevel.Standard));
+
+
+            Assert.IsTrue(
+                Helper.Modeller.Run(null, "tmg2.Export.export_binary_matrix", 
+                 JSONParameterBuilder.BuildParameters(writer =>
+                 {
                         writer.WriteNumber("matrix_type", 4);
                         writer.WriteNumber("matrix_number", 1);
                         writer.WriteString("file_location", Path.GetFullPath("exported.mtx"));
                         writer.WriteNumber("scenario_number", 1);
-                    }), LogbookLevel.Standard));
+                 }), LogbookLevel.Standard));
         }
 
         [TestMethod]
         public void ExportBinaryMatrixModule()
         {
+
+            /*Ensure the scenario has a valid network and at least one matrix to be exported*/
+            var importNetworkModule = new Emme.Import.ImportNetworkPackage()
+            {
+                Name = "Importer",
+                ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
+                NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("test.nwp"), "NWP File Name"),
+                ScenarioDescription = Helper.CreateParameter("From XTMF", "Description")
+            };
+            importNetworkModule.Invoke(Helper.Modeller);
+            var importMatrixModule = new Emme.Import.ImportBinaryMatrix()
+            {
+                Name = "Importer",
+                ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
+                MatrixNumber = Helper.CreateParameter(1, "Matrix Number"),
+                FileLocation = Helper.CreateParameter("Test.mtx", "Matrix File Name"),
+                Description = Helper.CreateParameter("Module Loaded", "Description")
+            };
+            importMatrixModule.Invoke(Helper.Modeller);
+
+
             var module = new Emme.Export.ExportBinaryMatrix()
             {
                 Name = "Exporter",

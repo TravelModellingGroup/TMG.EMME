@@ -1,18 +1,14 @@
 ﻿/*
     Copyright 2017 University of Toronto
-
     This file is part of TMG.EMME for XTMF2.
-
     TMG.EMME for XTMF2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-
     TMG.EMME for XTMF2 is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
-
     You should have received a copy of the GNU General Public License
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -22,36 +18,33 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 
-namespace TMG.Emme.Test.Import
+namespace TMG.Emme.Test.Export
 {
     [TestClass]
-    public class ImportNetworkPackageTest : TestBase
+    public class ExportMatchingEmmeNodesForGtfsStopsTest : TestBase
     {
         [TestMethod]
-        public void ImportNetworkPackage()
+        public void MappingStopToNode()
         {
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
+                Helper.Modeller.Run(null, "tmg2.Export.export_matching_emme_nodes_for_gtfs_stops",
                  JSONParameterBuilder.BuildParameters(writer =>
                  {
-                     writer.WriteString("network_package_file", Path.GetFullPath("TestFiles/test.nwp"));
-                     writer.WriteString("scenario_description", "Test Network");
-                     writer.WriteNumber("scenario_number", 1);
-                     writer.WriteString("conflict_option", "PRESERVE");
+                     writer.WriteString("input_stop_file", Path.GetFullPath("TestFiles/FrabtiztownGTFS/stops.txt"));
+                     writer.WriteString("output_mapping_file", "stop_to_node");
                  }), LogbookLevel.Standard));
         }
 
         [TestMethod]
-        public void ImportNetworkPackageModule()
+        public void MappingStopToNodeModule()
         {
-            var importModule = new Emme.Import.ImportNetworkPackage()
+            var module = new Emme.Export.ExportMatchingEmmeNodesForGtfsStops()
             {
-                Name = "Importer",
-                ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
-                NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.nwp"), "NWP File Name"),
-                ScenarioDescription = Helper.CreateParameter("From XTMF","Description")
+                Name = "MappingGtfsStopsToNodes",
+                StopsInputFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS/stops.txt"), "Stops Input File"),
+                MappingOutputFile = Helper.CreateParameter("stop_to_node", "Mapping Output File"),
             };
-            importModule.Invoke(Helper.Modeller);
+            module.Invoke(Helper.Modeller);
         }
     }
 }

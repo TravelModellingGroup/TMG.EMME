@@ -37,7 +37,7 @@ _export_link_shapes = _MODELLER.tool('inro.emme.data.network.base.export_link_sh
 _export_turns = _MODELLER.tool('inro.emme.data.network.turn.export_turns')
 _export_attributes = _MODELLER.tool('inro.emme.data.extra_attribute.export_extra_attributes')
 _export_functions = _MODELLER.tool('inro.emme.data.function.export_functions')
-_pdu = _MODELLER.module('tmg.common.pandas_utils')
+_pdu = _MODELLER.module('tmg2.utilities.pandas_utils')
 
 
 class ExportNetworkPackage(_m.Tool()):

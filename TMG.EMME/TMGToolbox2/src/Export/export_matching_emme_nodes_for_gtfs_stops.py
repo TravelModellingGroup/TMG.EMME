@@ -33,7 +33,7 @@ _tmgTPB = _MODELLER.module('tmg2.utilities.TMG_tool_page_builder')
 _geo = _MODELLER.module('tmg2.utilities.geometry')
 _spindex = _MODELLER.module('tmg2.utilities.spatial_index')
 networkExportTool = _MODELLER.tool('inro.emme.data.network.export_network_as_shapefile')
-gtfsExportTool = _MODELLER.tool('tmg2.GTFS.export_GTFS_stops_as_shapefile')
+gtfsExportTool = _MODELLER.tool('tmg2.Convert.convert_gtfs_stops_to_shapefile')
 EMME_VERSION = _util.getEmmeVersion(tuple)
 
 class GTFStoEmmeMap(_m.Tool()):
@@ -101,6 +101,18 @@ class GTFStoEmmeMap(_m.Tool()):
             raise
         
         self.tool_run_msg = _m.PageBuilder.format_info("Done")
+
+    ##########################################################################################################    
+
+    def run_xtmf(self, parameters):  
+        self.FileName = parameters['input_stop_file']
+        self.MappingFileName = parameters['output_mapping_file']
+        try:
+            self._Execute()
+        except Exception, e:
+            raise Exception(_traceback.format_exc(e))
+
+    ##########################################################################################################    
 
     def _Execute(self):
         with _m.logbook_trace(name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
@@ -272,3 +284,4 @@ class GtfsStop():
         self.description = description
         self.modes = set()
     
+

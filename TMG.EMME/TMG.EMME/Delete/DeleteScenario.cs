@@ -22,29 +22,21 @@ using System.IO;
 using System.Text.Json;
 using XTMF2;
 
-namespace TMG.Emme.Copy
+namespace TMG.Emme.Delete
 {
-    [Module(Name = "Copy Scenario", Description = "Copy an EMME scenario optionally also copying the assignments.",
+    [Module(Name = "Delete Scenario", Description = "Delete an EMME scenario from the Emmebank.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class CopyScenario : BaseAction<ModellerController>
+    public class DeleteScenario : BaseAction<ModellerController>
     {
-        [Parameter(DefaultValue = "1", Index = 0, Name = "From Scenario", Description = "The scenario to copy from.")]
-        public IFunction<int> FromScenario;
-
-        [Parameter(DefaultValue = "2", Index = 1, Name = "To Scenario", Description = "The scenario to copy to.")]
-        public IFunction<int> ToScenario;
-
-        [Parameter(DefaultValue = "false", Index = 2, Name = "Copy Strategy", Description = "Should assignment strategies also be copied?")]
-        public IFunction<bool> CopyStrategy;
+        [Parameter(DefaultValue = "1", Index = 0, Name = "Scenario", Description = "The scenario to be deleted.")]
+        public IFunction<int> Scenario;
 
         public override void Invoke(ModellerController context)
         {
-            context.Run(this, "tmg2.Copy.copy_scenario",
+            context.Run(this, "tmg2.Delete.delete_scenario",
                     JSONParameterBuilder.BuildParameters(writer =>
                     {
-                        writer.WriteNumber("from_scenario", FromScenario.Invoke());
-                        writer.WriteNumber("to_scenario", ToScenario.Invoke());
-                        writer.WriteBoolean("copy_strategy", CopyStrategy.Invoke());
+                        writer.WriteNumber("scenario", Scenario.Invoke());
                     }), LogbookLevel.None);
         }
     }

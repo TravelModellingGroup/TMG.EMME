@@ -23,7 +23,7 @@ Import Binary Matrix
 
     Authors: pkucirek
 
-    Latest revision by: pkucirek
+    Latest revision by: lunaxi
     
     
     [Description]
@@ -32,14 +32,21 @@ Import Binary Matrix
 #---VERSION HISTORY
 '''
     0.0.1 Created on 2014-06-30 by pkucirek
+
+    0.0.2 Modified on 2020-03-09 by lunaxi, allow the GUI to create a matrix first if not existed
     
 '''
+
 
 import inro.modeller as _m
 import traceback as _traceback
 from inro.emme.matrix import MatrixData as _MatrixData
+import shutil
+import os
+import gzip
 _MODELLER = _m.Modeller() #Instantiate Modeller once.
 _util = _MODELLER.module('tmg2.utilities.general_utilities')
+_tmgTPB = _MODELLER.module('tmg2.utilities.TMG_tool_page_builder')
 _bank = _MODELLER.emmebank
 
 ##########################################################################################################
@@ -54,20 +61,92 @@ class ImportBinaryMatrix(_m.Tool()):
                     2: 'mo',
                     3: 'md',
                     4: 'mf'}
-       
+    
+    # ---PARAMETERS
+    ImportFile = _m.Attribute(str)
+    Scenario = _m.Attribute(_m.InstanceType)
+    MatrixId = _m.Attribute(str)
+    MatrixDescription = _m.Attribute(str)
+    MatrixType = _m.Attribute(str)
+
+    NewMatrixID = _m.Attribute(int)
+    NewMatrixName = _m.Attribute(str)
+    NewMatrixDescription = _m.Attribute(str)
+    NewMatrixType = _m.Attribute(str)
+    
     def __init__(self):
-        #---Init internal variables
+        # ---Init internal variables
         self.TRACKER = _util.ProgressTracker(self.number_of_tasks) #init the ProgressTracker
         
-        #---Set the defaults of parameters used by Modeller
+        # ---Set the defaults of parameters used by Modeller
         self.Scenario = _MODELLER.scenario #Default is primary scenario
-    
-    ##########################################################################################################
-    #---
-    #---MODELLER INTERACE METHODS
+        self.NewMatrixName = ""
+        self.NewMatrixDescription = ""
+
+    # ---MODELLER INTERACE METHODS
     
     def page(self):
-       return ""
+        pb = _tmgTPB.TmgToolPageBuilder(self, title="Import Binary Matrix v%s" %self.version,
+                     description="Imports a binary matrix from file.",
+                     branding_text="- TMG Toolbox 2")
+        
+        if self.tool_run_msg != "": # to display messages in the page
+            pb.tool_run_status(self.tool_run_msg_status)
+
+        pb.add_select_scenario(tool_attribute_name='Scenario',
+                               title='Scenario:',
+                               allow_none=False,
+                               note= "Only required if scenarios have different zone systems.")
+        
+        pb.add_select_file(tool_attribute_name= 'ImportFile',
+                           window_type= 'file',
+                           file_filter= "Emme matrix files | *.mdf ; *.emxd ; *.mtx ; *.mtx.gz\nAll files (*.*)",
+                           title= "Import File")
+        
+        pb.add_select_matrix(tool_attribute_name= 'MatrixId',
+                             id= True,
+                             title= "Matrix",
+                             allow_none=True,
+                             note= "Select an existing matrix to save data, or leave as None and create a new matrix below.")
+
+        pb.add_header("Create a NEW matrix to save data: (Ignore if using existing matrix)")
+        
+        with pb.add_table(visible_border=False) as t:
+            mt_type = [('FULL','mf'),('ORIGIN','mo'),('DESTINATION','md'),('SCALAR','ms')]
+
+            with t.table_cell():
+                pb.add_select(tool_attribute_name='NewMatrixType',
+                              keyvalues=mt_type, title="Matrix Type")
+
+            with t.table_cell():
+                pb.add_text_box(tool_attribute_name='NewMatrixID',
+                                title='Matrix ID', multi_line=False)
+
+            with t.table_cell():
+                pb.add_text_box(tool_attribute_name='NewMatrixName', 
+                                title='Matrix Name', multi_line=False)
+            with t.table_cell():
+                pb.add_text_box(tool_attribute_name='NewMatrixDescription', 
+                                title='Description', multi_line=False)
+         
+        
+        #---JAVASCRIPT
+        pb.add_html("""
+<script type="text/javascript">
+    $(document).ready( function ()
+    {        
+        var tool = new inro.modeller.util.Proxy(%s) ;
+
+        if (tool.scenario_required())
+        {
+            $("#Scenario").prop("disabled", false);;
+        } else {
+            $("#Scenario").prop("disabled", true);;
+        }
+    });
+</script>""" % pb.tool_proxy_tag)
+        
+        return pb.render()
     
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
@@ -83,6 +162,21 @@ class ImportBinaryMatrix(_m.Tool()):
         print retval
         return retval
     
+    def run(self):
+        self.tool_run_msg = ""
+        self.TRACKER.reset()
+
+        if self.ImportFile is None:
+            raise IOError("Import file not specified")
+        
+        try:
+            self._execute()
+        except Exception as e:
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc(e))
+            raise
+
+        self.tool_run_msg = _m.PageBuilder.format_info("Done. Matrix is imported.")
+
     #---
     #---XTMF INTERFACE METHODS
     
@@ -110,28 +204,45 @@ class ImportBinaryMatrix(_m.Tool()):
                                     "multiple zone systems in this Emme project. "+
                                     "'%s' is not a valid scenario." %xtmf_ScenarioNumber)
         try:
-            self._Execute()
+            self._execute()
         except Exception, e:
             msg = str(e) + "\n" + _traceback.format_exc(e)
             raise Exception(msg)
     
     #---MAIN EXECUTION CODE
     
-    def _Execute(self):
+    def _execute(self):
         with _m.logbook_trace(name="%s v%s" %(self.__class__.__name__, self.version), \
                               attributes= self._GetAtts()):
-            matrix = _util.initializeMatrix(self.MatrixId)
-            if self.MatrixDescription:
-                matrix.description = self.MatrixDescription
-            
-            data = _MatrixData.load(self.ImportFile)
-            
-            origins, destinations = data.indices
-            origins = set(origins)
-            destinations = set(destinations)
-            if origins ^ destinations:
-                raise Exception("Asymmetrical matrix detected. Matrix must be square.")
-            
+            if self.MatrixId is None:
+                matrix = _util.initializeMatrix(id=self.NewMatrixID, name = self.NewMatrixName, description = self.NewMatrixDescription, matrix_type = self.NewMatrixType)
+            else:
+                matrix = _util.initializeMatrix(self.MatrixId)
+                if self.MatrixDescription:
+                    matrix.description = self.MatrixDescription
+
+            if str(self.ImportFile)[-2:] == "gz":
+                new_file = 'matrix.mtx'
+                with gzip.open(self.ImportFile, 'rb') as zip_file, open (new_file, 'wb') as non_zip_file:
+                    shutil.copyfileobj(zip_file, non_zip_file)
+                data = _MatrixData.load(new_file)
+                os.remove(new_file)
+            else:
+                data = _MatrixData.load(self.ImportFile)
+                          
+            self.MatrixType = matrix.type
+            # 2D matrix
+            if self.MatrixType == "mf":
+                origins, destinations = data.indices
+                origins = set(origins)
+                destinations = set(destinations)
+                if origins ^ destinations:
+                    raise Exception("Asymmetrical matrix detected. Matrix must be square.")
+            # 1D matrix
+            else:
+                origins = data.indices[0]
+                origins = set(origins)
+                
             if _util.databankHasDifferentZones(_bank):
                 
                 zones = set(self.Scenario.zone_numbers)
