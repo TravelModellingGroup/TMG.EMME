@@ -307,7 +307,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                 self._GenerateLines(routes, stops2nodes, network, writer)
 
             if self.PublishFlag:
-                copy = _MODELLER.emmebank.copy_scenario(self.Scenario.id, self.NewScenarioId)
+                copy = _MODELLER.emmebank.copy_scenario(self.Scenario, self.NewScenarioId)
                 copy.title = self.NewScenarioTitle
                 copy.publish_network(network, True)
             self.TRACKER.completeTask()
