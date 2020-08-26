@@ -98,7 +98,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
     #    need to be placed here. Internal parameters (such as lists and dicts)
     #    get intitialized during construction (__init__)
     
-    Scenario = _m.Attribute(_m.InstanceType) # common variable or parameter
+    Scenario = _m.Attribute(int) # common variable or parameter
     NewScenarioId = _m.Attribute(str)
     NewScenarioTitle = _m.Attribute(str)
     MaxNonStopNodes = _m.Attribute(int)
@@ -292,7 +292,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
             routes = self._LoadCheckGtfsRoutesFile()
             self.TRACKER.completeTask()
             
-            sc = _bank.scenario(str(self.Scenario))
+            sc = _bank.scenario(self.Scenario)
             network = sc.get_network()
             print "Loaded network"
             self.TRACKER.completeTask()
@@ -306,12 +306,8 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
             with open(self.LineServiceTableFile, 'w') as writer:
                 self._GenerateLines(routes, stops2nodes, network, writer)
 
-            dest = _bank.scenario(str(self.NewScenarioId))
-            if dest is not None:
-                _bank.delete_scenario(dest.id)
-
             if self.PublishFlag:
-                copy = _bank.copy_scenario(sc.id, str(self.NewScenarioId))
+                copy = _MODELLER.emmebank.copy_scenario(self.Scenario, self.NewScenarioId)
                 copy.title = self.NewScenarioTitle
                 copy.publish_network(network, True)
             self.TRACKER.completeTask()
@@ -726,8 +722,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
     @_m.method(return_type=unicode)
     def getExtraAttributes(self):
         keyvals = {}
-        sc = _bank.scenario(self.Scenario)
-        for att in sc.extra_attributes():
+        for att in self.Scenario.extra_attributes():
             if att.type != 'LINK':
                 continue
             descr = "{id} - LINK - {desc}".format(id=att.id, desc=att.description)
