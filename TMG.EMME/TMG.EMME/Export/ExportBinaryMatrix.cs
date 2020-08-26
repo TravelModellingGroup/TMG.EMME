@@ -42,7 +42,7 @@ namespace TMG.Emme.Export
 
         public override void Invoke(ModellerController context)
         {
-            context.Run(null, "tmg2.Export.export_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
+            context.Run(this, "tmg2.Export.export_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
                     {
                         writer.WriteNumber("matrix_type", 4);
                         writer.WriteNumber("matrix_number", MatrixNumber.Invoke());

@@ -34,7 +34,7 @@ namespace TMG.Emme.Import
             context.Run(this, "tmg2.Import.import_network_package", GetParameters(), LogbookLevel.Standard);
         }
 
-        [Parameter(DefaultValue = "myNetwork.nwp", Index = 0, Name = "Network Package File",
+        [Parameter(DefaultValue = "test.nwp", Index = 0, Name = "Network Package File",
             Description = "The location of the file to load into the EMME bank.")]
         public IFunction<string> NetworkPackageFile;
 
