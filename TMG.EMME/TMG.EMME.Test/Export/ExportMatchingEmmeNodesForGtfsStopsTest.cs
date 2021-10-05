@@ -26,12 +26,19 @@ namespace TMG.Emme.Test.Export
         [TestMethod]
         public void MappingStopToNode()
         {
+            string outputFolderName = Path.GetFullPath("OutputTestFiles");
+            
+            if (!Directory.Exists(outputFolderName))
+            {
+                Directory.CreateDirectory(outputFolderName);
+            }
+
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Export.export_matching_emme_nodes_for_gtfs_stops",
                  JSONParameterBuilder.BuildParameters(writer =>
                  {
                      writer.WriteString("input_stop_file", Path.GetFullPath("TestFiles/FrabtiztownGTFS/stops.txt"));
-                     writer.WriteString("output_mapping_file", "stop_to_node");
+                     writer.WriteString("output_mapping_file", Path.GetFullPath("OutputTestFiles/stop_to_node.csv"));
                  }), LogbookLevel.Standard));
         }
 
@@ -42,7 +49,7 @@ namespace TMG.Emme.Test.Export
             {
                 Name = "MappingGtfsStopsToNodes",
                 StopsInputFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS/stops.txt"), "Stops Input File"),
-                MappingOutputFile = Helper.CreateParameter("stop_to_node", "Mapping Output File"),
+                MappingOutputFile = Helper.CreateParameter(Path.GetFullPath("OutputTestFiles/stop_to_node.csv"), "Mapping Output File"),
             };
             module.Invoke(Helper.Modeller);
         }

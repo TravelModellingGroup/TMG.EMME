@@ -44,9 +44,10 @@ namespace TMG.Emme.Test.Export
                  }), LogbookLevel.Standard));
 
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Export.export_network_package", JSONParameterBuilder.BuildParameters(writer =>
+                Helper.Modeller.Run(null, "tmg2.Export.export_network_package",
+                JSONParameterBuilder.BuildParameters(writer =>
                     {
-                        writer.WriteString("export_file", Path.GetFullPath("exported.nwp"));
+                        writer.WriteString("export_file", Path.GetFullPath("OutputTestFiles/exportedNWP.nwp"));
                         writer.WriteNumber("scenario_number", 1);
                         writer.WriteString("extra_attributes", "all");
                     }), LogbookLevel.Standard));
@@ -68,7 +69,7 @@ namespace TMG.Emme.Test.Export
             var module = new TMG.Emme.Export.ExportNetworkPackage()
             {
                 ScenarioNumber = Helper.CreateParameter(1),
-                SaveTo = Helper.CreateParameter("Exported.nwp"),
+                SaveTo = Helper.CreateParameter("OutputTestFiles/Exported.nwp"),
                 Attributes = Helper.CreateParameter("all")
             };
             module.Invoke(Helper.Modeller);

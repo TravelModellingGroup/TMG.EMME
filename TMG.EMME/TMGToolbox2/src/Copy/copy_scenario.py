@@ -1,4 +1,4 @@
-'''
+"""
     Copyright 2016 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
@@ -15,9 +15,9 @@
 
     You should have received a copy of the GNU General Public License
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
-'''
-#---METADATA---------------------
-'''
+"""
+# ---METADATA---------------------
+"""
 Copy Scenario
 
     Authors: JamesVaughan
@@ -28,49 +28,65 @@ Copy Scenario
     This tool will allow XTMF to be able to copy scenarios within 
     an EMME Databank.
         
-'''
-#---VERSION HISTORY
-'''
+"""
+# ---VERSION HISTORY
+"""
     0.0.1 Created on 2016-03-23 by JamesVaughan
     
     
-'''
+"""
 import inro.modeller as _m
 import traceback as _traceback
-_MODELLER = _m.Modeller() #Instantiate Modeller once.
+
+_MODELLER = _m.Modeller()  # Instantiate Modeller once.
+
+
 class CopyScenario(_m.Tool()):
-    version = '0.0.1'
-    
+    version = "0.0.1"
+
     def page(self):
-        pb = _m.ToolPageBuilder(self, title="Copy Scenario",
-                     runnable=False,
-                     description="Cannot be called from Modeller.",
-                     branding_text="XTMF")
-        
+        pb = _m.ToolPageBuilder(
+            self,
+            title="Copy Scenario",
+            runnable=False,
+            description="Cannot be called from Modeller.",
+            branding_text="XTMF",
+        )
+
         return pb.render()
-    
+
     def run(self):
         pass
 
-    def run_xtmf(self, parameters):  
-        FromScenario = parameters['from_scenario']
-        ToScenario = parameters['to_scenario']
-        CopyStrategy = parameters['copy_strategy']
+    def run_xtmf(self, parameters):
+        FromScenario = parameters["from_scenario"]
+        ToScenario = parameters["to_scenario"]
+        CopyStrategy = parameters["copy_strategy"]
         try:
             self._execute(FromScenario, ToScenario, CopyStrategy)
-        except Exception, e:
-            raise Exception(_traceback.format_exc(e))
+        except Exception as e:
+            raise Exception(_traceback.format_exc())
 
     def _execute(self, FromScenario, ToScenario, CopyStrategy):
         if FromScenario == ToScenario:
-            print "A copy was requested to from scenario " + str(FromScenario) + " to " + str(ToScenario) \
+            print(
+                "A copy was requested to from scenario "
+                + str(FromScenario)
+                + " to "
+                + str(ToScenario)
                 + ".  This was not executed."
+            )
             return
         project = _MODELLER.emmebank
         original = project.scenario(str(FromScenario))
         if original == None:
-            raise Exception("The base scenario '" + str(FromScenario) + "' does not exist in order to copy to scenario '" \
-                            + str(ToScenario) + "'!")
+            raise Exception(
+                "The base scenario '"
+                + str(FromScenario)
+                + "' does not exist in order to copy to scenario '"
+                + str(ToScenario)
+                + "'!"
+            )
         dest = project.scenario(str(ToScenario))
         if dest != None:
             project.delete_scenario(dest.id)

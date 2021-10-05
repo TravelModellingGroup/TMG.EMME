@@ -19,15 +19,18 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 
-
 namespace TMG.Emme.Test.Export
 {
+    
     [TestClass]
     public class ExportBinaryMatrixTest : TestBase
     {
+        
         [TestMethod]
         public void ExportBinaryMatrix()
+
         {
+            
             /*Ensure the scenario has a valid network and at least one matrix to be exported*/
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
@@ -56,7 +59,7 @@ namespace TMG.Emme.Test.Export
                  {
                         writer.WriteNumber("matrix_type", 4);
                         writer.WriteNumber("matrix_number", 1);
-                        writer.WriteString("file_location", Path.GetFullPath("exported.mtx"));
+                        writer.WriteString("file_location", Path.GetFullPath("OutputTestFiles/exportedEBM.mtx"));
                         writer.WriteNumber("scenario_number", 1);
                  }), LogbookLevel.Standard));
         }
@@ -64,6 +67,14 @@ namespace TMG.Emme.Test.Export
         [TestMethod]
         public void ExportBinaryMatrixModule()
         {
+            /*
+            string outputFolder = Path.GetFullPath("OutputTestFiles");
+
+            if (!Directory.Exists(outputFolder))
+            {
+                Directory.CreateDirectory(outputFolder);
+            }
+            */
 
             /*Ensure the scenario has a valid network and at least one matrix to be exported*/
             var importNetworkModule = new Emme.Import.ImportNetworkPackage()
@@ -90,7 +101,7 @@ namespace TMG.Emme.Test.Export
                 Name = "Exporter",
                 ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
                 MatrixNumber = Helper.CreateParameter(1, "Matrix Number"),
-                SaveTo = Helper.CreateParameter("Test.mtx", "Matrix File Name")
+                SaveTo = Helper.CreateParameter(Path.GetFullPath("OutputTestFiles/testEBM.mtx"), "Matrix File Name")
             };
             module.Invoke(Helper.Modeller);
         }

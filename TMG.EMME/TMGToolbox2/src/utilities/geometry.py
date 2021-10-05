@@ -312,7 +312,7 @@ class Shapely2ESRI():
         31 : "MULTIPATCH"
     }
       
-    convert_geometry_to_index = dict((v,k) for k, v in convert_index_to_geometry.iteritems())
+    convert_geometry_to_index = dict((v,k) for k, v in convert_index_to_geometry.items())
          
     def __init__(self, filepath, mode='read', geometryType=0, projectionFile= None):
         if len(mode) <= 0:

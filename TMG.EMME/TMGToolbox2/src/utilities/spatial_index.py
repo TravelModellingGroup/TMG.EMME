@@ -158,10 +158,10 @@ def get_network_extents(net):
 class grid():
     def __init__(self, xSize, ySize):
         self._contents = []
-        for col in xrange(xSize):
+        for col in range(xSize):
             cells = []
             
-            for row in xrange(ySize): cells.append(set())
+            for row in range(ySize): cells.append(set())
             
             self._contents.append(cells)
         self._maxCol = xSize
@@ -364,8 +364,8 @@ class GridIndex():
         row1 = min(row1, self.maxRow)
         
         retval = set()
-        for col in xrange(col0, col1 + 1):
-            for row in xrange(row0, row1 + 1):
+        for col in range(col0, col1 + 1):
+            for row in range(row0, row1 + 1):
                 retval.add((col, row))
         return retval
 
@@ -383,14 +383,14 @@ class GridIndex():
             y0, y1 = center_y - radius, center_y + radius
             row0, row1 = self._transform_y(y0), self._transform_y(y1)
 
-            for row in xrange(row0, row1 + 1):
+            for row in range(row0, row1 + 1):
                 retval.add((col0, row))
 
             return retval
 
         rad2 = radius ** 2
 
-        for col in xrange(col0, col1):
+        for col in range(col0, col1):
             columnBoundary = self._deltaX * col + self.minX
             # y = center_y +/- sqrt(radius^2 - (x - center_x)^2 )
             root = (rad2 - (columnBoundary - center_x)**2) ** 0.5
@@ -401,7 +401,7 @@ class GridIndex():
             row0 = max(1, self._transform_y(lower_yIntercept))
             row1 = min(self.maxRow, self._transform_y(upper_yIntercept) )
 
-            for row in xrange(row0, row1 + 1):
+            for row in range(row0, row1 + 1):
                 retval.add((col, row))
                 retval.add((col + 1, row))
 

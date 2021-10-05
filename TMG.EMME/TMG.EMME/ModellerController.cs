@@ -206,7 +206,7 @@ namespace TMG.Emme
                 string toPrint;
                 while (true)
                 {
-                    using var reader = new BinaryReader(_emmePipe, Encoding.UTF8, true);
+                    using var reader = new BinaryReader(_emmePipe, Encoding.Unicode, true);
                     int result = reader.ReadInt32();
                     switch (result)
                     {

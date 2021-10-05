@@ -16,6 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with XTMF.  If not, see <http://www.gnu.org/licenses/>.
 '''
+from __future__ import print_function
 import sys
 import os
 import glob
@@ -23,6 +24,7 @@ import time
 import math
 import array
 import inspect
+import six
 import timeit
 import traceback as _traceback
 from inro.emme.desktop import app as _app
@@ -45,7 +47,8 @@ class ProgressTimer(Thread):
     def _run(self):
         while not self._stopped:
             progressTuple = self.delegateFunction()
-            self.bridge.ReportProgress((float(progressTuple[2]) - progressTuple[0]) / (progressTuple[1] - progressTuple[0]))
+            if progressTuple[2] is not None:
+                self.bridge.ReportProgress((float(progressTuple[2]) - progressTuple[0]) / (progressTuple[1] - progressTuple[0]))
             time.sleep(0.01667)
     
     def stop(self):
@@ -67,6 +70,9 @@ class RedirectToXTMFConsole:
     
     def write(self, data):
         self.bridge.SendPrintSignal(str(data))
+
+    def flush(self):
+        pass
 
 def RedirectLogbookWrite(name, attributes=None, value=None):
     pass
@@ -136,14 +142,14 @@ class XTMFBridge:
         length = self.ReadInt()
         try:
             stringArray = array.array('u')
-            stringArray.read(self.XTMFPipe, length)
+            stringArray.fromfile(self.XTMFPipe, length)
             return str(stringArray.tounicode()) 
         except:
             return str(stringArray.tounicode())
 
     def ReadInt(self):
         intArray = array.array('l')
-        intArray.read(self.XTMFPipe, 1)
+        intArray.fromfile(self.XTMFPipe, 1)
         return intArray.pop()
     
     def IsWhitespace(self, c):
@@ -153,7 +159,8 @@ class XTMFBridge:
         return self.Modeller.tool(toolName)
     
     def SendString(self, stringToSend):
-        length = len(stringToSend)
+        msg = array.array('u', six.text_type(stringToSend))
+        length = len(msg) * msg.itemsize
         tempLength = length
         bytes = 0
         #figure out how many bytes we are going to need to store the length
@@ -175,9 +182,8 @@ class XTMFBridge:
                 else:
                     lengthArray.append(diff + 128)
                 tempLength = tempLength >> 7
-        lengthArray.write(self.XTMFPipe)
-        msg = array.array('c', str(stringToSend))
-        msg.write(self.XTMFPipe)
+        lengthArray.tofile(self.XTMFPipe)
+        msg.tofile(self.XTMFPipe)
         return
     
     def SendToolDoesNotExistError(self, namespace):
@@ -211,7 +217,7 @@ class XTMFBridge:
         self.IOLock.acquire()
         intArray = array.array('l')
         intArray.append(self.SignalRunComplete)
-        intArray.write(self.XTMFPipe)
+        intArray.tofile(self.XTMFPipe)
         self.IOLock.release()
         return
     
@@ -231,7 +237,7 @@ class XTMFBridge:
     def SendSignal(self, signal):
         intArray = array.array('l')
         intArray.append(signal)
-        intArray.write(self.XTMFPipe)
+        intArray.tofile(self.XTMFPipe)
         return
     
     def SendPrintSignal(self, stringToPrint):
@@ -246,7 +252,7 @@ class XTMFBridge:
         self.SendSignal(self.SignalProgressReport)
         floatArray = array.array('f')
         floatArray.append(float(progress))
-        floatArray.write(self.XTMFPipe)
+        floatArray.tofile(self.XTMFPipe)
         self.IOLock.release()   
         return
 
@@ -309,7 +315,7 @@ class XTMFBridge:
                 self.SendSuccess()
             else:
                 self.SendReturnSuccess(ret)
-        except Exception, inst:
+        except Exception as inst:
             if timer != None:
                 timer.stop()
             _m.logbook_write("We are in the exception code for ExecuteModule")
@@ -331,7 +337,7 @@ class XTMFBridge:
             for file, line, func, text in stackList:
                 msg += "\n  File '%s', line %s, in %s" % (file, line, func)
             self.SendRuntimeError(msg)
-            print msg
+            print (msg)
         return
     
     def Run(self, emmeApplication, performanceMode):
@@ -391,8 +397,8 @@ userInitials = args[2]
 performanceFlag = bool(int(args[3]))
 pipeName = args[4]
 #sys.stderr.write(args)
-print userInitials
-print projectFile
+print (userInitials)
+print (projectFile)
 try:
     TheEmmeEnvironmentXMTF = _app.start_dedicated(visible=False, user_initials=userInitials, project=projectFile)
     XTMFBridge().Run(TheEmmeEnvironmentXMTF, performanceFlag)
