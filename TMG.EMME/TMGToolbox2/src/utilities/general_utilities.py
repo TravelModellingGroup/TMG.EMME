@@ -26,12 +26,14 @@ it can be distributed in the TMG toolbox
 import inro.modeller as _m
 import math
 import inro.emme.core.exception as _excep
-from contextlib import contextmanager, nested
+from contextlib import contextmanager
 import warnings as _warn
 import sys as _sys
 import traceback as _tb
 import subprocess as _sp
-from itertools import izip
+import six
+if six.PY2:
+    from itertools import izip
 from json import loads as _parsedict
 from os.path import dirname
 
@@ -41,7 +43,7 @@ class Face(_m.Tool()):
     def page(self):
         pb = _m.ToolPageBuilder(self, runnable=False, title="Utilities",
                                 description="Collection of private utilities",
-                                branding_text="- TMG Toolbox 2")
+                                branding_text="- TMG Toolbox")
         
         pb.add_text_element("To import, call inro.modeller.Modeller().module('%s')" %str(self))
         
@@ -74,7 +76,7 @@ def iterpairs(iterable):
     
     iterator = iterable.__iter__()
     
-    try: prev = iterator.next()
+    try: prev = six.next(iterator)
     except StopIteration: return
     
     for val in iterator:
@@ -101,8 +103,11 @@ def itersync(list1, list2):
         >>>4 9
         >>>5 10
     '''
-
-    return izip(list1, list2)
+    # izip is no longer included in Python 3
+    if(six.PY3):
+        return izip(list1, list2)
+    else:
+        return zip(list1, list2)
 
 #-------------------------------------------------------------------------------------------
 
@@ -204,7 +209,7 @@ def initializeMatrix(id=None, default=0, name="", description="", matrix_type='F
         #If the matrix id is given as an integer
         try:
             id = "%s%s" %(_mtxNames[matrix_type],id)
-        except KeyError, ke:
+        except KeyError:
             raise TypeError("Matrix type '%s' is not a valid matrix type." %matrix_type)
     elif 'type' in dir(id):
         #If the matrix id is given as a matrix object
@@ -212,12 +217,12 @@ def initializeMatrix(id=None, default=0, name="", description="", matrix_type='F
         if not t in _mtxNames:
             raise TypeError("Assumed id was a matrix, but its type value was not recognized %s" %type(id))
         id = id.id #Set the 'id' variable to the matrix's 'id' property.
-    elif not isinstance(id, basestring):
+    elif not isinstance(id, six.string_types):
         raise TypeError("Id is not a supported type: %s" %type(id))
 
     mtx = _DATABANK.matrix(id)
 
-    if mtx == None:
+    if mtx is None:
         #Matrix does not exist, so create it.
         mtx = _DATABANK.create_matrix(id, default_value=default)
         if name: mtx.name = name[:40]
@@ -241,7 +246,7 @@ def getAvailableScenarioNumber():
     if the _DATABANK is full.
     '''
     for i in range(0, _m.Modeller().emmebank.dimensions['scenarios']):
-        if _m.Modeller().emmebank.scenario(i + 1) == None:
+        if _m.Modeller().emmebank.scenario(i + 1) is None:
             return (i + 1)
     
     raise inro.emme.core.exception.CapacityError("No new scenarios are available: databank is full!")
@@ -328,7 +333,7 @@ def tempMatrixMANAGER(description="[No description]", matrix_type='FULL', defaul
     mtx = initializeMatrix(default=default, description= 'Temporary %s' %description, \
                            matrix_type=matrix_type)
     
-    if mtx == None:
+    if mtx is None:
         raise Exception("Could not create temporary matrix: %s" %description)
     
     try:
@@ -529,11 +534,23 @@ def _getVersionNew(app, returnType):
     
     version_tuple = app.version_info
     
-    if returnType == tuple: return version_tuple
+    if returnType == tuple:
+       # Test for a beta-version of EMME
+       if version_tuple[0] <= 2:
+            return (9,9,9,0)
+       return version_tuple
     
-    if returnType == float: return version_tuple[0] + version_tuple[1] * 0.1
+    if returnType == float: 
+        # Test for a beta-version of EMME
+        if version_tuple[0] <= 2:
+            return 9.0
+        return version_tuple[0] + version_tuple[1] * 0.1
     
-    if returnType == int: return version_tuple[0]
+    if returnType == int: 
+        # Test for a beta-version of EMME
+        if version_tuple[0] <= 2:
+            return 9
+        return version_tuple[0]
     
     raise TypeError("Type %s not accepted for getting Emme version" %returnType)
 
@@ -690,7 +707,7 @@ class ProgressTracker():
         self._processIsRunning = False
         self._activeTool = None
         
-        if numberOfTasks != None: #Can be reset with a new number of tasks
+        if numberOfTasks is not None: #Can be reset with a new number of tasks
             self._taskIncr = 1000.0 / numberOfTasks
     
     def completeTask(self):
@@ -720,10 +737,7 @@ class ProgressTracker():
         self._activeTool = tool
         self._toolIsRunning = True
         #actually run the tool. no knowledge of the arguments is required.
-        try:
-            ret = self._activeTool(*args, **kwargs) 
-        except Exception, e:
-            print e
+        ret = self._activeTool(*args, **kwargs) 
         self._toolIsRunning = False
         self._activeTool = None
         self.completeTask()
@@ -757,7 +771,7 @@ class ProgressTracker():
         else:
             self._completedSubtasks += 1
     
-    @_m.method(return_type=_m.TupleType)
+    #@_m.method(return_type=_m.TupleType)
     def getProgress(self):
         '''
         Call inside a Tool's percent_completed method
@@ -766,7 +780,7 @@ class ProgressTracker():
         
         if self._toolIsRunning:
             tup = self._activeTool.percent_completed()
-            if tup[2] == None: # Tool is returning the 'marquee' display option
+            if tup[2] is None: # Tool is returning the 'marquee' display option
                 #Just return the current progress. The task will be completed by the other thread.
                 self._toolIsRunning = False 
                 return (0, 1000, self._progress)
@@ -831,14 +845,16 @@ class CSVReader():
                 atts[column_label] = cells[i]
             return Record(atts)
             
-        except Exception, e:
+        except Exception as e:
             raise IOError("Error reading line %s: %s" %(self.__lincount, e))
     
     def readlines(self):
         try:
             for line in self.__reader.readlines():
-                cells = line.strip().split(',')
                 self.__lincount += 1
+                if not (line):
+                    continue
+                cells = line.strip().split(',')
                 if not self.append_blanks and len(cells) < len(self.header):
                     raise IOError("Fewer records than header")
                 
@@ -846,7 +862,7 @@ class CSVReader():
                     cells.append('')
                 
                 yield Record(self.header, cells)
-        except Exception, e:
+        except Exception as e:
             raise IOError("Error reading line %s: %s" %(self.__lincount, e))
 
 class Record():

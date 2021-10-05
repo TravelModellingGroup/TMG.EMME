@@ -11,11 +11,11 @@
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <InterpreterId>Global|VisualStudio|EMME Python</InterpreterId>
+    <InterpreterId>Global|VisualStudio|Python37</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
     <CommandLineArguments>"..\TMG.EMME.Test\bin\$(Configuration)\netcoreapp3.1\DebugProject\DebugProject.emp" XTMF 0 DEBUG_EMME</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
-    <Environment>Path="C:\Program Files\INRO\Emme\Emme 4\Emme-4.4.2\Python27";"C:\Program Files\INRO\Emme\Emme 4\Emme-4.4.2\python-lib\win64\2.7";"C:\Program Files\INRO\Emme\Emme 4\Emme-4.4.2\Programs"</Environment>
+    <Environment>Path="C:\Program Files\INRO\Emme\Emme 4\Emme-4.5.1.1\Python37";C:\Program Files\INRO\Emme\Emme 4\Emme-4.5.1.1\programs"</Environment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -26,6 +26,7 @@
     <InterpreterReference Include="Global|PythonCore|2.7" />
     <InterpreterReference Include="Global|VisualStudio|EMME" />
     <InterpreterReference Include="Global|VisualStudio|EMME Python" />
+    <InterpreterReference Include="Global|VisualStudio|Python37" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\TMG.EMME\ModellerBridge.py">
@@ -51,10 +52,13 @@
     <Compile Include="src\Import\import_transit_lines_from_gtfs.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="src\utilities\geometry.py" />
     <Compile Include="src\utilities\merge_functions.py" />
+    <Compile Include="src\utilities\network_editing.py" />
     <Compile Include="src\utilities\pandas_utils.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="src\utilities\spatial_index.py" />
     <Compile Include="src\utilities\TMG_tool_page_builder.py" />
     <Compile Include="src\utilities\general_utilities.py" />
   </ItemGroup>

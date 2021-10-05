@@ -21,8 +21,11 @@
 import inro.modeller as _m
 import traceback as _traceback
 from contextlib import contextmanager
-from contextlib import nested
 from os import path as _path
+
+_m.InstanceType = object
+_m.TupleType = object
+_m.ListType = list
 
 _MODELLER = _m.Modeller() #Instantiate Modeller once.
 _util = _MODELLER.module('tmg2.utilities.general_utilities')
@@ -79,7 +82,7 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
             self._Execute()
         except Exception as e:
             self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc(e))
+                e, _traceback.format_exc())
             raise
         
         self.tool_run_msg = _m.PageBuilder.format_info("Tool is completed.")
@@ -91,8 +94,8 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
         self.ShapefileName = parameters['shapefile_name']
         try:
             self._Execute()
-        except Exception, e:
-            raise Exception(_traceback.format_exc(e))
+        except Exception as e:
+            raise Exception(_traceback.format_exc())
 
     ##########################################################################################################  
     
@@ -102,16 +105,16 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
             
             
             routeModes = self._LoadRoutes()
-            print "Routes Loaded."
+            print ("Routes Loaded.")
             tripModes = self._LoadTrips(routeModes)
-            print "Trips loaded."
+            print ("Trips loaded.")
             stops = self._LoadStops()
-            print "Stops loaded."
+            print ("Stops loaded.")
             self._LoadStopTimes(stops, tripModes)
-            print "Stop times loaded."
+            print ("Stop times loaded.")
             self._WriteStopsToShapefile(stops)
             self._WriteProjectionFile()
-            print "Shapefile written."
+            print ("Shapefile written.")
 
     ##########################################################################################################    
     #----SUB FUNCTIONS---------------------------------------------------------------------------------  
@@ -192,12 +195,12 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
             for line in reader.readlines():
                 cells = line.strip().split(',')
                 if not cells[stopIdCol] in stops: 
-                    print "Could not find stop '%s'" %cells[stopIdCol]
+                    print ("Could not find stop '%s'" %cells[stopIdCol])
                     continue
                 stop = stops[cells[stopIdCol]]                    
                 
                 if not cells[tripIdCol] in tripModes:
-                    print "Could not find trip '%s'" %cells[tripIdCol]
+                    print ("Could not find trip '%s'" %cells[tripIdCol])
                     continue
                 mode = tripModes[cells[tripIdCol]]
                 
@@ -210,7 +213,7 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
             
             maxDescription = 10
             maxName = 10
-            for stop in stops.itervalues():
+            for stop in stops.values():
                 nameLen = len(stop.name)
                 desLen= len(stop.description)
                 
@@ -219,8 +222,8 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
                 if desLen > maxDescription:
                     maxDescription = desLen
             
-            print maxDescription
-            print maxName
+            print (maxDescription)
+            print (maxName)
             
             writer.addField("StopID")
             writer.addField("Name", length=maxName)
@@ -233,7 +236,7 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
                     s += c
                 return s
             
-            for stop in stops.itervalues():
+            for stop in stops.values():
                 point = _geo.Point(stop.lon, stop.lat)
                 point["StopID"] = stop.id
                 point["Name"] = stop.name
@@ -251,7 +254,7 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
     def percent_completed(self):
         return self.TRACKER.getProgress()
                 
-    @_m.method(return_type=unicode)
+    @_m.method(return_type=str)
     def tool_run_msg_status(self):
         return self.tool_run_msg
     
@@ -265,7 +268,3 @@ class GtfsStop():
         self.name= name
         self.description = description
         self.modes = set()
-    
-    
-    
-    

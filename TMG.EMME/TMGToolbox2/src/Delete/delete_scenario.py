@@ -1,4 +1,4 @@
-'''
+"""
     Copyright 2016 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
@@ -15,9 +15,9 @@
 
     You should have received a copy of the GNU General Public License
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
-'''
-#---METADATA---------------------
-'''
+"""
+# ---METADATA---------------------
+"""
 Delete Scenario
 
     Authors: JamesVaughan
@@ -28,44 +28,53 @@ Delete Scenario
     This tool will allow XTMF to be able to delete a scenario within 
     an EMME Databank.
         
-'''
-#---VERSION HISTORY
-'''
+"""
+# ---VERSION HISTORY
+"""
     0.0.1 Created on 2016-03-24 by JamesVaughan
     
     
-'''
+"""
 import inro.modeller as _m
 import traceback as _traceback
-_MODELLER = _m.Modeller() #Instantiate Modeller once.
+
+_MODELLER = _m.Modeller()  # Instantiate Modeller once.
+
 
 class DeleteScenario(_m.Tool()):
-    version = '0.0.1'
+    version = "0.0.1"
     Scenario = _m.Attribute(int)
-    
+
     def page(self):
-        pb = _m.ToolPageBuilder(self, title="Delete Scenario",
-                     runnable=False,
-                     description="Cannot be called from Modeller.",
-                     branding_text="XTMF")
-        
+        pb = _m.ToolPageBuilder(
+            self,
+            title="Delete Scenario",
+            runnable=False,
+            description="Cannot be called from Modeller.",
+            branding_text="XTMF",
+        )
+
         return pb.render()
-    
+
     def run(self):
         pass
 
-    def run_xtmf(self, parameters):  
-        Scenario = parameters['scenario']
+    def run_xtmf(self, parameters):
+        Scenario = parameters["scenario"]
         try:
             self._execute(Scenario)
-        except Exception, e:
-            raise Exception(_traceback.format_exc(e))
+        except Exception as e:
+            raise Exception(_traceback.format_exc())
 
     def _execute(self, Scenario):
         project = _MODELLER.emmebank
         scenario = project.scenario(str(Scenario))
         if scenario is None:
-            print "A delete was requested for scenario " + str(Scenario) + " but the scenario does not exist."
+            print(
+                "A delete was requested for scenario "
+                + str(Scenario)
+                + " but the scenario does not exist."
+            )
             return
         if scenario.delete_protected == True:
             scenario.delete_protected = False

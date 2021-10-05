@@ -1,2 +1,6 @@
-set Path=%Path%;%EMMEPATH%/programs
-"%EMMEPATH%/Python27/python.exe" build_toolbox.py
+@echo off
+if exist "%EMMEPATH%/Python27/python.exe" (
+"%EMMEPATH%/Python27/python.exe" "%~dp0\build_toolbox.py"
+) else (
+"%EMMEPATH%/Python37/python.exe" "%~dp0\build_toolbox.py"
+)
