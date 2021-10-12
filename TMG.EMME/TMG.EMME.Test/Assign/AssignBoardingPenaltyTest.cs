@@ -42,19 +42,41 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumberValue(1);
                     writer.WriteNumberValue(2);
                     writer.WriteEndArray();
-                    writer.WriteString("penalty_filter_string", "GO Train: mode=r: 1.0: 1.0: 1.0");
+                    writer.WritePropertyName("penalty_filter_string");
+                    writer.WriteStartArray();
+                    writer.WriteStartObject();
+                    writer.WriteString("label", "GO Train");
+                    writer.WriteString("filter", "mode=r");
+                    writer.WriteNumber("initial", 1.0);
+                    writer.WriteNumber("transfer", 1.0);
+                    writer.WriteNumber("ivttPerception", 1.0);
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();
+
 
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
         public void AssignBoardingPenaltyModule()
         {
+            var filterString = new[]
+            {
+                new Emme.Assign.AssignBoardingPenalty.PenaltyFilter()
+                {
+                    Label = Helper.CreateParameter("GO Train"),
+                    Filter = Helper.CreateParameter("mode=r"),
+                    Initial = Helper.CreateParameter(1.0f),
+                    Transfer = Helper.CreateParameter(1.0f),
+                    IvttPerception = Helper.CreateParameter(1.0f)
+                }
+            };
+
             var module = new Emme.Assign.AssignBoardingPenalty()
             {
                 Name = "AssignBoardingPenalty",
                 ScenarioNumbers = Helper.CreateParameter(new int[] { 1, 2 }),
-                PenaltyFilterString = Helper.CreateParameter("GO Train: mode=r: 1.0: 1.0: 1.0")
-            };
+                PenaltyFilterString = Helper.CreateParameter(filterString),
+        };
             module.Invoke(Helper.Modeller);
         }
     }

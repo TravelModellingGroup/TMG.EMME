@@ -95,20 +95,11 @@ class AssignVBoardingPenalties(_m.Tool()):
 
         # ---Set the defaults of parameters used by Modeller
 
-        # lines = [
-        #     "GO Train: mode=r: 1.0: 1.0: 1.0",
-        #     "GO Bus: mode=g: 1.0: 1.0: 1.0",
-        #     "Subway: mode=m: 1.0: 1.0: 1.0",
-        #     "Streetcar: mode=s: 1.0: 1.0: 1.0",
-        #     "TTC Bus: line=T_____ and mode=bp: 1.0: 1.0: 1.0",
-        #     "YRT: line=Y_____: 1.0: 1.0: 1.0",
-        #     "VIVA: line=YV____: 1.0: 1.0: 1.0",
-        #     "Brampton: line=B_____: 1.0: 1.0: 1.0",
-        #     "MiWay: line=M_____: 1.0: 1.0: 1.0",
-        #     "Durham: line=D_____: 1.0: 1.0: 1.0",
-        #     "Halton: line=H_____: 1.0: 1.0: 1.0",
-        #     "Hamilton: line=W_____: 1.0: 1.0: 1.0",
-        # ]
+        # penalty_filter_string = [{'filter': 'mode=r',
+        # 'initial': 1,
+        # 'ivttPerception': 1,
+        # 'label': 'GO Train',
+        # 'transfer': 1}]
 
         self.penalty_filter_string = ""
 
@@ -198,7 +189,7 @@ class AssignVBoardingPenalties(_m.Tool()):
         self.penalty_filter_string = parameters["penalty_filter_string"]
         # self.Scenarios = []
         self.Scenarios = [_MODELLER.emmebank.scenario(x) for x in self.scenario_numbers]
-        
+
         try:
             self._Execute()
         except Exception as e:
@@ -217,7 +208,7 @@ class AssignVBoardingPenalties(_m.Tool()):
 
             self.TRACKER.reset(len(self.Scenarios))
 
-            filterList = self._ParseFilterString(self.penalty_filter_string)
+            filterList = self.penalty_filter_string
 
             for scenario in self.Scenarios:
                 with _m.logbook_trace("Processing scenario %s" % scenario):
@@ -239,24 +230,24 @@ class AssignVBoardingPenalties(_m.Tool()):
 
         return atts
 
-    def _ParseFilterString(self, filterString):
-        penaltyFilterList = []
-        components = _regex_split(
-            "\n|,", filterString
-        )  # Supports newline and/or commas
-        for component in components:
-            if component.isspace():
-                continue  # Skip if totally empty
+    # def _ParseFilterString(self, filterString):
+    #     penaltyFilterList = []
+    #     components = _regex_split(
+    #         "\n|,", filterString
+    #     )  # Supports newline and/or commas
+    #     for component in components:
+    #         if component.isspace():
+    #             continue  # Skip if totally empty
 
-            parts = component.split(":")
-            if len(parts) != 5:
-                msg = "Error parsing penalty and filter string: Separate label, filter and penalty with colons label:filter:initial:transfer:ivttPerception"
-                msg += ". [%s]" % component
-                raise SyntaxError(msg)
-            strippedParts = [item.strip() for item in parts]
-            penaltyFilterList.append(strippedParts)
+    #         parts = component.split(":")
+    #         if len(parts) != 5:
+    #             msg = "Error parsing penalty and filter string: Separate label, filter and penalty with colons label:filter:initial:transfer:ivttPerception"
+    #             msg += ". [%s]" % component
+    #             raise SyntaxError(msg)
+    #         strippedParts = [item.strip() for item in parts]
+    #         penaltyFilterList.append(strippedParts)
 
-        return penaltyFilterList
+    #     return penaltyFilterList
 
     def _ProcessScenario(self, scenario, penaltyFilterList):
         tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
@@ -269,7 +260,7 @@ class AssignVBoardingPenalties(_m.Tool()):
             self.TRACKER.completeSubtask()
 
         for group in penaltyFilterList:
-            with _m.logbook_trace("Applying " + group[0] + " BP"):
+            with _m.logbook_trace("Applying " + group["label"] + " BP"):
                 tool(specification=self._GetGroupSpecInitial(group), scenario=scenario)
                 tool(specification=self._GetGroupSpecTransfer(group), scenario=scenario)
                 self.TRACKER.completeSubtask()
@@ -279,7 +270,7 @@ class AssignVBoardingPenalties(_m.Tool()):
             self.TRACKER.completeSubtask()
 
         for group in penaltyFilterList:
-            with _m.logbook_trace("Applying " + group[0] + " IVTT Perception"):
+            with _m.logbook_trace("Applying " + group["label"] + " IVTT Perception"):
                 tool(specification=self._IVTTPerceptionSpec(group), scenario=scenario)
                 self.TRACKER.completeSubtask()
 
@@ -304,27 +295,27 @@ class AssignVBoardingPenalties(_m.Tool()):
     def _GetGroupSpecTransfer(self, group):
         return {
             "result": "ut2",
-            "expression": group[3],
+            "expression": str(group["transfer"]),
             "aggregation": None,
-            "selections": {"transit_line": group[1]},
+            "selections": {"transit_line": group["filter"]},
             "type": "NETWORK_CALCULATION",
         }
 
     def _GetGroupSpecInitial(self, group):
         return {
             "result": "ut3",
-            "expression": group[2],
+            "expression": str(group["initial"]),
             "aggregation": None,
-            "selections": {"transit_line": group[1]},
+            "selections": {"transit_line": group["filter"]},
             "type": "NETWORK_CALCULATION",
         }
 
     def _IVTTPerceptionSpec(self, group):
         return {
             "result": "us2",
-            "expression": group[4],
+            "expression": str(group["ivttPerception"]),
             "aggregation": None,
-            "selections": {"transit_line": group[1], "link": "all"},
+            "selections": {"transit_line": group["filter"], "link": "all"},
             "type": "NETWORK_CALCULATION",
         }
 
