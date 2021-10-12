@@ -79,7 +79,7 @@ class AssignVBoardingPenalties(_m.Tool()):
     #    get initialized during construction (__init__)
 
     # xtmf_ScenarioNumbers = _m.Attribute(str)  # parameter used by XTMF only
-    scenario_numbers = _m.Attribute(str)  # parameter used by XTMF only
+    scenario_numbers = _m.Attribute(_m.ListType)  # parameter used by XTMF only
     Scenarios = _m.Attribute(_m.ListType)  # common variable or parameter
     penalty_filter_string = _m.Attribute(str)
 
@@ -199,12 +199,13 @@ class AssignVBoardingPenalties(_m.Tool()):
     def run_xtmf(self, parameters):
         self.scenario_numbers = parameters["scenario_numbers"]
         self.penalty_filter_string = parameters["penalty_filter_string"]
-        self.Scenarios = []
-        for number in self.scenario_numbers.split(","):
-            sc = _MODELLER.emmebank.scenario(number)
-            if sc is None:
-                raise Exception("Scenarios %s was not found!" % number)
-            self.Scenarios.append(sc)
+        # self.Scenarios = []
+        self.Scenarios = [_MODELLER.emmebank.scenario(x) for x in self.scenario_numbers]
+        # for number in self.scenario_numbers.split(","):
+        #     sc = _MODELLER.emmebank.scenario(number)
+        #     if sc is None:
+        #         raise Exception("Scenarios %s was not found!" % number)
+        #     self.Scenarios.append(sc)
         try:
             self._Execute()
         except Exception as e:

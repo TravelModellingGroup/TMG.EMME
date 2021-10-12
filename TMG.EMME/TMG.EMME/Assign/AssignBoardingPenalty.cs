@@ -31,7 +31,7 @@ namespace TMG.Emme.Assign
     {
         [Parameter(Name = "Scenario Number", Description = "The scenario number to assign boarding penalty to.",
             Index = 0)]
-        public IFunction<string> ScenarioNumbers;
+        public IFunction<int[]> ScenarioNumbers;
 
         [Parameter(Name = "Penalty Filter String", Description = "A colon seperated list of penalty in the order label:filter:initial:transfer:ivttPerception",
             Index = 1)]
@@ -41,7 +41,14 @@ namespace TMG.Emme.Assign
         {
             context.Run(this, "tmg2.Assign.assign_boarding_penalty", JSONParameterBuilder.BuildParameters(writer =>
             {
-                writer.WriteString("scenario_numbers", ScenarioNumbers.Invoke());
+                //writer.WriteString("scenario_numbers", ScenarioNumbers.Invoke());
+                writer.WritePropertyName("scenario_numbers");
+                writer.WriteStartArray();
+                foreach (var scenario in ScenarioNumbers.Invoke())
+                {
+                    writer.WriteNumberValue(scenario);
+                }
+                writer.WriteEndArray();
                 writer.WriteString("penalty_filter_string", PenaltyFilterString.Invoke());
             }), LogbookLevel.Standard);
 
