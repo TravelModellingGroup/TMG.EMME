@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2021 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -37,11 +37,10 @@ namespace TMG.Emme.Test.Assign
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_boarding_penalty",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
-                    //writer.WriteString("scenario_numbers", "1,2");
                     writer.WritePropertyName("scenario_numbers");
                     writer.WriteStartArray();
                     writer.WriteNumberValue(1);
-                    //writer.WriteNumberValue(2);
+                    writer.WriteNumberValue(2);
                     writer.WriteEndArray();
                     writer.WriteString("penalty_filter_string", "GO Train: mode=r: 1.0: 1.0: 1.0");
 
@@ -53,7 +52,6 @@ namespace TMG.Emme.Test.Assign
             var module = new Emme.Assign.AssignBoardingPenalty()
             {
                 Name = "AssignBoardingPenalty",
-                //ScenarioNumbers = Helper.CreateParameter("1,2"),
                 ScenarioNumbers = Helper.CreateParameter(new int[] { 1, 2 }),
                 PenaltyFilterString = Helper.CreateParameter("GO Train: mode=r: 1.0: 1.0: 1.0")
             };

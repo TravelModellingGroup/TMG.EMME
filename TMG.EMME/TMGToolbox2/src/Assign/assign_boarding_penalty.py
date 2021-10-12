@@ -1,6 +1,6 @@
 # ---LICENSE----------------------
 """
-    Copyright 2015 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2021 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -46,6 +46,10 @@ Assign V4 Boarding Penalties
     1.2.0 Added ability to set IVTT perception factor.
 
     1.2.1 Added ability to set Transfer boarding penalties.
+
+    2.0.0 Refacted to work with XTMF2/TMGToolbox2 on 2021-10-12 by williamsDiogu
+
+    2.0.1 Updated to process scenario numbers as an array instead of parcing strings
 
 """
 
@@ -180,15 +184,8 @@ class AssignVBoardingPenalties(_m.Tool()):
     def __call__(self, scenario_number, penalty_filter_string):
 
         # ---1 Set up scenarios
-        self.Scenarios = []
-        for number in scenario_number.split(","):
-            sc = _MODELLER.emmebank.scenario(number)
-            if sc is None:
-                raise Exception("Scenarios %s was not found!" % number)
-            self.Scenarios.append(sc)
-
+        self.Scenarios = [_MODELLER.emmebank.scenario(x) for x in self.scenario_numbers]
         self.penalty_filter_string = penalty_filter_string
-
         try:
             self._Execute()
         except Exception as e:
@@ -201,11 +198,7 @@ class AssignVBoardingPenalties(_m.Tool()):
         self.penalty_filter_string = parameters["penalty_filter_string"]
         # self.Scenarios = []
         self.Scenarios = [_MODELLER.emmebank.scenario(x) for x in self.scenario_numbers]
-        # for number in self.scenario_numbers.split(","):
-        #     sc = _MODELLER.emmebank.scenario(number)
-        #     if sc is None:
-        #         raise Exception("Scenarios %s was not found!" % number)
-        #     self.Scenarios.append(sc)
+        
         try:
             self._Execute()
         except Exception as e:
