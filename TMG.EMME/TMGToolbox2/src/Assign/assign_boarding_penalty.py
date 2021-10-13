@@ -230,25 +230,6 @@ class AssignVBoardingPenalties(_m.Tool()):
 
         return atts
 
-    # def _ParseFilterString(self, filterString):
-    #     penaltyFilterList = []
-    #     components = _regex_split(
-    #         "\n|,", filterString
-    #     )  # Supports newline and/or commas
-    #     for component in components:
-    #         if component.isspace():
-    #             continue  # Skip if totally empty
-
-    #         parts = component.split(":")
-    #         if len(parts) != 5:
-    #             msg = "Error parsing penalty and filter string: Separate label, filter and penalty with colons label:filter:initial:transfer:ivttPerception"
-    #             msg += ". [%s]" % component
-    #             raise SyntaxError(msg)
-    #         strippedParts = [item.strip() for item in parts]
-    #         penaltyFilterList.append(strippedParts)
-
-    #     return penaltyFilterList
-
     def _ProcessScenario(self, scenario, penaltyFilterList):
         tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 
