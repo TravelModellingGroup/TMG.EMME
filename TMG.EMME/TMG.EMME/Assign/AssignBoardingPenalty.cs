@@ -41,7 +41,6 @@ namespace TMG.Emme.Assign
         {
             context.Run(this, "tmg2.Assign.assign_boarding_penalty", JSONParameterBuilder.BuildParameters(writer =>
             {
-                //writer.WriteString("scenario_numbers", ScenarioNumbers.Invoke());
                 writer.WritePropertyName("scenario_numbers");
                 writer.WriteStartArray();
                 foreach (var scenario in ScenarioNumbers.Invoke())
@@ -49,7 +48,6 @@ namespace TMG.Emme.Assign
                     writer.WriteNumberValue(scenario);
                 }
                 writer.WriteEndArray();
-                //writer.WriteString("penalty_filter_string", PenaltyFilterString.Invoke());
                 
                 writer.WritePropertyName("penalty_filter_string");
                 writer.WriteStartArray();

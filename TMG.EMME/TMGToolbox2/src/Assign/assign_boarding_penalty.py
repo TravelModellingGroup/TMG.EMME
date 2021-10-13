@@ -94,13 +94,14 @@ class AssignVBoardingPenalties(_m.Tool()):
         )  # init the ProgressTracker
 
         # ---Set the defaults of parameters used by Modeller
-
-        # penalty_filter_string = [{'filter': 'mode=r',
-        # 'initial': 1,
-        # 'ivttPerception': 1,
-        # 'label': 'GO Train',
-        # 'transfer': 1}]
-
+        """
+        Example:
+            penalty_filter_string = [{'filter': 'mode=r',
+            'initial': 1,
+            'ivttPerception': 1,
+            'label': 'GO Train',
+            'transfer': 1}]
+        """
         self.penalty_filter_string = ""
 
     def page(self):
@@ -187,7 +188,6 @@ class AssignVBoardingPenalties(_m.Tool()):
     def run_xtmf(self, parameters):
         self.scenario_numbers = parameters["scenario_numbers"]
         self.penalty_filter_string = parameters["penalty_filter_string"]
-        # self.Scenarios = []
         self.Scenarios = [_MODELLER.emmebank.scenario(x) for x in self.scenario_numbers]
 
         try:
