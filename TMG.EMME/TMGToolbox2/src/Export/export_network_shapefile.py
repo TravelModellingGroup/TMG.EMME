@@ -31,9 +31,9 @@ _m.ListType = list
 _m.InstanceType = object
 
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
-_tmgTPB = _MODELLER.module("tmg.common.TMG_tool_page_builder")
+_tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 _exportShapefile = _MODELLER.tool("inro.emme.data.network.export_network_as_shapefile")
-_util = _MODELLER.module("tmg.common.utilities")
+_util = _MODELLER.module("tmg2.utilities.general_utilities")
 
 
 class ExportNetworkAsShapefile(_m.Tool()):
@@ -68,8 +68,8 @@ class ExportNetworkAsShapefile(_m.Tool()):
     def __call__(self, export_path, transit_shapes, scenario_number):
         self.export_path = export_path
         self.transit_shapes = transit_shapes
-        scenario_number = int(scenario_number)
-        self.scenario = _m.Modeller().emmebank.scenario(scenario_number)
+        self.scenario_number = scenario_number
+        self.scenario = _m.Modeller().emmebank.scenario(self.scenario_number)
 
         try:
             print("Starting export.")
