@@ -70,11 +70,10 @@ class ExportNetworkAsShapefile(_m.Tool()):
         self.transit_shapes = transit_shapes
         self.scenario_number = scenario_number
         self.scenario = _m.Modeller().emmebank.scenario(self.scenario_number)
+        self._check_inputs()
 
         try:
-            print("Starting export.")
             self._execute()
-            print("Export complete.")
         except Exception as e:
             raise Exception(_util.formatReverseStack())
 
@@ -84,15 +83,21 @@ class ExportNetworkAsShapefile(_m.Tool()):
         self.transit_shapes = parameters["transit_shapes"]
 
         self.scenario = _m.Modeller().emmebank.scenario(self.scenario_number)
-
+        self._check_inputs()
         try:
-            print("Starting export.")
             self._execute()
-            print("Export complete.")
         except Exception as e:
             raise Exception(_util.formatReverseStack())
 
     def _execute(self):
+
+        print(
+            "Exporting scenario "
+            + str(self.scenario_number)
+            + "as a shapefile to "
+            + self.export_path
+        )
+
         if (
             self.transit_shapes == ""
             or self.transit_shapes is None
@@ -105,3 +110,13 @@ class ExportNetworkAsShapefile(_m.Tool()):
             transit_shapes=self.transit_shapes,
             scenario=self.scenario,
         )
+        self.TRACKER.completeTask()
+
+    def _check_inputs(self):
+        if self.scenario is None:
+            raise Exception(
+                "Scenario '%s' is not a valid scenario" % self.scenario_number
+            )
+
+        if self.export_path is None or "":
+            raise IOError("Export file not specified")
