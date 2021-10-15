@@ -35,7 +35,7 @@ namespace TMG.Emme.Utilities
 
         [Parameter(Name = "Domain", Description = "The Emme domain type in the result. Options: Link, Node, Transit_Line, Transit_Segment",
             Index = 1)]
-        public IFunction<int> Domain;
+        public IFunction<Domains> Domain;
 
         [Parameter(Name = "Expression", Description = "The expression to compute. E.g. sqrt((xi - xj) ^ 2 + (yi - yj) ^ 2)",
             Index = 2)]
@@ -57,7 +57,7 @@ namespace TMG.Emme.Utilities
             context.Run(this, "tmg2.utilities.network_calculator", JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-                writer.WriteNumber("domain", Domain.Invoke());
+                writer.WriteNumber("domain", (int)Domain.Invoke());
                 writer.WriteString("expression", Expression.Invoke());
                 writer.WriteString("node_selection", NodeSelection.Invoke());
                 writer.WriteString("link_selection", LinkSelection.Invoke());
@@ -65,6 +65,10 @@ namespace TMG.Emme.Utilities
                 writer.WriteString("result", Result.Invoke());
             }), LogbookLevel.Standard);
 
+        }
+        public enum Domains
+        {
+            Link = 0, Node = 1, TransitLine = 2, TransitSegment = 3
         }
 
     }
