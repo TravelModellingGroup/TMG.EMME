@@ -75,10 +75,10 @@ class NetworkCalculator(_m.Tool()):
         result,
     ):
 
-        self.scenario = _MODELLER.emmebank.scenario(scenario_number)
-        self.domain = str(domain)
+        # self.scenario = _MODELLER.emmebank.scenario(scenario_number)
+        self.domain = domain
         self.expression = expression
-        self._check_scenario(self.scenario)
+        self._load_scenario(self.scenario_number)
 
         self._process_parameters(
             result, link_selection, node_selection, transit_line_selection
@@ -96,16 +96,16 @@ class NetworkCalculator(_m.Tool()):
 
     def run_xtmf(self, parameters):
         self.scenario_number = parameters["scenario_number"]
-        self.domain = str(parameters["domain"])
+        self.domain = parameters["domain"]
         self.expression = parameters["expression"]
         self.node_selection = parameters["node_selection"]
         self.link_selection = parameters["link_selection"]
         self.transit_line_selection = parameters["transit_line_selection"]
         self.result = parameters["result"]
 
-        self.scenario = _MODELLER.emmebank.scenario(self.scenario_number)
+        # self.scenario = _MODELLER.emmebank.scenario(self.scenario_number)
 
-        self._check_scenario(self.scenario)
+        self._load_scenario(self.scenario_number)
 
         self._process_parameters(
             self.result,
@@ -143,10 +143,12 @@ class NetworkCalculator(_m.Tool()):
 
         return spec
 
-    def _check_scenario(self, scenario):
-
+    def _load_scenario(self, scenario_number):
+        scenario = _MODELLER.emmebank.scenario(scenario_number)
         if scenario is None:
-            raise Exception("Scenario %s was not found!" % self.scenario_number)
+            raise Exception("Scenario %s was not found!" % scenario_number)
+
+        return scenario
 
     def _process_parameters(
         self, result, link_selection, node_selection, transit_line_selection
@@ -156,19 +158,19 @@ class NetworkCalculator(_m.Tool()):
         else:
             self.result = None
 
-        if self.domain == "0":  # Link
+        if self.domain == 0:  # Link
             self.node_selection = None
             self.link_selection = link_selection
             self.transit_line_selection = None
-        elif self.domain == "1":  # Link
+        elif self.domain == 1:  # Node
             self.node_selection = node_selection
             self.link_selection = None
             self.transit_line_selection = None
-        elif self.domain == "2":  # transit line
+        elif self.domain == 2:  # transit line
             self.node_selection = None
             self.link_selection = None
             self.transit_line_selection = transit_line_selection
-        elif self.domain == "3":  # transit segment
+        elif self.domain == 3:  # transit segment
             self.node_selection = None
             self.link_selection = link_selection
             self.transit_line_selection = transit_line_selection
