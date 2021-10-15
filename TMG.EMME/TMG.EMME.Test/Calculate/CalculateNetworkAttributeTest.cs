@@ -25,19 +25,19 @@ using System.Text;
 using System.IO;
 using XTMF2;
 
-namespace TMG.Emme.Test.Utilities
+namespace TMG.Emme.Test.Calculate
 {
     [TestClass]
-    public class NetworkCalculatorTest : TestBase
+    public class CalculateNetworkAttributeTest : TestBase
     {
         [TestMethod]
-        public void NetworkCalculatorDomain0()
+        public void CalculateNetworkAttributeLink()
         {
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.utilities.network_calculator", JSONParameterBuilder.BuildParameters(writer =>
+                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute", JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("scenario_number", 1);
-                    writer.WriteNumber("domain", (int)Emme.Utilities.NetworkCalculator.Domains.Link);
+                    writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.Link);
                     writer.WriteString("expression", "sqrt((xi - xj) ^ 2 + (yi - yj) ^ 2)");
                     writer.WriteString("node_selection", "all");
                     writer.WriteString("link_selection", "all");
@@ -46,12 +46,12 @@ namespace TMG.Emme.Test.Utilities
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
-        public void NetworkCalculatorModuleDomain0()
+        public void NetworkCalculatorModuleLink()
         {
-            var module = new TMG.Emme.Utilities.NetworkCalculator()
+            var module = new TMG.Emme.Calculate.CalculateNetworkAttribute()
             {
                 ScenarioNumber = Helper.CreateParameter(1),
-                Domain = Helper.CreateParameter(Emme.Utilities.NetworkCalculator.Domains.Link),
+                Domain = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Domains.Link),
                 Expression = Helper.CreateParameter("sqrt((xi - xj) ^ 2 + (yi - yj) ^ 2)"),
                 NodeSelection = Helper.CreateParameter("all"),
                 LinkSelection = Helper.CreateParameter("all"),
@@ -61,13 +61,13 @@ namespace TMG.Emme.Test.Utilities
             module.Invoke(Helper.Modeller);
         }
         [TestMethod]
-        public void NetworkCalculatorDomain1()
+        public void NetworkCalculatorNode()
         {
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.utilities.network_calculator", JSONParameterBuilder.BuildParameters(writer =>
+                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute", JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("scenario_number", 1);
-                    writer.WriteNumber("domain", (int)Emme.Utilities.NetworkCalculator.Domains.Node);
+                    writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.Node);
                     writer.WriteString("expression", "sqrt((xi) ^ 2 + (yi ) ^ 2)");
                     writer.WriteString("node_selection", "all");
                     writer.WriteString("link_selection", "all");
@@ -76,12 +76,12 @@ namespace TMG.Emme.Test.Utilities
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
-        public void NetworkCalculatorModuleDomain1()
+        public void NetworkCalculatorModuleNode()
         {
-            var module = new TMG.Emme.Utilities.NetworkCalculator()
+            var module = new TMG.Emme.Calculate.CalculateNetworkAttribute()
             {
                 ScenarioNumber = Helper.CreateParameter(1),
-                Domain = Helper.CreateParameter(Emme.Utilities.NetworkCalculator.Domains.Node),
+                Domain = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Domains.Node),
                 Expression = Helper.CreateParameter("sqrt((xi) ^ 2 + (yi) ^ 2)"),
                 NodeSelection = Helper.CreateParameter("all"),
                 LinkSelection = Helper.CreateParameter("all"),
@@ -91,62 +91,62 @@ namespace TMG.Emme.Test.Utilities
             module.Invoke(Helper.Modeller);
         }
         [TestMethod]
-        public void NetworkCalculatorDomain2()
+        public void NetworkCalculatorTransitLine()
         {
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.utilities.network_calculator", JSONParameterBuilder.BuildParameters(writer =>
+                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute", JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("scenario_number", 1);
-                    writer.WriteNumber("domain", (int)Emme.Utilities.NetworkCalculator.Domains.TransitLine);
-                    writer.WriteString("expression", "sqrt((xi) ^ 2 + (yi ) ^ 2)");
-                    writer.WriteString("node_selection", "all");
-                    writer.WriteString("link_selection", "all");
+                    writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.TransitLine);
+                    writer.WriteString("expression", "ut1");
+                    writer.WriteString("node_selection", "None");
+                    writer.WriteString("link_selection", "None");
                     writer.WriteString("transit_line_selection", "all");
-                    writer.WriteString("result", "None");
+                    writer.WriteString("result", "ut2");
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
-        public void NetworkCalculatorModuleDomain2()
+        public void NetworkCalculatorModuleTransitLine()
         {
-            var module = new TMG.Emme.Utilities.NetworkCalculator()
+            var module = new TMG.Emme.Calculate.CalculateNetworkAttribute()
             {
                 ScenarioNumber = Helper.CreateParameter(1),
-                Domain = Helper.CreateParameter(Emme.Utilities.NetworkCalculator.Domains.TransitLine),
-                Expression = Helper.CreateParameter("ul1)"),
-                NodeSelection = Helper.CreateParameter("all"),
-                LinkSelection = Helper.CreateParameter("all"),
+                Domain = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Domains.TransitLine),
+                Expression = Helper.CreateParameter("ut1"),
+                NodeSelection = Helper.CreateParameter("None"),
+                LinkSelection = Helper.CreateParameter("None"),
                 TransitLineSelection = Helper.CreateParameter("all"),
-                Result = Helper.CreateParameter("None")
+                Result = Helper.CreateParameter("ut2")
             };
             module.Invoke(Helper.Modeller);
         }
         [TestMethod]
-        public void NetworkCalculatorDomain3()
+        public void NetworkCalculatorTransitSegment()
         {
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.utilities.network_calculator", JSONParameterBuilder.BuildParameters(writer =>
+                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute", JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("scenario_number", 1);
-                    writer.WriteNumber("domain", (int)Emme.Utilities.NetworkCalculator.Domains.TransitSegment);
-                    writer.WriteString("expression", "ul1");
-                    writer.WriteString("node_selection", "all");
+                    writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.TransitSegment);
+                    writer.WriteString("expression", "sqrt((xi) ^ 2 + (yi ) ^ 2)");
+                    writer.WriteString("node_selection", "None");
                     writer.WriteString("link_selection", "all");
                     writer.WriteString("transit_line_selection", "all");
-                    writer.WriteString("result", "None");
+                    writer.WriteString("result", "us1");
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
-        public void NetworkCalculatorModuleDomain3()
+        public void NetworkCalculatorModuleTransitSegment()
         {
-            var module = new TMG.Emme.Utilities.NetworkCalculator()
+            var module = new TMG.Emme.Calculate.CalculateNetworkAttribute()
             {
                 ScenarioNumber = Helper.CreateParameter(1),
-                Domain = Helper.CreateParameter(Emme.Utilities.NetworkCalculator.Domains.TransitSegment),
-                Expression = Helper.CreateParameter("sqrt((xi) ^ 2 + (yi) ^ 2)"),
-                NodeSelection = Helper.CreateParameter("all"),
+                Domain = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Domains.TransitSegment),
+                Expression = Helper.CreateParameter("sqrt((xi) ^ 2 + (yi ) ^ 2)"),
+                NodeSelection = Helper.CreateParameter("None"),
                 LinkSelection = Helper.CreateParameter("all"),
                 TransitLineSelection = Helper.CreateParameter("all"),
-                Result = Helper.CreateParameter("None")
+                Result = Helper.CreateParameter("us1")
             };
             module.Invoke(Helper.Modeller);
         }

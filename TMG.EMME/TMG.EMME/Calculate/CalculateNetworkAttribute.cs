@@ -23,11 +23,11 @@ using System.Text;
 using System.Linq;
 using XTMF2;
 
-namespace TMG.Emme.Utilities
+namespace TMG.Emme.Calculate
 {
     [Module(Name = "Network Calculator", Description = "Runs the network calculator tool and returns the sum from the report.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class NetworkCalculator : BaseAction<ModellerController>
+    public class CalculateNetworkAttribute : BaseAction<ModellerController>
     {
         [Parameter(Name = "Scenario Number", Description = "Scenario to run",
             Index = 0)]
@@ -54,7 +54,7 @@ namespace TMG.Emme.Utilities
         public IFunction<string> Result;
         public override void Invoke(ModellerController context)
         {
-            context.Run(this, "tmg2.utilities.network_calculator", JSONParameterBuilder.BuildParameters(writer =>
+            context.Run(this, "tmg2.Calculate.calculate_network_attribute", JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                 writer.WriteNumber("domain", (int)Domain.Invoke());

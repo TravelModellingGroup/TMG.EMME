@@ -51,7 +51,7 @@ _network_calculation = _m.Modeller().tool(
 )
 
 
-class NetworkCalculator(_m.Tool()):
+class CalculateNetworkAttribute(_m.Tool()):
     # ---Parameters---
     scenario_number = _m.Attribute(int)
     domain = _m.Attribute(int)
