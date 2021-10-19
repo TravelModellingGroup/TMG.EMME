@@ -149,7 +149,6 @@ class RotateNetwork(_m.Tool()):
         self.CorrespondingY1 = parameters["corresponding_y_1"]
 
         self.scenario = _m.Modeller().emmebank.scenario(self.scenario_number)
-        #self.scenario = _MODELLER.scenario
         try:
             self._execute()
         except Exception as e:
