@@ -23,7 +23,7 @@ import traceback as _traceback
 import math
 
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
-_util = _MODELLER.module("tmg2.general_utilities")
+_util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 _geom = _MODELLER.module("tmg2.utilities.geometry")
 
@@ -140,7 +140,7 @@ class RotateNetwork(_m.Tool()):
         self.tool_run_msg = _m.PageBuilder.format_info("Done.")
 
     def run_xtmf(self, parameters):
-        self.scenario = parameters["scenario"]
+        self.scenario_number = parameters["scenario_number"]
         self.ReferenceLinkINode = parameters["reference_link_i_node"]
         self.ReferenceLinkJNode = parameters["reference_link_j_node"]
         self.CorrespondingX0 = parameters["corresponding_x_0"]
@@ -148,6 +148,8 @@ class RotateNetwork(_m.Tool()):
         self.CorrespondingX1 = parameters["corresponding_x_1"]
         self.CorrespondingY1 = parameters["corresponding_y_1"]
 
+        self.scenario = _m.Modeller().emmebank.scenario(self.scenario_number)
+        #self.scenario = _MODELLER.scenario
         try:
             self._execute()
         except Exception as e:
@@ -162,7 +164,7 @@ class RotateNetwork(_m.Tool()):
             name="{classname} v{version}".format(
                 classname=(self.__class__.__name__), version=self.version
             ),
-            attribute=self._GetAtts(),
+            attributes=self._GetAtts(),
         ):
             network = self.scenario.get_network()
             self.TRACKER.completeTask()
@@ -220,7 +222,7 @@ class RotateNetwork(_m.Tool()):
             self.TRACKER.completeTask()
             _m.logbook_write("Finished translating nodes.")
 
-            self.TRACKER.startProcess(network.element_totals["link"])
+            self.TRACKER.startProcess(network.element_totals["links"])
             count = 0
             for link in network.links():
                 if len(link.vertices) > 0:
@@ -230,7 +232,7 @@ class RotateNetwork(_m.Tool()):
             _m.logbook_write("Translated %s links with vertices." % count)
 
             self.scenario.publish_network(network, resolve_attributes=True)
-            self.TRACKER.comleteTask()
+            self.TRACKER.completeTask()
 
     # ---SUB FUNCTION------------------------------------------------
 
@@ -251,6 +253,7 @@ class RotateNetwork(_m.Tool()):
                 "Reference link '%s-%s' does not exist in the network!"
                 % (self.ReferenceLinkINode, self.ReferenceLinkJNode)
             )
+        return link
 
     def _GetLinkVector(self, link):
         return ((link.i_node.x, link.i_node.y), (link.j_node.x, link.j_node.y))
@@ -282,7 +285,7 @@ class RotateNetwork(_m.Tool()):
 
     def _RotateLinkVertices(self, link, cosTheta, sinTheta):
         vertices = [link.vertices.pop() for i in range(0, len(link.vertices))]
-        vertices.reserve()
+        vertices.reverse()
 
         # Link's vertices have been removed and copied in-order to
         # this new list
