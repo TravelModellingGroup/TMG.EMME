@@ -47,7 +47,7 @@ class ProgressTimer(Thread):
     def _run(self):
         while not self._stopped:
             progressTuple = self.delegateFunction()
-            if progressTuple[2] is not None:
+            if progressTuple is not None and progressTuple[2] is not None:
                 self.bridge.ReportProgress((float(progressTuple[2]) - progressTuple[0]) / (progressTuple[1] - progressTuple[0]))
             time.sleep(0.01667)
     
