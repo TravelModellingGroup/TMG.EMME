@@ -1,5 +1,5 @@
 """
-    Copyright 2020 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2021 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -309,7 +309,7 @@ class RotateNetwork(_m.Tool()):
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        pass
+        return self.TRACKER.getProgress()
 
     @_m.method(return_type=str)
     def tool_run_msg_status(self):
