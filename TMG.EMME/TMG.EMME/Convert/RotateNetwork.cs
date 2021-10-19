@@ -31,26 +31,26 @@ namespace TMG.Emme.Convert
         public IFunction<int> ScenarioNumber;
 
         [Parameter(Name = "Reference Link I Node", Description = "I-node of link from network to rotate",
-            Index = 0)]
+            Index = 1)]
         public IFunction<int> ReferenceLinkINode;
 
         [Parameter(Name = "Reference Link J Node", Description = "J-node of link from network to rotate",
-            Index = 0)]
+            Index = 2)]
         public IFunction<int> ReferenceLinkJNode;
 
         [Parameter(Name = "Corresponding X0", Description = "Corresponding xi coordinate of I-node",
-            Index = 1)]
+            Index = 3)]
         public IFunction<float> CorrespondingX0;
         [Parameter(Name = "Corresponding Y0", Description = "Corresponding yi coordinate of I-node",
-           Index = 2)]
+           Index = 4)]
         public IFunction<float> CorrespondingY0;
 
         [Parameter(Name = "Corresponding X1", Description = "Corresponding xi coordinate of J-node",
-            Index = 3)]
+            Index = 5)]
         public IFunction<float> CorrespondingX1;
 
         [Parameter(Name = "Corresponding Y1", Description = "Corresponding yi coordinate of J-node",
-            Index = 4)]
+            Index = 6)]
         public IFunction<float> CorrespondingY1;
 
         public override void Invoke(ModellerController context)
