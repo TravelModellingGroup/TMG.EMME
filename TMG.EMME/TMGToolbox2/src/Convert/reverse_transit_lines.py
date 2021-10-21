@@ -282,10 +282,10 @@ class ReverseTransitLines(_m.Tool()):
         _m.logbook_write("Reversed lines report", value=pb.render())
 
     def _WriteErrorReport(self, errorLines):
-        bcc = ""
+        acc = ""
 
         for lineId, errorType, errorMsg in errorLines:
-            bcc += (
+            acc += (
                 "<tr><td>"
                 + self.escape(lineId)
                 + "</td><td>"
