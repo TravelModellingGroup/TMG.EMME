@@ -33,7 +33,6 @@ namespace TMG.Emme.Test.Convert
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("scenario_number", 2);
-
                     writer.WriteString("line_selector_expression", "mode=r");
                 }), LogbookLevel.Standard));
         }
