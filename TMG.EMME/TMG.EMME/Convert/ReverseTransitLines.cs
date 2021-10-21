@@ -33,7 +33,6 @@ namespace TMG.Emme.Convert
         [Parameter(Name = "Line Selector Expression", Description = "",
             Index = 1)]
         public IFunction<string> LineSelectorExpression;
-
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Convert.reverse_transit_lines", JSONParameterBuilder.BuildParameters(writer =>
