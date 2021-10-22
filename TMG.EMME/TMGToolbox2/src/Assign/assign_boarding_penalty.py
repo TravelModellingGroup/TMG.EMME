@@ -47,7 +47,7 @@ Assign V4 Boarding Penalties
 
     1.2.1 Added ability to set Transfer boarding penalties.
 
-    2.0.0 Refacted to work with XTMF2/TMGToolbox2 on 2021-10-12 by williamsDiogu
+    2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2021-10-12 by williamsDiogu
 
     2.0.1 Updated to process scenario numbers as an array instead of parcing strings
 
