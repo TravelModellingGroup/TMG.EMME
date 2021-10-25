@@ -26,13 +26,13 @@ using XTMF2;
 
 namespace TMG.Emme.Assign
 {
-    [Module(Name = "Assign Demand To Road Assignment", Description = "",
+    [Module(Name = "Assign Demand To Road Network", Description = "",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class AssignDemandToRoadAssignment : BaseAction<ModellerController>
+    public class AssignDemandToRoadNetwork : BaseAction<ModellerController>
     {
         [Parameter(Name = "Scenario Number", Description = "",
             Index = 0)]
-        public IFunction<string> ScenarioNumber;
+        public IFunction<int> ScenarioNumber;
 
         [Parameter(Name = "Link Toll Attribute Id", Description = "",
             Index = 1)]
@@ -40,15 +40,15 @@ namespace TMG.Emme.Assign
 
         [Parameter(Name = "Times Matrix Id", Description = "",
             Index = 2)]
-        public IFunction<string> TimesMatrixId;
+        public IFunction<int> TimesMatrixId;
 
         [Parameter(Name = "Cost Matrix Id", Description = "",
             Index = 3)]
-        public IFunction<string> CostMatrixId;
+        public IFunction<int> CostMatrixId;
 
         [Parameter(Name = "Tolls Matrix Id", Description = "",
             Index = 4)]
-        public IFunction<string> TollsMatrixId;
+        public IFunction<int> TollsMatrixId;
 
         [Parameter(Name = "Run Title", Description = "",
             Index = 5)]
@@ -72,11 +72,11 @@ namespace TMG.Emme.Assign
 
         [Parameter(Name = "Link Cost", Description = "",
             Index = 10)]
-        public IFunction<string> LinkCost;
+        public IFunction<int> LinkCost;
 
         [Parameter(Name = "Toll Weight", Description = "",
             Index = 11)]
-        public IFunction<string> TollWeight;
+        public IFunction<int> TollWeight;
 
         [Parameter(Name = "Iterations", Description = "",
             Index = 12)]
@@ -116,7 +116,7 @@ namespace TMG.Emme.Assign
 
         [Parameter(Name = "Analysis Attributes Matrix Id", Description = "",
             Index = 21)]
-        public IFunction<string> AnalysisAttributesMatrixId;
+        public IFunction<int> AnalysisAttributesMatrixId;
 
         [Parameter(Name = "Aggregation Operator", Description = "",
             Index = 22)]
@@ -136,31 +136,31 @@ namespace TMG.Emme.Assign
 
         [Parameter(Name = "Multiply Path Prop By Demand", Description = "",
             Index = 26)]
-        public IFunction<string> MultiplyPathPropByDemand;
+        public IFunction<bool> MultiplyPathPropByDemand;
 
         [Parameter(Name = "Multiply Path Prop By Value", Description = "",
             Index = 27)]
-        public IFunction<string> MultiplyPathPropByValue;
+        public IFunction<bool> MultiplyPathPropByValue;
 
         [Parameter(Name = "Background Transit", Description = "",
             Index = 28)]
-        public IFunction<string> BackgroundTransit;
+        public IFunction<bool> BackgroundTransit;
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Assign.assign_demand_to_road_network", JSONParameterBuilder.BuildParameters(writer =>
             {
-                writer.WriteString("scenario_number", ScenarioNumber.Invoke());
+                writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                 writer.WriteString("link_toll_attribute_id", LinkTollAttributeId.Invoke());
-                writer.WriteString("times_matrix_id", TimesMatrixId.Invoke());
-                writer.WriteString("cost_matrix_id", CostMatrixId.Invoke());
-                writer.WriteString("tolls_matrix_id", TollsMatrixId.Invoke());
+                writer.WriteNumber("times_matrix_id", TimesMatrixId.Invoke());
+                writer.WriteNumber("cost_matrix_id", CostMatrixId.Invoke());
+                writer.WriteNumber("tolls_matrix_id", TollsMatrixId.Invoke());
                 writer.WriteString("run_title", RunTitle.Invoke());
                 writer.WriteString("mode_list", ModeList.Invoke());
                 writer.WriteString("demand_string", DemandString.Invoke());
                 writer.WriteString("demand_list", DemandList.Invoke());
                 writer.WriteNumber("peak_hour_factor", PeakHourFactor.Invoke());
-                writer.WriteString("link_cost", LinkCost.Invoke());
-                writer.WriteString("toll_weight", TollWeight.Invoke());
+                writer.WriteNumber("link_cost", LinkCost.Invoke());
+                writer.WriteNumber("toll_weight", TollWeight.Invoke());
                 writer.WriteNumber("iterations", Iterations.Invoke());
                 writer.WriteNumber("r_gap", rGap.Invoke());
                 writer.WriteNumber("br_gap", brGap.Invoke());
@@ -170,14 +170,14 @@ namespace TMG.Emme.Assign
                 writer.WriteBoolean("name_string", NameString.Invoke());
                 writer.WriteString("result_attributes", ResultAttributes.Invoke());
                 writer.WriteString("analysis_attributes", AnalysisAttributes.Invoke());
-                writer.WriteString("analysis_attributes_matrix_id", AnalysisAttributesMatrixId.Invoke());
+                writer.WriteNumber("analysis_attributes_matrix_id", AnalysisAttributesMatrixId.Invoke());
                 writer.WriteString("aggregation_operator", AggregationOperator.Invoke());
                 writer.WriteString("lower_bound", LowerBound.Invoke());
                 writer.WriteString("upper_bound", UpperBound.Invoke());
                 writer.WriteString("path_selection", PathSelection.Invoke());
-                writer.WriteString("multiply_path_prop_by_demand", MultiplyPathPropByDemand.Invoke());
-                writer.WriteString("multiply_path_prop_by_value", MultiplyPathPropByValue.Invoke());
-                writer.WriteString("background_transit", BackgroundTransit.Invoke());
+                writer.WriteBoolean("multiply_path_prop_by_demand", MultiplyPathPropByDemand.Invoke());
+                writer.WriteBoolean("multiply_path_prop_by_value", MultiplyPathPropByValue.Invoke());
+                writer.WriteBoolean("background_transit", BackgroundTransit.Invoke());
             }), LogbookLevel.Standard);
         }
     }
