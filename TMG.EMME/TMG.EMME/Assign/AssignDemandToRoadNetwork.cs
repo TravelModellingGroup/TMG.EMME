@@ -149,7 +149,35 @@ namespace TMG.Emme.Assign
         {
             context.Run(this, "tmg2.Assign.assign_demand_to_road_network", JSONParameterBuilder.BuildParameters(writer =>
             {
-                writer.WriteNumber("", ScenarioNumber.Invoke());
+                writer.WriteString("scenario_number", ScenarioNumber.Invoke());
+                writer.WriteString("link_toll_attribute_id", LinkTollAttributeId.Invoke());
+                writer.WriteString("times_matrix_id", TimesMatrixId.Invoke());
+                writer.WriteString("cost_matrix_id", CostMatrixId.Invoke());
+                writer.WriteString("tolls_matrix_id", TollsMatrixId.Invoke());
+                writer.WriteString("run_title", RunTitle.Invoke());
+                writer.WriteString("mode_list", ModeList.Invoke());
+                writer.WriteString("demand_string", DemandString.Invoke());
+                writer.WriteString("demand_list", DemandList.Invoke());
+                writer.WriteNumber("peak_hour_factor", PeakHourFactor.Invoke());
+                writer.WriteString("link_cost", LinkCost.Invoke());
+                writer.WriteString("toll_weight", TollWeight.Invoke());
+                writer.WriteNumber("iterations", Iterations.Invoke());
+                writer.WriteNumber("r_gap", rGap.Invoke());
+                writer.WriteNumber("br_gap", brGap.Invoke());
+                writer.WriteNumber("norm_gap", normGap.Invoke());
+                writer.WriteBoolean("performance_flag", PerformanceFlag.Invoke());
+                writer.WriteBoolean("sola_flag", SOLAFlag.Invoke());
+                writer.WriteBoolean("name_string", NameString.Invoke());
+                writer.WriteString("result_attributes", ResultAttributes.Invoke());
+                writer.WriteString("analysis_attributes", AnalysisAttributes.Invoke());
+                writer.WriteString("analysis_attributes_matrix_id", AnalysisAttributesMatrixId.Invoke());
+                writer.WriteString("aggregation_operator", AggregationOperator.Invoke());
+                writer.WriteString("lower_bound", LowerBound.Invoke());
+                writer.WriteString("upper_bound", UpperBound.Invoke());
+                writer.WriteString("path_selection", PathSelection.Invoke());
+                writer.WriteString("multiply_path_prop_by_demand", MultiplyPathPropByDemand.Invoke());
+                writer.WriteString("multiply_path_prop_by_value", MultiplyPathPropByValue.Invoke());
+                writer.WriteString("background_transit", BackgroundTransit.Invoke());
             }), LogbookLevel.Standard);
         }
     }
