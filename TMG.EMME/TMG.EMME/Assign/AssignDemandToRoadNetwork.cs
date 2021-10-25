@@ -32,11 +32,119 @@ namespace TMG.Emme.Assign
     {
         [Parameter(Name = "Scenario Number", Description = "",
             Index = 0)]
-        public IFunction<int> ScenarioNumber;
+        public IFunction<string> ScenarioNumber;
 
-        [Parameter(Name = "", Description = "", Index = )]
-        public IFunction<sring> ;
+        [Parameter(Name = "Link Toll Attribute Id", Description = "",
+            Index = 1)]
+        public IFunction<string> LinkTollAttributeId;
 
+        [Parameter(Name = "Times Matrix Id", Description = "",
+            Index = 2)]
+        public IFunction<string> TimesMatrixId;
+
+        [Parameter(Name = "Cost Matrix Id", Description = "",
+            Index = 3)]
+        public IFunction<string> CostMatrixId;
+
+        [Parameter(Name = "Tolls Matrix Id", Description = "",
+            Index = 4)]
+        public IFunction<string> TollsMatrixId;
+
+        [Parameter(Name = "Run Title", Description = "",
+            Index = 5)]
+        public IFunction<string> RunTitle;
+
+        [Parameter(Name = "Mode List ", Description = "",
+            Index = 6)]
+        public IFunction<string> ModeList;
+
+        [Parameter(Name = "Demand String", Description = "",
+            Index = 7)]
+        public IFunction<string> DemandString;
+
+        [Parameter(Name = "Demand List", Description = "",
+            Index = 8)]
+        public IFunction<string> DemandList;
+
+        [Parameter(Name = "Peak Hour Factor", Description = "",
+            Index = 9)]
+        public IFunction<float> PeakHourFactor;
+
+        [Parameter(Name = "Link Cost", Description = "",
+            Index = 10)]
+        public IFunction<string> LinkCost;
+
+        [Parameter(Name = "Toll Weight", Description = "",
+            Index = 11)]
+        public IFunction<string> TollWeight;
+
+        [Parameter(Name = "Iterations", Description = "",
+            Index = 12)]
+        public IFunction<int> Iterations;
+
+        [Parameter(Name = "r Gap", Description = "",
+            Index = 13)]
+        public IFunction<float> rGap;
+
+        [Parameter(Name = "br Gap", Description = "",
+            Index = 14)]
+        public IFunction<float> brGap;
+
+        [Parameter(Name = "norm Gap", Description = "",
+            Index = 15)]
+        public IFunction<float> normGap;
+
+        [Parameter(Name = "Performance Flag", Description = "",
+            Index = 16)]
+        public IFunction<bool> PerformanceFlag;
+
+        [Parameter(Name = "SOLA Flag", Description = "",
+            Index = 17)]
+        public IFunction<bool> SOLAFlag;
+
+        [Parameter(Name = "Name String", Description = "",
+            Index = 18)]
+        public IFunction<bool> NameString;
+
+        [Parameter(Name = "Result Attributes", Description = "",
+            Index = 19)]
+        public IFunction<string> ResultAttributes;
+
+        [Parameter(Name = "Analysis Attributes", Description = "",
+            Index = 20)]
+        public IFunction<string> AnalysisAttributes;
+
+        [Parameter(Name = "Analysis Attributes Matrix Id", Description = "",
+            Index = 21)]
+        public IFunction<string> AnalysisAttributesMatrixId;
+
+        [Parameter(Name = "Aggregation Operator", Description = "",
+            Index = 22)]
+        public IFunction<string> AggregationOperator;
+
+        [Parameter(Name = "Lower Bound", Description = "",
+            Index = 23)]
+        public IFunction<string> LowerBound;
+
+        [Parameter(Name = "Upper Bound", Description = "",
+            Index = 24)]
+        public IFunction<string> UpperBound;
+
+        [Parameter(Name = "Path Selection", Description = "",
+            Index = 25)]
+        public IFunction<string> PathSelection;
+
+        [Parameter(Name = "Multiply Path Prop By Demand", Description = "",
+            Index = 26)]
+        public IFunction<string> MultiplyPathPropByDemand;
+
+        [Parameter(Name = "Multiply Path Prop By Value", Description = "",
+            Index = 27)]
+        public IFunction<string> MultiplyPathPropByValue;
+
+        [Parameter(Name = "Background Transit", Description = "",
+            Index = 28)]
+        public IFunction<string> BackgroundTransit;
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Assign.assign_demand_to_road_network", JSONParameterBuilder.BuildParameters(writer =>
