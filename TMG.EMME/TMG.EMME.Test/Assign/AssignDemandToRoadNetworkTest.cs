@@ -39,33 +39,33 @@ namespace TMG.Emme.Test.Assign
                 {
                     writer.WriteNumber("scenario_number", 1);
                     writer.WriteString("link_toll_attribute_id", "@toll");
-                    writer.WriteNumber("times_matrix_id", 0);
-                    writer.WriteNumber("cost_matrix_id", 0);
-                    writer.WriteNumber("tolls_matrix_id", 0);
+                    writer.WriteString("times_matrix_id", "mf0");
+                    writer.WriteString("cost_matrix_id", "");
+                    writer.WriteString("tolls_matrix_id", "");
                     writer.WriteString("run_title", "multi -class run");
                     writer.WriteString("mode_list", "c");
-                    writer.WriteString("demand_string", "mf10 ,mf11,f12");
-                    writer.WriteString("demand_list", "mf10 ,mf11,f12");
+                    writer.WriteString("demand_string", "mf10,mf11,f12");
+                    writer.WriteString("demand_list", "mf10,mf11,f12");
                     writer.WriteNumber("peak_hour_factor", 0.43f);
-                    writer.WriteNumber("link_cost", 0);
-                    writer.WriteNumber("toll_weight", 0);
+                    writer.WriteString("link_cost", "");
+                    writer.WriteString("toll_weight", "");
                     writer.WriteNumber("iterations", 100);
-                    writer.WriteNumber("r_gap", 0);
+                    writer.WriteNumber("r_gap", 0.0f);
                     writer.WriteNumber("br_gap", 0.1f);
                     writer.WriteNumber("norm_gap", 0.05f);
                     writer.WriteBoolean("performance_flag", false);
                     writer.WriteBoolean("sola_flag", true);
-                    writer.WriteBoolean("name_string", true);
+                    writer.WriteString("name_string", "");
                     writer.WriteString("result_attributes", "");
                     writer.WriteString("analysis_attributes", "");
-                    writer.WriteNumber("analysis_attributes_matrix_id", 0);
+                    writer.WriteString("analysis_attributes_matrix_id", "");
                     writer.WriteString("aggregation_operator", "+");
                     writer.WriteString("lower_bound", "none");
                     writer.WriteString("upper_bound", "");
                     writer.WriteString("path_selection", "");
-                    writer.WriteBoolean("multiply_path_prop_by_demand", true);
-                    writer.WriteBoolean("multiply_path_prop_by_value", true);
-                    writer.WriteBoolean("background_transit", true);
+                    writer.WriteString("multiply_path_prop_by_demand", "true");
+                    writer.WriteString("multiply_path_prop_by_value", "");
+                    writer.WriteString("background_transit", "true");
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
@@ -77,34 +77,33 @@ namespace TMG.Emme.Test.Assign
                 Name = "AssignDemandToRoadNetwork",
                 ScenarioNumber = Helper.CreateParameter(1),
                 LinkTollAttributeId = Helper.CreateParameter("@toll"),
-                TimesMatrixId = Helper.CreateParameter(0),
-                CostMatrixId = Helper.CreateParameter(0),
-                TollsMatrixId = Helper.CreateParameter(0),
-                RunTitle = Helper.CreateParameter("multi-classrun"),
+                TimesMatrixId = Helper.CreateParameter("mf0"),
+                CostMatrixId = Helper.CreateParameter(""),
+                TollsMatrixId = Helper.CreateParameter(""),
+                RunTitle = Helper.CreateParameter("multi-class run"),
                 ModeList = Helper.CreateParameter("c"),
                 DemandString = Helper.CreateParameter("mf10,mf11,f12"),
                 DemandList = Helper.CreateParameter("mf10,mf11,f12"),
                 PeakHourFactor = Helper.CreateParameter(0.43f),
-                LinkCost = Helper.CreateParameter(0),
-                TollWeight = Helper.CreateParameter(0),
+                LinkCost = Helper.CreateParameter(""),
+                TollWeight = Helper.CreateParameter(""),
                 Iterations = Helper.CreateParameter(100),
                 rGap = Helper.CreateParameter(0.0f),
                 brGap = Helper.CreateParameter(0.1f),
                 normGap = Helper.CreateParameter(0.05f),
                 PerformanceFlag = Helper.CreateParameter(false),
                 SOLAFlag = Helper.CreateParameter(true),
-                NameString = Helper.CreateParameter(true),
+                NameString = Helper.CreateParameter(""),
                 ResultAttributes = Helper.CreateParameter(""),
                 AnalysisAttributes = Helper.CreateParameter(""),
-                AnalysisAttributesMatrixId = Helper.CreateParameter(0),
+                AnalysisAttributesMatrixId = Helper.CreateParameter(""),
                 AggregationOperator = Helper.CreateParameter("+"),
                 LowerBound = Helper.CreateParameter("none"),
                 UpperBound = Helper.CreateParameter(""),
                 PathSelection = Helper.CreateParameter(""),
-                MultiplyPathPropByDemand = Helper.CreateParameter(true),
-                MultiplyPathPropByValue = Helper.CreateParameter(true),
-                BackgroundTransit = Helper.CreateParameter(true)
-
+                MultiplyPathPropByDemand = Helper.CreateParameter("true"),
+                MultiplyPathPropByValue = Helper.CreateParameter(""),
+                BackgroundTransit = Helper.CreateParameter("true")
             };
             module.Invoke(Helper.Modeller);
         }
