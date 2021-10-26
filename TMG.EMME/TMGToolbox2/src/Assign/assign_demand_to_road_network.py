@@ -50,14 +50,6 @@ _util = _MODELLER.module("tmg2.utilities.general_utilities")
 EMME_VERSION = _util.getEmmeVersion(tuple)
 
 
-@contextmanager
-def blankManager(obj):
-    try:
-        yield obj
-    finally:
-        pass
-
-
 class AssignDemandToRoadAssignment(_m.Tool()):
     version = "1.1.1"
     tool_run_msg = ""
@@ -870,7 +862,6 @@ class AssignDemandToRoadAssignment(_m.Tool()):
     Context managers for temporary database modifications.
     """
 
-    @contextmanager
     def _AoNScenarioMANAGER(self):
         # Code here is executed upon entry
 
@@ -901,7 +892,6 @@ class AssignDemandToRoadAssignment(_m.Tool()):
             _MODELLER.emmebank.delete_scenario(tempScenarioNumber)
             _m.logbook_write("Deleted temporary Scenario %s" % tempScenarioNumber)
 
-    @contextmanager
     def _timeAttributeMANAGER(self):
         # Code here is executed upon entry
         timeAttributes = []
@@ -951,7 +941,6 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                     self.scenario.delete_extra_attribute(key)
                     # Delete the extra cost attribute only if it didn't exist before.
 
-    @contextmanager
     def _costAttributeMANAGER(self):
         # Code here is executed upon entry
         costAttributes = []
@@ -1002,7 +991,6 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                     self.scenario.delete_extra_attribute(key)
                     # Delete the extra cost attribute only if it didn't exist before.
 
-    @contextmanager
     def _transitTrafficAttributeMANAGER(self):
 
         attributeCreated = False
@@ -1061,7 +1049,6 @@ class AssignDemandToRoadAssignment(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    @contextmanager
     def _initOutputMatrices(self):
         with _m.logbook_trace("Initializing output matrices:"):
             created = [False] * len(self.demand_list)
