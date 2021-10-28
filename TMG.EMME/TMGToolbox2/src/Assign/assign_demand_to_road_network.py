@@ -39,6 +39,7 @@ Toll-Based Road Assignment
 
 import inro.modeller as _m
 import traceback as _traceback
+from contextlib import contextmanager
 import multiprocessing
 
 _m.InstanceType = object
@@ -48,6 +49,14 @@ _m.TupleType = object
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 EMME_VERSION = _util.getEmmeVersion(tuple)
+
+
+@contextmanager
+def blankManager(obj):
+    try:
+        yield obj
+    finally:
+        pass
 
 
 class AssignDemandToRoadAssignment(_m.Tool()):
@@ -69,9 +78,9 @@ class AssignDemandToRoadAssignment(_m.Tool()):
 
     link_toll_attribute_id = _m.Attribute(str)
 
-    times_matrix_id = _m.Attribute(int)
-    cost_matrix_id = _m.Attribute(int)
-    tolls_matrix_id = _m.Attribute(int)
+    times_matrix_id = _m.Attribute(str)
+    cost_matrix_id = _m.Attribute(str)
+    tolls_matrix_id = _m.Attribute(str)
     run_title = _m.Attribute(str)
 
     mode_list = _m.Attribute(
@@ -80,11 +89,11 @@ class AssignDemandToRoadAssignment(_m.Tool()):
     demand_string = _m.Attribute(
         str
     )  # Must be passed as a string, with demand matricies comma separated (e.g. 'a,b,c') cov => ['a','b','c']
-    demand_list = _m.Attribute(str)  # The Demand Matrix List
+    # demand_list = _m.Attribute(str)  # The Demand Matrix List
 
     peak_hour_factor = _m.Attribute(float)
-    link_cost = _m.Attribute(int)
-    toll_weight = _m.Attribute(int)
+    link_cost = _m.Attribute(str)
+    toll_weight = _m.Attribute(str)
     iterations = _m.Attribute(int)
     r_gap = _m.Attribute(float)
     br_gap = _m.Attribute(float)
@@ -95,7 +104,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
     name_string = _m.Attribute(str)
     result_attributes = _m.Attribute(str)
     analysis_attributes = _m.Attribute(str)
-    analysis_attributes_matrix_id = _m.Attribute(int)
+    analysis_attributes_matrix_id = _m.Attribute(str)
     aggregation_operator = _m.Attribute(str)
     lower_bound = _m.Attribute(str)
     upper_bound = _m.Attribute(str)
@@ -234,6 +243,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
         self.performance_flag = parameters["performance_flag"]
         self.run_title = parameters["run_title"]
         self.link_toll_attribute_id = parameters["link_toll_attribute_id"]
+        self.sola_flag = parameters["sola_flag"]
         self.name_string = parameters["name_string"]
         self.result_attributes = parameters["result_attributes"]
         self.analysis_attributes = parameters["analysis_attributes"]
@@ -266,6 +276,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
             self.performance_flag,
             self.run_title,
             self.link_toll_attribute_id,
+            self.sola_flag,
             self.name_string,
             self.result_attributes,
             self.analysis_attributes,
@@ -339,10 +350,9 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                             "LINK", name, default_value=0
                         )
 
-                    with (
-                        _util.tempMatrixMANAGER(description="Peak hour matrix")
-                        for Demand in self.demand_list
-                    ) as peakHourMatrix:
+                    with _util.tempMatricesMANAGER(
+                        len(self.demand_list), description="Peak hour matrix"
+                    ) as peakHourMatrices:
                         if (
                             self.BackgroundTransit == True
                         ):  # only do if you want background transit
@@ -359,9 +369,8 @@ class AssignDemandToRoadAssignment(_m.Tool()):
 
                         applied_toll_factor = self._calculateAppliedTollFactor()
 
-                        with _m.logbook_trace(
-                            "Calculating link costs"
-                        ):  # Do for each class
+                        with _m.logbook_trace("Calculating link costs"):
+                            # Do for each class
                             for i in range(len(self.demand_list)):
                                 networkCalculationTool(
                                     self._getLinkCostCalcSpec(
@@ -374,14 +383,13 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                                 )
                                 self._tracker.completeSubtask()
 
-                        with _m.logbook_trace(
-                            "Calculating peak hour matrix"
-                        ):  # For each class
+                        with _m.logbook_trace("Calculating peak hour matrix"):
+                            # For each class
                             for i in range(len(self.demand_list)):
                                 if EMME_VERSION >= (4, 2, 1):
                                     matrixCalcTool(
                                         self._getPeakHourSpec(
-                                            peakHourMatrix[i].id, self.demand_list[i]
+                                            peakHourMatrices[i].id, self.demand_list[i]
                                         ),
                                         scenario=self.scenario,
                                         num_processors=self.number_of_processors,
@@ -389,7 +397,8 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                                 else:
                                     matrixCalcTool(
                                         self._getPeakHourSpec(
-                                            peakHourMatrix[i].id, self.demand_list[i].id
+                                            peakHourMatrices[i].id,
+                                            self.demand_list[i].id,
                                         ),
                                         scenario=self.scenario,
                                     )
@@ -408,9 +417,8 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                             pathSelectors = []
                             multiply_path_demand = []
                             multiplyPathValue = []
-                            for i in range(
-                                len(self.demand_list)
-                            ):  # check to see if any cost matrices defined
+                            for i in range(len(self.demand_list)):
+                                # check to see if any cost matrices defined
                                 allAttributes.append([])
                                 allMatrices.append([])
                                 operators.append([])
@@ -495,7 +503,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                                         allAttributes[i].append(None)
                             if attributeDefined is True:
                                 spec = self._getPrimarySOLASpec(
-                                    peakHourMatrix,
+                                    peakHourMatrices,
                                     applied_toll_factor,
                                     self.mode_list_split,
                                     class_volume_attributes,
@@ -514,9 +522,8 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                                 )
                                 assignmentComplete = True
                             for i in range(len(self.demand_list)):
-                                if (
-                                    self.times_matrix_id[i] is not None
-                                ):  # check to see if any time matrices defined to fix the times matrix for that class
+                                if self.times_matrix_id[i] is not None:
+                                    # check to see if any time matrices defined to fix the times matrix for that class
                                     matrixCalcTool(
                                         self._CorrectTimesMatrixSpec(
                                             self.times_matrix_id[i],
@@ -525,9 +532,8 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                                         scenario=self.scenario,
                                         num_processors=self.number_of_processors,
                                     )
-                                if (
-                                    self.cost_matrix_id[i] is not None
-                                ):  # check to see if any cost matrices defined to fix the cost matrix for that class
+                                # check to see if any cost matrices defined to fix the cost matrix for that class
+                                if self.cost_matrix_id[i] is not None:
                                     matrixCalcTool(
                                         self._CorrectCostMatrixSpec(
                                             self.cost_matrix_id[i],
@@ -536,72 +542,13 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                                         scenario=self.scenario,
                                         num_processors=self.number_of_processors,
                                     )
-
-                            """
-                                if attributeDefined is True: # if something, then do the assignment
-                                    if assignmentComplete is False:
-                                        # need to do blank assignment in order to get auto times saved in timeau
-                                        attributes = []
-                                        for i in range(len(self.demand_list)):
-                                            attributes.append(None)
-                                        spec = self._getPrimarySOLASpec(peakHourMatrix, applied_toll_factor, self.mode_list_split,\
-                                                                class_volume_attributes, costAttribute, attributes, None, None, None, \
-                                                                None, None, None, None)
-                                        report = self._tracker.runTool(trafficAssignmentTool, spec, scenario=self.scenario)
-                                    # get true times matrix
-                                    with _m.logbook_trace("Calculating link time"): 
-                                        for i in range(len(self.demand_list)):
-                                            networkCalculationTool(self._getSaveAutoTimesSpec(timeAttribute[i].id), scenario=self.scenario)
-                                            self._tracker.completeSubtask()
-                                    attributes = []
-                                    matrices = []
-                                    operators = []
-                                    lower_bounds = []
-                                    upper_bounds = []
-                                    pathSelectors = []
-                                    multiply_path_demand = []
-                                    multiplyPathValue = []
-                                    for i in range(len(self.demand_list)):
-                                        attributes.append([])
-                                        matrices.append([])
-                                        operators.append([])
-                                        lower_bounds.append([])
-                                        upper_bounds.append([])
-                                        pathSelectors.append([])
-                                        multiply_path_demand.append([])
-                                        multiplyPathValue.append([])
-                                        if self.times_matrix_id[i] is not None:
-                                            attributes[i].append(timeAttribute[i].id)
-                                            matrices[i].append(self.times_matrix_id[i])
-                                            operators[i].append("+")
-                                            lower_bounds[i].append(None)
-                                            upper_bounds[i].append(None)
-                                            pathSelectors[i].append("ALL")
-                                            multiply_path_demand[i].append(False)
-                                            multiplyPathValue[i].append(True)
-                                        else:
-                                            attributes[i].append(None)
-                                            matrices[i].append(None)
-                                            operators[i].append(None)
-                                            lower_bounds[i].append(None)
-                                            upper_bounds[i].append(None)
-                                            pathSelectors[i].append(None)
-                                            multiply_path_demand[i].append(None)
-                                            multiplyPathValue[i].append(None)
-                                    spec = self._getPrimarySOLASpec(peakHourMatrix, applied_toll_factor, self.mode_list_split,\
-                                                                class_volume_attributes, costAttribute, attributes, matrices,  operators, lower_bounds, \
-                                                                upper_bounds,pathSelectors, multiply_path_demand, multiplyPathValue)
-                                    report = self._tracker.runTool(trafficAssignmentTool, spec, scenario=self.scenario)
-                                    assignmentComplete = True
-                                """
-                            if (
-                                assignmentComplete is False
-                            ):  # if no assignment has been done, do an assignment
+                            # if no assignment has been done, do an assignment
+                            if assignmentComplete is False:
                                 attributes = []
                                 for i in range(len(self.demand_list)):
                                     attributes.append(None)
                                 spec = self._getPrimarySOLASpec(
-                                    peakHourMatrix,
+                                    peakHourMatrices,
                                     applied_toll_factor,
                                     self.mode_list_split,
                                     class_volume_attributes,
@@ -672,6 +619,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
         performance_flag,
         run_title,
         link_toll_attribute_id,
+        sola_flag,
         name_string,
         result_attributes,
         analysis_attributes,
@@ -772,6 +720,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                             "Lower bound not specified correct for attribute  %s"
                             % self.class_analysis_attributes[i][j]
                         )
+
                     if (
                         self.class_analysis_upper_bounds[i][j].lower() == "none"
                         or self.class_analysis_upper_bounds[i][j].lower() == ""
@@ -782,12 +731,14 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                             "Upper bound not specified correct for attribute  %s"
                             % self.class_analysis_attributes[i][j]
                         )
+
                 if self.class_analysis_selectors[i][j].lower() == "all":
                     self.class_analysis_selectors[i][j] = "ALL"
                 elif self.class_analysis_selectors[i][j].lower() == "selected":
                     self.class_analysis_selectors[i][j] = "SELECTED"
                 else:
                     self.class_analysis_selectors[i][j] = None
+
                 if self.class_analysis_operators[i][j] not in operator_list:
                     if self.class_analysis_operators[i][j].lower() == "max":
                         self.class_analysis_operators[i][j] = ".max."
@@ -825,6 +776,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                     self.class_analysis_multiply_path_value[i][j] = False
                 else:
                     self.class_analysis_multiply_path_value[i][j] = None
+
         self.DemandMatrixList = []
         for i in range(0, len(self.demand_list)):
             demandMatrix = self.demand_list[i]
@@ -862,6 +814,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
     Context managers for temporary database modifications.
     """
 
+    @contextmanager
     def _AoNScenarioMANAGER(self):
         # Code here is executed upon entry
 
@@ -892,6 +845,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
             _MODELLER.emmebank.delete_scenario(tempScenarioNumber)
             _m.logbook_write("Deleted temporary Scenario %s" % tempScenarioNumber)
 
+    @contextmanager
     def _timeAttributeMANAGER(self):
         # Code here is executed upon entry
         timeAttributes = []
@@ -941,6 +895,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                     self.scenario.delete_extra_attribute(key)
                     # Delete the extra cost attribute only if it didn't exist before.
 
+    @contextmanager
     def _costAttributeMANAGER(self):
         # Code here is executed upon entry
         costAttributes = []
@@ -991,6 +946,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                     self.scenario.delete_extra_attribute(key)
                     # Delete the extra cost attribute only if it didn't exist before.
 
+    @contextmanager
     def _transitTrafficAttributeMANAGER(self):
 
         attributeCreated = False
@@ -1006,14 +962,10 @@ class AssignDemandToRoadAssignment(_m.Tool()):
             bgTrafficAttribute.initialize(0)
             _m.logbook_write("Initialized existing extra attribute '@tvph' to 0.")
 
-        if EMME_VERSION >= 4:
-            extraParameterTool = _MODELLER.tool(
-                "inro.emme.traffic_assignment.set_extra_function_parameters"
-            )
-        else:
-            extraParameterTool = _MODELLER.tool(
-                "inro.emme.standard.traffic_assignment.set_extra_function_parameters"
-            )
+        extraParameterTool = _MODELLER.tool(
+            "inro.emme.traffic_assignment.set_extra_function_parameters"
+        )
+
         if self.BackgroundTransit is True:
             extraParameterTool(el1="@tvph")
 
@@ -1049,6 +1001,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
+    @contextmanager
     def _initOutputMatrices(self):
         with _m.logbook_trace("Initializing output matrices:"):
             created = [False] * len(self.demand_list)
