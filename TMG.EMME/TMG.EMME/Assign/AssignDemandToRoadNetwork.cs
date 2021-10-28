@@ -40,15 +40,15 @@ namespace TMG.Emme.Assign
 
         [Parameter(Name = "Times Matrix Id", Description = "",
             Index = 2)]
-        public IFunction<int> TimesMatrixId;
+        public IFunction<string> TimesMatrixId;
 
         [Parameter(Name = "Cost Matrix Id", Description = "",
             Index = 3)]
-        public IFunction<int> CostMatrixId;
+        public IFunction<string> CostMatrixId;
 
         [Parameter(Name = "Tolls Matrix Id", Description = "",
             Index = 4)]
-        public IFunction<int> TollsMatrixId;
+        public IFunction<string> TollsMatrixId;
 
         [Parameter(Name = "Run Title", Description = "",
             Index = 5)]
@@ -72,11 +72,11 @@ namespace TMG.Emme.Assign
 
         [Parameter(Name = "Link Cost", Description = "",
             Index = 10)]
-        public IFunction<int> LinkCost;
+        public IFunction<string> LinkCost;
 
         [Parameter(Name = "Toll Weight", Description = "",
             Index = 11)]
-        public IFunction<int> TollWeight;
+        public IFunction<string> TollWeight;
 
         [Parameter(Name = "Iterations", Description = "",
             Index = 12)]
@@ -104,7 +104,7 @@ namespace TMG.Emme.Assign
 
         [Parameter(Name = "Name String", Description = "",
             Index = 18)]
-        public IFunction<bool> NameString;
+        public IFunction<string> NameString;
 
         [Parameter(Name = "Result Attributes", Description = "",
             Index = 19)]
@@ -116,7 +116,7 @@ namespace TMG.Emme.Assign
 
         [Parameter(Name = "Analysis Attributes Matrix Id", Description = "",
             Index = 21)]
-        public IFunction<int> AnalysisAttributesMatrixId;
+        public IFunction<string> AnalysisAttributesMatrixId;
 
         [Parameter(Name = "Aggregation Operator", Description = "",
             Index = 22)]
@@ -136,48 +136,48 @@ namespace TMG.Emme.Assign
 
         [Parameter(Name = "Multiply Path Prop By Demand", Description = "",
             Index = 26)]
-        public IFunction<bool> MultiplyPathPropByDemand;
+        public IFunction<string> MultiplyPathPropByDemand;
 
         [Parameter(Name = "Multiply Path Prop By Value", Description = "",
             Index = 27)]
-        public IFunction<bool> MultiplyPathPropByValue;
+        public IFunction<string> MultiplyPathPropByValue;
 
         [Parameter(Name = "Background Transit", Description = "",
             Index = 28)]
-        public IFunction<bool> BackgroundTransit;
+        public IFunction<string> BackgroundTransit;
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Assign.assign_demand_to_road_network", JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                 writer.WriteString("link_toll_attribute_id", LinkTollAttributeId.Invoke());
-                writer.WriteNumber("times_matrix_id", TimesMatrixId.Invoke());
-                writer.WriteNumber("cost_matrix_id", CostMatrixId.Invoke());
-                writer.WriteNumber("tolls_matrix_id", TollsMatrixId.Invoke());
+                writer.WriteString("times_matrix_id", TimesMatrixId.Invoke());
+                writer.WriteString("cost_matrix_id", CostMatrixId.Invoke());
+                writer.WriteString("tolls_matrix_id", TollsMatrixId.Invoke());
                 writer.WriteString("run_title", RunTitle.Invoke());
                 writer.WriteString("mode_list", ModeList.Invoke());
                 writer.WriteString("demand_string", DemandString.Invoke());
                 writer.WriteString("demand_list", DemandList.Invoke());
                 writer.WriteNumber("peak_hour_factor", PeakHourFactor.Invoke());
-                writer.WriteNumber("link_cost", LinkCost.Invoke());
-                writer.WriteNumber("toll_weight", TollWeight.Invoke());
+                writer.WriteString("link_cost", LinkCost.Invoke());
+                writer.WriteString("toll_weight", TollWeight.Invoke());
                 writer.WriteNumber("iterations", Iterations.Invoke());
                 writer.WriteNumber("r_gap", rGap.Invoke());
                 writer.WriteNumber("br_gap", brGap.Invoke());
                 writer.WriteNumber("norm_gap", normGap.Invoke());
                 writer.WriteBoolean("performance_flag", PerformanceFlag.Invoke());
                 writer.WriteBoolean("sola_flag", SOLAFlag.Invoke());
-                writer.WriteBoolean("name_string", NameString.Invoke());
+                writer.WriteString("name_string", NameString.Invoke());
                 writer.WriteString("result_attributes", ResultAttributes.Invoke());
                 writer.WriteString("analysis_attributes", AnalysisAttributes.Invoke());
-                writer.WriteNumber("analysis_attributes_matrix_id", AnalysisAttributesMatrixId.Invoke());
+                writer.WriteString("analysis_attributes_matrix_id", AnalysisAttributesMatrixId.Invoke());
                 writer.WriteString("aggregation_operator", AggregationOperator.Invoke());
                 writer.WriteString("lower_bound", LowerBound.Invoke());
                 writer.WriteString("upper_bound", UpperBound.Invoke());
                 writer.WriteString("path_selection", PathSelection.Invoke());
-                writer.WriteBoolean("multiply_path_prop_by_demand", MultiplyPathPropByDemand.Invoke());
-                writer.WriteBoolean("multiply_path_prop_by_value", MultiplyPathPropByValue.Invoke());
-                writer.WriteBoolean("background_transit", BackgroundTransit.Invoke());
+                writer.WriteString("multiply_path_prop_by_demand", MultiplyPathPropByDemand.Invoke());
+                writer.WriteString("multiply_path_prop_by_value", MultiplyPathPropByValue.Invoke());
+                writer.WriteString("background_transit", BackgroundTransit.Invoke());
             }), LogbookLevel.Standard);
         }
     }

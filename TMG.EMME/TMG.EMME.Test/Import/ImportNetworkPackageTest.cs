@@ -30,15 +30,7 @@ namespace TMG.Emme.Test.Import
         [TestMethod]
         public void ImportNetworkPackage()
         {
-            Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
-                 JSONParameterBuilder.BuildParameters(writer =>
-                 {
-                     writer.WriteString("network_package_file", Path.GetFullPath("TestFiles/test.nwp"));
-                     writer.WriteString("scenario_description", "Test Network");
-                     writer.WriteNumber("scenario_number", 1);
-                     writer.WriteString("conflict_option", "PRESERVE");
-                 }), LogbookLevel.Standard));
+            Helper.ImportFrabitztownNetwork(1);
         }
 
         [TestMethod]

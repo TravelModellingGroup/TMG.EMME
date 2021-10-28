@@ -85,5 +85,38 @@ namespace TMG.Emme.Test
                 Value = value
             };
         }
+
+        internal static void ImportFrabitztownNetwork (int scenarioNumber)
+        {
+            Helper.ImportNetwork(scenarioNumber, Path.GetFullPath("TestFiles/test.nwp"));
+        }
+
+        internal static void ImportNetwork(int scenarioNumber, string filePath)
+        {
+            Assert.IsTrue(
+               Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
+                JSONParameterBuilder.BuildParameters(writer =>
+                {
+                    writer.WriteString("network_package_file", filePath );
+                    writer.WriteString("scenario_description", "Test Network");
+                    writer.WriteNumber("scenario_number", scenarioNumber);
+                    writer.WriteString("conflict_option", "PRESERVE");
+                }), LogbookLevel.Standard));
+        }
+
+        internal static void ImportBinaryMatrix(int scenarioNumber, int matrixNumber, string filePath)
+        {
+            Assert.IsTrue(
+                Helper.Modeller.Run(null, "tmg2.Import.import_binary_matrix",
+                 JSONParameterBuilder.BuildParameters(writer =>
+                 {
+                     writer.WriteNumber("matrix_type", 4);
+                     writer.WriteNumber("matrix_number", matrixNumber);
+                     writer.WriteString("binary_matrix_file", filePath);
+                     writer.WriteNumber("scenario_number", scenarioNumber);
+                     writer.WriteString("matrix_description", "Test Matrix");
+                 }), LogbookLevel.Standard));
+
+        }
     }
 }
