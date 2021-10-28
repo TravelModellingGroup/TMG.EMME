@@ -22,7 +22,6 @@ and products. Set up as a non-runnable (e.g. private) Emme module so that
 it can be distributed in the TMG toolbox
 
 '''
-
 import inro.modeller as _m
 import math
 import inro.emme.core.exception as _excep
