@@ -46,16 +46,8 @@ _m.ListType = list
 _m.TupleType = object
 
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
-_util = _MODELLER.module("tmg.common.utilities")
+_util = _MODELLER.module("tmg2.utilities.general_utilities")
 EMME_VERSION = _util.getEmmeVersion(tuple)
-
-
-@contextmanager
-def blankManager(obj):
-    try:
-        yield obj
-    finally:
-        pass
 
 
 class AssignDemandToRoadAssignment(_m.Tool()):
@@ -77,9 +69,9 @@ class AssignDemandToRoadAssignment(_m.Tool()):
 
     link_toll_attribute_id = _m.Attribute(str)
 
-    times_matrix_id = _m.Attribute(str)
-    cost_matrix_id = _m.Attribute(str)
-    tolls_matrix_id = _m.Attribute(str)
+    times_matrix_id = _m.Attribute(int)
+    cost_matrix_id = _m.Attribute(int)
+    tolls_matrix_id = _m.Attribute(int)
     run_title = _m.Attribute(str)
 
     mode_list = _m.Attribute(
@@ -91,8 +83,8 @@ class AssignDemandToRoadAssignment(_m.Tool()):
     demand_list = _m.Attribute(str)  # The Demand Matrix List
 
     peak_hour_factor = _m.Attribute(float)
-    link_cost = _m.Attribute(str)
-    toll_weight = _m.Attribute(str)
+    link_cost = _m.Attribute(int)
+    toll_weight = _m.Attribute(int)
     iterations = _m.Attribute(int)
     r_gap = _m.Attribute(float)
     br_gap = _m.Attribute(float)
@@ -103,7 +95,7 @@ class AssignDemandToRoadAssignment(_m.Tool()):
     name_string = _m.Attribute(str)
     result_attributes = _m.Attribute(str)
     analysis_attributes = _m.Attribute(str)
-    analysis_attributes_matrix_id = _m.Attribute(str)
+    analysis_attributes_matrix_id = _m.Attribute(int)
     aggregation_operator = _m.Attribute(str)
     lower_bound = _m.Attribute(str)
     upper_bound = _m.Attribute(str)
@@ -319,15 +311,8 @@ class AssignDemandToRoadAssignment(_m.Tool()):
 
                 self._tracker.completeSubtask()
 
-                with nested(
-                    self._costAttributeMANAGER(),
-                    self._transitTrafficAttributeMANAGER(),
-                    self._timeAttributeMANAGER(),
-                ) as (
-                    costAttribute,
-                    bgTransitAttribute,
-                    timeAttribute,
-                ):  # bgTransitAttribute is None
+                with self._costAttributeMANAGER() as costAttribute, self._transitTrafficAttributeMANAGER() as bgTransitAttribute, self._timeAttributeMANAGER() as imeAttribute:
+                    # bgTransitAttribute is None
 
                     # Adding @ for the process of generating link cost attributes and declaring list variables
 
@@ -354,11 +339,9 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                             "LINK", name, default_value=0
                         )
 
-                    with nested(
-                        *(
-                            _util.tempMatrixMANAGER(description="Peak hour matrix")
-                            for Demand in self.demand_list
-                        )
+                    with (
+                        _util.tempMatrixMANAGER(description="Peak hour matrix")
+                        for Demand in self.demand_list
                     ) as peakHourMatrix:
                         if (
                             self.BackgroundTransit == True
@@ -879,7 +862,6 @@ class AssignDemandToRoadAssignment(_m.Tool()):
     Context managers for temporary database modifications.
     """
 
-    @contextmanager
     def _AoNScenarioMANAGER(self):
         # Code here is executed upon entry
 
@@ -910,7 +892,6 @@ class AssignDemandToRoadAssignment(_m.Tool()):
             _MODELLER.emmebank.delete_scenario(tempScenarioNumber)
             _m.logbook_write("Deleted temporary Scenario %s" % tempScenarioNumber)
 
-    @contextmanager
     def _timeAttributeMANAGER(self):
         # Code here is executed upon entry
         timeAttributes = []
@@ -960,7 +941,6 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                     self.scenario.delete_extra_attribute(key)
                     # Delete the extra cost attribute only if it didn't exist before.
 
-    @contextmanager
     def _costAttributeMANAGER(self):
         # Code here is executed upon entry
         costAttributes = []
@@ -1011,7 +991,6 @@ class AssignDemandToRoadAssignment(_m.Tool()):
                     self.scenario.delete_extra_attribute(key)
                     # Delete the extra cost attribute only if it didn't exist before.
 
-    @contextmanager
     def _transitTrafficAttributeMANAGER(self):
 
         attributeCreated = False
@@ -1070,7 +1049,6 @@ class AssignDemandToRoadAssignment(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    @contextmanager
     def _initOutputMatrices(self):
         with _m.logbook_trace("Initializing output matrices:"):
             created = [False] * len(self.demand_list)
