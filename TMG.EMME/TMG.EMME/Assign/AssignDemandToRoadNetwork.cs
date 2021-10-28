@@ -62,10 +62,6 @@ namespace TMG.Emme.Assign
             Index = 7)]
         public IFunction<string> DemandString;
 
-        [Parameter(Name = "Demand List", Description = "",
-            Index = 8)]
-        public IFunction<string> DemandList;
-
         [Parameter(Name = "Peak Hour Factor", Description = "",
             Index = 9)]
         public IFunction<float> PeakHourFactor;
@@ -145,6 +141,61 @@ namespace TMG.Emme.Assign
         [Parameter(Name = "Background Transit", Description = "",
             Index = 28)]
         public IFunction<string> BackgroundTransit;
+
+        [SubModule(Name = "", Description = "" , Index = 0)]
+        public IFunction<Class>[] Classes;
+
+        public class Class : XTMF2.IModule
+        {
+            [Parameter(Name = "Mode", DefaultValue = "c", Description = "The mode for this class.", Index = 0)]
+            public IFunction<char> Mode;
+
+            [Parameter(Name = "Demand Matrix", DefaultValue = "0", Description = "The id of the demand matrix to use.", Index = 0)]
+            public IFunction<int> DemandMatrixNumber;
+
+            [Parameter(Name = "Time Matrix", DefaultValue = "0", Description = "The matrix number to save in vehicle travel times", Index = 0)]
+            public IFunction<int> TimeMatrix;
+
+            [Parameter(Name = "Cost Matrix", DefaultValue = "0", Description = "The matrix number to save the total cost into.", Index = 0)]
+            public IFunction<int> CostMatrix;
+
+            [Parameter(Name = "Toll Matrix", DefaultValue = "0", Description = "The matrix to save the toll costs into.", Index = 0)]
+            public IFunction<int> TollMatrix;
+
+            [Parameter(Name = "VolumeAttribute", DefaultValue = "@auto_volume1", Description = "The name of the attribute to save the volumes into (or None for no saving).", Index = 0)]
+            public IFunction<string> VolumeAttribute;
+
+            [Parameter(Name = "TollAttributeID", DefaultValue = "@toll", Description = "The attribute containing the road tolls for this class of vehicle.", Index = 0)]
+            public IFunction<string> LinkTollAttributeID;
+
+            [Parameter(Name = "Toll Weight", DefaultValue = "0", Description = "", Index = 0)]
+            public IFunction<float> TollWeight;
+
+            [Parameter(Name = "LinkCost", DefaultValue = "0", Description = "The penalty in minutes per dollar to apply when traversing a link.", Index = 0)]
+            public IFunction<float> LinkCost;
+
+            public string Name { get; set; }
+
+            public bool RuntimeValidation(ref string error)
+            {
+                return true;
+            }
+
+            public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("mode", Mode.Invoke().ToString());
+                writer.WriteNumber("demand_matrix", DemandMatrixNumber.Invoke());
+                writer.WriteNumber("time_matrix", TimeMatrix.Invoke());
+                writer.WriteNumber("cost_matrix", CostMatrix.Invoke());
+                writer.WriteNumber("toll_matrix", TollMatrix.Invoke());
+                writer.WriteString("volume_attribute", VolumeAttribute.Invoke());
+                writer.WriteString("toll_attribute_id", LinkTollAttributeID.Invoke());
+                writer.WriteNumber("toll_weight", TollWeight.Invoke());
+                writer.WriteNumber("link_cost", LinkCost.Invoke());
+                writer.WriteEndObject();
+            }
+        }
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Assign.assign_demand_to_road_network", JSONParameterBuilder.BuildParameters(writer =>
@@ -157,7 +208,6 @@ namespace TMG.Emme.Assign
                 writer.WriteString("run_title", RunTitle.Invoke());
                 writer.WriteString("mode_list", ModeList.Invoke());
                 writer.WriteString("demand_string", DemandString.Invoke());
-                writer.WriteString("demand_list", DemandList.Invoke());
                 writer.WriteNumber("peak_hour_factor", PeakHourFactor.Invoke());
                 writer.WriteString("link_cost", LinkCost.Invoke());
                 writer.WriteString("toll_weight", TollWeight.Invoke());
