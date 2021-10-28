@@ -33,6 +33,8 @@
       <Link>ModellerBridge.py</Link>
     </Compile>
     <Compile Include="build_toolbox.py" />
+    <Compile Include="src\Assign\assign_boarding_penalty.py" />
+    <Compile Include="src\Assign\assign_demand_to_road_network.py" />
     <Compile Include="src\Convert\convert_gtfs_stops_to_shapefile.py">
       <SubType>Code</SubType>
     </Compile>
@@ -64,6 +66,8 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="src\" />
+    <Folder Include="src\Assign\" />
+    <Folder Include="src\Assign\__pycache__\" />
     <Folder Include="src\Filter\" />
     <Folder Include="src\Import\" />
     <Folder Include="src\Export\" />
@@ -77,6 +81,8 @@
   <ItemGroup>
     <Content Include="Build Consolidated Toolbox.bat" />
     <Content Include="Build Toolbox.bat" />
+    <Content Include="src\Assign\__pycache__\assign_boarding_penalty.cpython-37.pyc" />
+    <Content Include="src\Assign\__pycache__\assign_demand_to_road_network.cpython-37.pyc" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
