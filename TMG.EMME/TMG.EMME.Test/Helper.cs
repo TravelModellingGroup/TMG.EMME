@@ -24,6 +24,7 @@ using System.IO;
 using System.Text.Json;
 using XTMF2;
 using XTMF2.RuntimeModules;
+using System.Linq;
 
 namespace TMG.Emme.Test
 {
@@ -117,6 +118,30 @@ namespace TMG.Emme.Test
                      writer.WriteString("matrix_description", "Test Matrix");
                  }), LogbookLevel.Standard));
 
+        }
+
+        /// <summary>
+        /// Creates an array of basic parameters with the given values.
+        /// </summary>
+        /// <typeparam name="T">The type of parameter.</typeparam>
+        /// <param name="values">The values to provide</param>
+        /// <param name="moduleNames">Optional the names for all of the parameters</param>
+        /// <returns>An array of basic parameters containing the values.</returns>
+        internal static IFunction<T>[] CreateParameters<T>(T[] values, string[] moduleNames = null)
+        {
+            if (moduleNames != null && moduleNames.Length != values.Length)
+            {
+                throw new ArgumentException("The size of the values and modules names must be the same!", nameof(moduleNames));
+            }
+            return values.Select
+                (
+                (v, i) => new BasicParameter<T>()
+                {
+                    Name = moduleNames?[i] ?? null,
+                    Value = v
+                }
+                ).ToArray();
+       
         }
     }
 }
