@@ -35,7 +35,7 @@ namespace TMG.Emme.Test.Assign
             Helper.ImportFrabitztownNetwork(1);
             Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Assign.assign_demand_to_road_network",
+                Helper.Modeller.Run(null, "tmg2.Assign.assign_traffic",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteString("background_transit", "true");
@@ -46,9 +46,12 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteBoolean("performance_flag", true);
                     writer.WriteNumber("r_gap", 0);
                     writer.WriteString("run_title", "road assignment");
-                    writer.WriteNumber("scenario_number", 0);
+                    writer.WriteNumber("scenario_number", 1);
                     writer.WriteBoolean("sola_flag", true);
+                   
                     writer.WriteStartArray("traffic_classes");
+                    writer.WriteStartObject();
+                    writer.WriteString("name", "traffic class 1");
                     writer.WriteString("mode", "c");
                     writer.WriteNumber("demand_matrix", 0);
                     writer.WriteNumber("time_matrix", 0);
@@ -58,7 +61,6 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("link_toll_attribute_id", " @toll");
                     writer.WriteNumber("toll_weight", 0);
                     writer.WriteNumber("link_cost", 0);
-                    writer.WriteStartObject();
                     writer.WriteStartArray("path_analyses");
                     writer.WriteEndArray();
                     writer.WriteEndObject();
@@ -75,6 +77,7 @@ namespace TMG.Emme.Test.Assign
             {
                 new Emme.Assign.AssignTraffic.TrafficClass()
                 {
+                    Name = "traffic class 1",
                     Mode = Helper.CreateParameter('c'),
                     DemandMatrixNumber = Helper.CreateParameter(0),
                     TimeMatrix = Helper.CreateParameter(0),
@@ -84,6 +87,7 @@ namespace TMG.Emme.Test.Assign
                     LinkTollAttributeID = Helper.CreateParameter(" @toll"),
                     TollWeight = Helper.CreateParameter(0f),
                     LinkCost = Helper.CreateParameter(0f),
+                    PathAnalyses = Array.Empty<IFunction<Emme.Assign.AssignTraffic.PathAnalysis>>()
                 }
             };
 
@@ -98,9 +102,9 @@ namespace TMG.Emme.Test.Assign
                 PerformanceFlag = Helper.CreateParameter(true),
                 rGap = Helper.CreateParameter(0f),
                 RunTitle = Helper.CreateParameter("road assignment"),
-                ScenarioNumber = Helper.CreateParameter(0),
+                ScenarioNumber = Helper.CreateParameter(1),
                 SOLAFlag = Helper.CreateParameter(true),
-                TrafficClasses = Helper.CreateParameter(trafficClasses),
+                TrafficClasses = Helper.CreateParameters(trafficClasses),
             };
             module.Invoke(Helper.Modeller);
         }
