@@ -217,7 +217,7 @@ namespace TMG.Emme.Assign
 
         public override void Invoke(ModellerController context)
         {
-            context.Run(this, "tmg2.Assign.assign_demand_to_road_network", JSONParameterBuilder.BuildParameters(writer =>
+            context.Run(this, "tmg2.Assign.assign_traffic", JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                 writer.WriteNumber("peak_hour_factor", PeakHourFactor.Invoke());
