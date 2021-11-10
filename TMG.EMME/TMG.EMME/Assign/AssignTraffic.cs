@@ -46,12 +46,8 @@ namespace TMG.Emme.Assign
             Index = 3)]
         public IFunction<float> normGap;
 
-        [Parameter(Name = "Peak Hour Factor", DefaultValue = "1", Description = "A factor to apply to the demand in order to build a representative hour.",
-            Index = 4)]
-        public IFunction<float> PeakHourFactor;
+        [Parameter(Name = "Performance Flag", DefaultValue = "true", Description = "Set this to false to leave a free core for other work",
 
-        [Parameter(Name = "Performance Flag", DefaultValue = "true", Description = "Set this to false to leave a free core for other work", 
-        
             Index = 5)]
         public IFunction<bool> PerformanceFlag;
 
@@ -84,19 +80,23 @@ namespace TMG.Emme.Assign
 
             [Parameter(Name = "Demand Matrix", DefaultValue = "0", Description = "The id of the demand matrix to use.",
                 Index = 1)]
-            public IFunction<int> DemandMatrixNumber;
+            public IFunction<string> DemandMatrixNumber;
 
             [Parameter(Name = "Time Matrix", DefaultValue = "0", Description = "The matrix number to save in vehicle travel times",
                 Index = 2)]
-            public IFunction<int> TimeMatrix;
+            public IFunction<string> TimeMatrix;
 
             [Parameter(Name = "Cost Matrix", DefaultValue = "0", Description = "The matrix number to save the total cost into.",
                 Index = 3)]
-            public IFunction<int> CostMatrix;
+            public IFunction<string> CostMatrix;
 
             [Parameter(Name = "Toll Matrix", DefaultValue = "0", Description = "The matrix to save the toll costs into.",
                 Index = 4)]
-            public IFunction<int> TollMatrix;
+            public IFunction<string> TollMatrix;
+
+            [Parameter(Name = "Peak Hour Factor", DefaultValue = "1", Description = "A factor to apply to the demand in order to build a representative hour.",
+            Index = 4)]
+            public IFunction<float> PeakHourFactor;
 
             [Parameter(Name = "Volume Attribute", DefaultValue = " @auto_volume1", Description = "The name of the attribute to save the volumes into (or None for no saving).",
                 Index = 5)]
@@ -129,12 +129,13 @@ namespace TMG.Emme.Assign
                 writer.WriteStartObject();
                 writer.WriteString("name", Name);
                 writer.WriteString("mode", Mode.Invoke().ToString());
-                writer.WriteNumber("demand_matrix", DemandMatrixNumber.Invoke());
-                writer.WriteNumber("time_matrix", TimeMatrix.Invoke());
-                writer.WriteNumber("cost_matrix", CostMatrix.Invoke());
-                writer.WriteNumber("toll_matrix", TollMatrix.Invoke());
+                writer.WriteString("demand_matrix", DemandMatrixNumber.Invoke());
+                writer.WriteString("time_matrix", TimeMatrix.Invoke());
+                writer.WriteString("cost_matrix", CostMatrix.Invoke());
+                writer.WriteString("toll_matrix", TollMatrix.Invoke());
+                writer.WriteNumber("peak_hour_factor", PeakHourFactor.Invoke());
                 writer.WriteString("volume_attribute", VolumeAttribute.Invoke());
-                writer.WriteString("toll_attribute_id", LinkTollAttributeID.Invoke());
+                writer.WriteString("link_toll_attribute_id", LinkTollAttributeID.Invoke());
                 writer.WriteNumber("toll_weight", TollWeight.Invoke());
                 writer.WriteNumber("link_cost", LinkCost.Invoke());
                 writer.WriteStartArray("path_analyses");
@@ -210,7 +211,7 @@ namespace TMG.Emme.Assign
                 writer.WriteString("multiply_path_prop_by_demand", MultiplyPathPropByDemand.Invoke());
                 writer.WriteString("multiply_path_prop_by_value", MultiplyPathPropByValue.Invoke());
                 writer.WriteString("analysis_attributes", AnalysisAttributes.Invoke());
-                writer.WriteString("analysis_attributes_matrix_id", AnalysisAttributesMatrixId.Invoke());
+                writer.WriteString("analysis_attributes_matrix", AnalysisAttributesMatrixId.Invoke());
                 writer.WriteEndObject();
             }
         }
@@ -220,7 +221,6 @@ namespace TMG.Emme.Assign
             context.Run(this, "tmg2.Assign.assign_traffic", JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-                writer.WriteNumber("peak_hour_factor", PeakHourFactor.Invoke());
                 writer.WriteNumber("iterations", Iterations.Invoke());
                 writer.WriteNumber("r_gap", rGap.Invoke());
                 writer.WriteNumber("br_gap", brGap.Invoke());
@@ -237,5 +237,6 @@ namespace TMG.Emme.Assign
                 writer.WriteEndArray();
             }), LogbookLevel.Standard);
         }
+        
     }
 }
