@@ -42,7 +42,6 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("br_gap", 0);
                     writer.WriteNumber("iterations", 100);
                     writer.WriteNumber("norm_gap", 0);
-                    writer.WriteNumber("peak_hour_factor", 1);
                     writer.WriteBoolean("performance_flag", true);
                     writer.WriteNumber("r_gap", 0);
                     writer.WriteString("run_title", "road assignment");
@@ -53,11 +52,12 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteStartObject();
                     writer.WriteString("name", "traffic class 1");
                     writer.WriteString("mode", "c");
-                    writer.WriteNumber("demand_matrix", 0);
-                    writer.WriteNumber("time_matrix", 0);
-                    writer.WriteNumber("cost_matrix", 0);
-                    writer.WriteNumber("toll_matrix", 0);
-                    writer.WriteString("volume_attribute", " @auto_volume1");
+                    writer.WriteString("demand_matrix", "mf1");
+                    writer.WriteString("time_matrix", "mf0");
+                    writer.WriteString("cost_matrix", "mf4");
+                    writer.WriteString("toll_matrix", "mf0");
+                    writer.WriteNumber("peak_hour_factor", 1);
+                    writer.WriteString("volume_attribute", "@auto_volume1");
                     writer.WriteString("link_toll_attribute_id", " @toll");
                     writer.WriteNumber("toll_weight", 0);
                     writer.WriteNumber("link_cost", 0);
@@ -79,12 +79,13 @@ namespace TMG.Emme.Test.Assign
                 {
                     Name = "traffic class 1",
                     Mode = Helper.CreateParameter('c'),
-                    DemandMatrixNumber = Helper.CreateParameter(0),
-                    TimeMatrix = Helper.CreateParameter(0),
-                    CostMatrix = Helper.CreateParameter(0),
-                    TollMatrix = Helper.CreateParameter(0),
-                    VolumeAttribute = Helper.CreateParameter(" @auto_volume1"),
-                    LinkTollAttributeID = Helper.CreateParameter(" @toll"),
+                    DemandMatrixNumber = Helper.CreateParameter("mf1"),
+                    TimeMatrix = Helper.CreateParameter("mf0"),
+                    CostMatrix = Helper.CreateParameter("mf4"),
+                    TollMatrix = Helper.CreateParameter("mf0"),
+                    PeakHourFactor = Helper.CreateParameter(1f),
+                    VolumeAttribute = Helper.CreateParameter("@auto_volume1"),
+                    LinkTollAttributeID = Helper.CreateParameter("@toll"),
                     TollWeight = Helper.CreateParameter(0f),
                     LinkCost = Helper.CreateParameter(0f),
                     PathAnalyses = Array.Empty<IFunction<Emme.Assign.AssignTraffic.PathAnalysis>>()
@@ -98,7 +99,6 @@ namespace TMG.Emme.Test.Assign
                 brGap = Helper.CreateParameter(0f),
                 Iterations = Helper.CreateParameter(100),
                 normGap = Helper.CreateParameter(0f),
-                PeakHourFactor = Helper.CreateParameter(1f),
                 PerformanceFlag = Helper.CreateParameter(true),
                 rGap = Helper.CreateParameter(0f),
                 RunTitle = Helper.CreateParameter("road assignment"),
