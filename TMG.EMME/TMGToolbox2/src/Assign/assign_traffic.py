@@ -287,10 +287,14 @@ class AssignTraffic(_m.Tool()):
                     "LINK", at, default_value=0
                 )
                 time_attribute_list.append(time_attribute)
-            else:
+            elif time_attribute is not None:
                 time_attribute = scenario.create_extra_attribute("LINK", at).initialize
                 time_attribute_list.append(time_attribute)
                 _m.logbook_write("Initialized link time attribute to value of 0.")
+            else:
+                raise Exception(
+                    "Extra link time attribute %s was not found!" % time_attribute
+                )
 
         return time_attribute_list
         ...
