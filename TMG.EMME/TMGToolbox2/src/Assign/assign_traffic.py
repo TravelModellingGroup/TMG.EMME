@@ -266,7 +266,7 @@ class AssignTraffic(_m.Tool()):
 
     def _temp_time_attribute(self, scenario, demand_matrix_list):
         time_attribute_list = []
-        for i in range(len(self.demand_matrix_list)):
+        for i in range(len(demand_matrix_list)):
             at = "@ltime" + str(i + 1)
             time_attribute = scenario.extra_attribute(at)
             if time_attribute is None:
@@ -287,8 +287,12 @@ class AssignTraffic(_m.Tool()):
                     "LINK", at, default_value=0
                 )
                 time_attribute_list.append(time_attribute)
-            elif time_attribute is not None:
-                time_attribute = scenario.create_extra_attribute("LINK", at).initialize
+            elif scenario.extra_attribute(at).type == "LINK":
+                # '@ltime' exists, and is a link attribute
+                at = "@ltime" + str(i + 2)
+                time_attribute = scenario.create_extra_attribute(
+                    "LINK", at, default_value=0
+                )
                 time_attribute_list.append(time_attribute)
                 _m.logbook_write("Initialized link time attribute to value of 0.")
             else:
