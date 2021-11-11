@@ -153,10 +153,20 @@ class AssignTraffic(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def _execute(self, scenario, parameters):
-        self._init_non_temp_matrices(parameters)
-        temp_matrix = self._init_temp_matrix(parameters)
-        with self._temp_matrix_manager(temp_matrix) as temp_matrix_list:
+        # Initialize non-temporary matrices (input matrices)
+        demand_matrix_list = self._init_non_temp_matrices(parameters)
+        # Initialize temporary matrices (output matrices)
+        temp_matrix_list = self._init_temp_matrix(parameters)
+
+        with self._temp_matrix_manager(temp_matrix_list) as temp_matrix:
+
             self._tracker.complete_subtask()
+
+            time_attribute_list = self._temp_time_attribute(
+                scenario, demand_matrix_list
+            )
+            with self._time_attribute_manager(time_attribute_list) as time_attribute:
+                ...
 
     # ---SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
