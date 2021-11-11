@@ -155,7 +155,7 @@ class AssignTraffic(_m.Tool()):
     def _execute(self, scenario, parameters):
         self._init_non_temp_matrices(parameters)
         temp_matrix = self._init_temp_matrix(parameters)
-        with self._temp_matrix_list(temp_matrix[1]) as temp_matrix_list:
+        with self._temp_matrix_manager(temp_matrix[1]) as temp_matrix_list:
             self._tracker.complete_subtask()
             if True:
                 ...
@@ -263,8 +263,19 @@ class AssignTraffic(_m.Tool()):
 
         return temp_mtx_list, matrix_list
 
+    def _temp_time_attribute(self, parameters):
+        ...
+
+    def _temp_cost_attribute(self, parameters):
+        ...
+
+    def _temp_time_attribute(self, parameters):
+        ...
+
+    # ---CONTEXT MANAGERS---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
     @contextmanager
-    def _temp_matrix_list(self, matrix_list=[]):
+    def _temp_matrix_manager(self, matrix_list=[]):
         """
         Matrix objects created & added to this matrix list are deleted when this manager exits.
         """
@@ -272,18 +283,35 @@ class AssignTraffic(_m.Tool()):
             yield matrix_list
         finally:
             for matrix in matrix_list:
+                _m.logbook_write("Deleting temporary matrix '%s': " % matrix.id)
                 _MODELLER.emmebank.delete_matrix(matrix.id)
 
-    # ---CONTEXT MANAGERS---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    @contextmanager
+    def _time_attribute_manager(self, scenario, time_attribute_list=[]):
+
+        try:
+            yield time_attribute_list
+        finally:
+            for time_attribute in time_attribute_list:
+                _m.logbook_write("Deleting temporary link time attribute.")
+                scenario.delete_extra_attribute(time_attribute)
 
     @contextmanager
-    def _cost_attribute_manager(self, parameters):
-        ...
+    def _cost_attribute_manager(self, scenario, cost_attribute_list=[]):
+
+        try:
+            yield cost_attribute_list
+        finally:
+            for cost_attribute in cost_attribute_list:
+                _m.logbook_write("Deleting temporary link cost attribute.")
+                scenario.delete_extra_attribute(cost_attribute)
 
     @contextmanager
-    def _transit_traffic_attribute_manager(self, parameters):
-        ...
+    def _transit_traffic_attribute_manager(self, scenario, traffic_attribute_list=[]):
 
-    @contextmanager
-    def _time_attribute_manager(self, parameters):
-        ...
+        try:
+            yield traffic_attribute_list
+        finally:
+            for bg_traffic_attribute in traffic_attribute_list:
+                _m.logbook_write("Deleting temporary link transit traffic attribute.")
+                scenario.delete_extra_attribute(bg_traffic_attribute)
