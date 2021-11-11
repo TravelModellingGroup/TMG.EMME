@@ -83,42 +83,42 @@ class AssignTraffic(_m.Tool()):
     #    need to be placed here. Internal parameters (such as lists and dicts)
     #    get intitialized during construction (__init__)
     # ---Variable definitions
-    scenario = _m.Attribute(_m.InstanceType)
-    # Parameters for AssignTraffic (Multi-Class Road Assignment in TMGToolbox1)
-    scenario_number = _m.Attribute(int)
-    run_title = _m.Attribute(str)
-    iterations = _m.Attribute(int)
-    r_gap = _m.Attribute(float)
-    br_gap = _m.Attribute(float)
-    norm_gap = _m.Attribute(float)
-    performance_flag = _m.Attribute(bool)
-    peak_hour_factor = _m.Attribute(float)
-    sola_flag = _m.Attribute(bool)
-    background_transit = _m.Attribute(str)
+    # scenario = _m.Attribute(_m.InstanceType)
+    # # Parameters for AssignTraffic (Multi-Class Road Assignment in TMGToolbox1)
+    # scenario_number = _m.Attribute(int)
+    # run_title = _m.Attribute(str)
+    # iterations = _m.Attribute(int)
+    # r_gap = _m.Attribute(float)
+    # br_gap = _m.Attribute(float)
+    # norm_gap = _m.Attribute(float)
+    # performance_flag = _m.Attribute(bool)
+    # peak_hour_factor = _m.Attribute(float)
+    # sola_flag = _m.Attribute(bool)
+    # background_transit = _m.Attribute(str)
 
-    # Parameters for Traffic Class
-    name = _m.Attribute(str)
-    mode = _m.Attribute(str)
-    demand_matrix = _m.Attribute(str)
-    times_matrix = _m.Attribute(int)
-    cost_matrix = _m.Attribute(int)
-    tolls_matrix = _m.Attribute(int)
-    link_toll_attribute_id = _m.Attribute(str)
-    link_cost = _m.Attribute(float)
-    toll_weight = _m.Attribute(float)
-    volume_attribute = _m.Attribute(str)
+    # # Parameters for Traffic Class
+    # name = _m.Attribute(str)
+    # mode = _m.Attribute(str)
+    # demand_matrix = _m.Attribute(str)
+    # times_matrix = _m.Attribute(int)
+    # cost_matrix = _m.Attribute(int)
+    # tolls_matrix = _m.Attribute(int)
+    # link_toll_attribute_id = _m.Attribute(str)
+    # link_cost = _m.Attribute(float)
+    # toll_weight = _m.Attribute(float)
+    # volume_attribute = _m.Attribute(str)
 
-    # Parameters for Path Analysis
-    result_attributes = _m.Attribute(str)
-    analysis_attributes = _m.Attribute(str)
-    analysis_attributes_matrix = _m.Attribute(str)
-    aggregation_operator = _m.Attribute(str)
-    aggregation_matrix = _m.Attribute(int)
-    lower_bound = _m.Attribute(str)
-    upper_bound = _m.Attribute(str)
-    path_selection = _m.Attribute(str)
-    multiply_path_prop_by_demand = _m.Attribute(str)
-    multiply_path_prop_by_value = _m.Attribute(str)
+    # # Parameters for Path Analysis
+    # result_attributes = _m.Attribute(str)
+    # analysis_attributes = _m.Attribute(str)
+    # analysis_attributes_matrix = _m.Attribute(str)
+    # aggregation_operator = _m.Attribute(str)
+    # aggregation_matrix = _m.Attribute(int)
+    # lower_bound = _m.Attribute(str)
+    # upper_bound = _m.Attribute(str)
+    # path_selection = _m.Attribute(str)
+    # multiply_path_prop_by_demand = _m.Attribute(str)
+    # multiply_path_prop_by_value = _m.Attribute(str)
 
     number_of_processors = _m.Attribute(int)
 
@@ -155,10 +155,8 @@ class AssignTraffic(_m.Tool()):
     def _execute(self, scenario, parameters):
         self._init_non_temp_matrices(parameters)
         temp_matrix = self._init_temp_matrix(parameters)
-        with self._temp_matrix_manager(temp_matrix[1]) as temp_matrix_list:
+        with self._temp_matrix_manager(temp_matrix) as temp_matrix_list:
             self._tracker.complete_subtask()
-            if True:
-                ...
 
     # ---SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -201,7 +199,6 @@ class AssignTraffic(_m.Tool()):
         return demand_matrix_list
 
     def _init_temp_matrix(self, parameters):
-        matrix_list = []
         temp_mtx_list = []
         for temp_mtx in parameters["traffic_classes"]:
             # Check Cost Matrix
@@ -215,11 +212,9 @@ class AssignTraffic(_m.Tool()):
                     description="AUTO COST FOR CLASS: %s" % temp_mtx["name"],
                 )
                 temp_mtx_list.append(cost_mtx)
-                matrix_list.append(cost_mtx)
             elif str(_MODELLER.emmebank.matrix(cost_str)) == cost_str:
                 cost_mtx = _MODELLER.emmebank.matrix(cost_str)
                 temp_mtx_list.append(cost_mtx)
-                matrix_list.append(cost_mtx)
             else:
                 raise Exception("Matrix %s was not found!" % cost_str)
 
@@ -234,11 +229,9 @@ class AssignTraffic(_m.Tool()):
                     description="AUTO TIME FOR CLASS: %s" % temp_mtx["name"],
                 )
                 temp_mtx_list.append(time_mtx)
-                matrix_list.append(time_mtx)
             elif str(_MODELLER.emmebank.matrix(time_str)) == time_str:
                 time_mtx = _MODELLER.emmebank.matrix(time_str)
                 temp_mtx_list.append(time_mtx)
-                matrix_list.append(time_mtx)
             else:
                 raise Exception("Matrix %s was not found!" % time_str)
 
@@ -253,38 +246,65 @@ class AssignTraffic(_m.Tool()):
                     description="AUTO TOLL FOR CLASS: %s" % temp_mtx["name"],
                 )
                 temp_mtx_list.append(toll_mtx)
-                matrix_list.append(toll_mtx)
             elif str(_MODELLER.emmebank.matrix(toll_str)) == toll_str:
                 toll_mtx = _MODELLER.emmebank.matrix(toll_str)
                 temp_mtx_list.append(toll_mtx)
-                matrix_list.append(toll_mtx)
             else:
                 raise Exception("Matrix %s was not found!" % toll_str)
 
-        return temp_mtx_list, matrix_list
+        return temp_mtx_list
 
-    def _temp_time_attribute(self, parameters):
+    def _temp_time_attribute(self, scenario, demand_matrix_list):
+        time_attribute_list = []
+        for i in range(len(self.demand_matrix_list)):
+            at = "@ltime" + str(i + 1)
+            time_attribute = scenario.extra_attribute(at)
+            if time_attribute is None:
+                # @ltime hasn't been defined
+                _m.logbook_write(
+                    "Creating temporary link time attribute '@ltime" + str(i + 1) + "'."
+                )
+                time_attribute = scenario.create_extra_attribute(
+                    "LINK", at, default_value=0
+                )
+                time_attribute_list.append(time_attribute)
+            elif scenario.extra_attribute(at).type != "LINK":
+                # '@ltime' exists, but is not a link attribute
+                _m.logbook_write(
+                    "Creating temporary link time attribute '@ltime" + str(i + 2) + "'."
+                )
+                time_attribute = scenario.create_extra_attribute(
+                    "LINK", at, default_value=0
+                )
+                time_attribute_list.append(time_attribute)
+            else:
+                time_attribute = scenario.create_extra_attribute("LINK", at).initialize
+                time_attribute_list.append(time_attribute)
+                _m.logbook_write("Initialized link time attribute to value of 0.")
+
+        return time_attribute_list
         ...
 
-    def _temp_cost_attribute(self, parameters):
+    def _temp_cost_attribute(self, scenario, parameters):
         ...
 
-    def _temp_time_attribute(self, parameters):
+    def _temp_transit_traffic_attribute(self, scenario, parameters):
         ...
 
     # ---CONTEXT MANAGERS---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     @contextmanager
-    def _temp_matrix_manager(self, matrix_list=[]):
+    def _temp_matrix_manager(self, temp_matrix_list=[]):
         """
         Matrix objects created & added to this matrix list are deleted when this manager exits.
         """
         try:
-            yield matrix_list
+            yield temp_matrix_list
         finally:
-            for matrix in matrix_list:
-                _m.logbook_write("Deleting temporary matrix '%s': " % matrix.id)
-                _MODELLER.emmebank.delete_matrix(matrix.id)
+            for matrix in temp_matrix_list:
+                if matrix is not None:
+                    _m.logbook_write("Deleting temporary matrix '%s': " % matrix.id)
+                    _MODELLER.emmebank.delete_matrix(matrix.id)
 
     @contextmanager
     def _time_attribute_manager(self, scenario, time_attribute_list=[]):
@@ -293,8 +313,9 @@ class AssignTraffic(_m.Tool()):
             yield time_attribute_list
         finally:
             for time_attribute in time_attribute_list:
-                _m.logbook_write("Deleting temporary link time attribute.")
-                scenario.delete_extra_attribute(time_attribute)
+                if time_attribute is not None:
+                    _m.logbook_write("Deleting temporary link time attribute.")
+                    scenario.delete_extra_attribute(time_attribute.id)
 
     @contextmanager
     def _cost_attribute_manager(self, scenario, cost_attribute_list=[]):
@@ -303,8 +324,9 @@ class AssignTraffic(_m.Tool()):
             yield cost_attribute_list
         finally:
             for cost_attribute in cost_attribute_list:
-                _m.logbook_write("Deleting temporary link cost attribute.")
-                scenario.delete_extra_attribute(cost_attribute)
+                if cost_attribute is not None:
+                    _m.logbook_write("Deleting temporary link cost attribute.")
+                    scenario.delete_extra_attribute(cost_attribute.id)
 
     @contextmanager
     def _transit_traffic_attribute_manager(self, scenario, traffic_attribute_list=[]):
@@ -313,5 +335,8 @@ class AssignTraffic(_m.Tool()):
             yield traffic_attribute_list
         finally:
             for bg_traffic_attribute in traffic_attribute_list:
-                _m.logbook_write("Deleting temporary link transit traffic attribute.")
-                scenario.delete_extra_attribute(bg_traffic_attribute)
+                if bg_traffic_attribute is not None:
+                    _m.logbook_write(
+                        "Deleting temporary link transit traffic attribute."
+                    )
+                    scenario.delete_extra_attribute(bg_traffic_attribute.id)
