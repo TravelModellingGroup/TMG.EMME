@@ -53,9 +53,9 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
     def page(self):
         pb = _tmgTPB.TmgToolPageBuilder(

@@ -89,9 +89,9 @@ class AssignVBoardingPenalties(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         """
@@ -233,27 +233,27 @@ class AssignVBoardingPenalties(_m.Tool()):
     def _ProcessScenario(self, scenario, penaltyFilterList):
         tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 
-        self.TRACKER.startProcess(2 * len(penaltyFilterList) + 2)
+        self.TRACKER.start_process(2 * len(penaltyFilterList) + 2)
 
         with _m.logbook_trace("Resetting UT2 and UT3 to 0"):
             tool(specification=self._GetClearLineSpec("ut2", "0"), scenario=scenario)
             tool(specification=self._GetClearLineSpec("ut3", "0"), scenario=scenario)
-            self.TRACKER.completeSubtask()
+            self.TRACKER.complete_subtask()
 
         for group in penaltyFilterList:
             with _m.logbook_trace("Applying " + group["label"] + " BP"):
                 tool(specification=self._GetGroupSpecInitial(group), scenario=scenario)
                 tool(specification=self._GetGroupSpecTransfer(group), scenario=scenario)
-                self.TRACKER.completeSubtask()
+                self.TRACKER.complete_subtask()
 
         with _m.logbook_trace("Resetting US2 to 1"):
             tool(specification=self._GetClearSegmentSpec("us2", "1"), scenario=scenario)
-            self.TRACKER.completeSubtask()
+            self.TRACKER.complete_subtask()
 
         for group in penaltyFilterList:
             with _m.logbook_trace("Applying " + group["label"] + " IVTT Perception"):
                 tool(specification=self._IVTTPerceptionSpec(group), scenario=scenario)
-                self.TRACKER.completeSubtask()
+                self.TRACKER.complete_subtask()
 
     def _GetClearLineSpec(self, variable, expression):
         return {

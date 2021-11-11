@@ -65,9 +65,9 @@ class ReverseTransitLines(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.scenario = _MODELLER.scenario  # Default is primary scenario
@@ -195,7 +195,7 @@ class ReverseTransitLines(_m.Tool()):
         errorLines = []
         reversedLines = []
 
-        self.TRACKER.startProcess(len(linesToReverse))
+        self.TRACKER.start_process(len(linesToReverse))
         for line in linesToReverse:
             try:
                 newId = self._ReverseLine(line, network, attNames)
@@ -203,7 +203,7 @@ class ReverseTransitLines(_m.Tool()):
             except Exception as e:
                 t = line.id, e.__class__.__name__, str(e)
                 errorLines.append(t)
-            self.TRACKER.completeSubtask()
+            self.TRACKER.complete_subtask()
         self.TRACKER.completeTask()
 
         self._WriteMainReport(reversedLines)

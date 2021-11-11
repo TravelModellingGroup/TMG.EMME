@@ -68,9 +68,9 @@ class ExportNetworkPackage(_m.Tool()):
     # xtmf_ScenarioString = _m.Attribute(str)
 
     def __init__(self):
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
         self.Scenario = _MODELLER.scenario  # Default is primary scenario
         self.ExportMetadata = ""
@@ -251,7 +251,7 @@ class ExportNetworkPackage(_m.Tool()):
                 version_file = _path.join(temp_folder, "version.txt")
                 with open(version_file, "w") as writer:
                     writer.write(
-                        "%s\n%s" % (str(5.0), _util.getEmmeVersion(returnType=str))
+                        "%s\n%s" % (str(5.0), _util.get_emme_version(returnType=str))
                     )
                 zf.write(version_file, arcname="version.txt")
 

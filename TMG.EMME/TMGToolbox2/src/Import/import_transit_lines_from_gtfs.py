@@ -114,9 +114,9 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.Scenario = _MODELLER.scenario  # Default is primary scenario
@@ -408,7 +408,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                 line = line.strip()
                 cells = line.split(",")
                 if cells[1] == "0":
-                    self.TRACKER.completeSubtask()
+                    self.TRACKER.complete_subtask()
                     continue  # Assume no mapping exists for this stop
                 if network.node(cells[1]) is None:
                     raise IOError("Mapping error: Node %s does not exist" % cells[1])
@@ -422,7 +422,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
     def _LoadTrips(self, routes):
         trips = {}
         with _util.CSVReader(self.GtfsFolder + "/trips.txt") as reader:
-            self.TRACKER.startProcess(len(reader))
+            self.TRACKER.start_process(len(reader))
             directionGiven = "direction_id" in reader.header
             for record in reader.readlines():
                 route = routes[
@@ -435,7 +435,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                 trip = Trip(record["trip_id"], route, direction)
                 route.trips[trip.id] = trip
                 trips[trip.id] = trip
-                self.TRACKER.completeSubtask()
+                self.TRACKER.complete_subtask()
             self.TRACKER.completeTask()
         msg = "%s trips loaded." % len(trips)
         print(msg)
@@ -453,7 +453,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                 writer.write(s)
                 writer.write(",emme_node")
 
-                self.TRACKER.startProcess(len(reader))
+                self.TRACKER.start_process(len(reader))
                 for record in reader.readlines():
                     try:
                         trip = trips[record["trip_id"]]
@@ -472,7 +472,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                         node = None
                     writer.write("\n%s,%s" % (record, node))
                     count += 1
-                    self.TRACKER.completeSubtask()
+                    self.TRACKER.complete_subtask()
                 self.TRACKER.completeTask()
         msg = "%s stop times loaded" % count
         print(msg)
@@ -517,7 +517,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
             algo.max_degrees = self.MaxNonStopNodes
             functionBank = self._GetModeFilterMap(network)
 
-            self.TRACKER.startProcess(len(routes))
+            self.TRACKER.start_process(len(routes))
             lineCount = 0
             print("Starting line itinerary generation")
             for route in routes.values():
@@ -665,7 +665,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                         csvwriter.writerow([trip.id, id])
                 print("Added route %s" % route.emme_id)
 
-                self.TRACKER.completeSubtask()
+                self.TRACKER.complete_subtask()
         self.TRACKER.completeTask()
 
         msg = "Done. %s lines were successfully created." % lineCount

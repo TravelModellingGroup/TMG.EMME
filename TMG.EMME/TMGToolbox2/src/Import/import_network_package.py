@@ -104,9 +104,9 @@ class ImportNetworkPackage(_m.Tool()):
     def __init__(self):
 
         # ---Init internal variables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.scenario_description = ""
@@ -673,7 +673,7 @@ class ImportNetworkPackage(_m.Tool()):
         types = self._load_extra_attributes(zf, temp_folder, scenario)
         contents = zf.namelist()
         processed = [self._getZipFileName(x) for x in contents]
-        self.TRACKER.startProcess(len(types))
+        self.TRACKER.start_process(len(types))
         for t in types:
             if t == "TRANSIT_SEGMENT":
                 filename = "exatt_segments.241"
@@ -697,7 +697,7 @@ class ImportNetworkPackage(_m.Tool()):
                         field_separator=" ",
                         scenario=scenario,
                     )
-                self.TRACKER.completeSubtask()
+                self.TRACKER.complete_subtask()
 
     @_m.logbook_trace("Reading functions")
     def _batchin_functions(self, temp_folder, zf):

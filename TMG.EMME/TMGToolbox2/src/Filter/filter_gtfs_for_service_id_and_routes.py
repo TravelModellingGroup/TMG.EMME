@@ -50,7 +50,7 @@ class CleanGTFS(_m.Tool()):
     UpdatedRoutesFile = _m.Attribute(str)
 
     def __init__(self):
-        self.TRACKER = _util.ProgressTracker(self.number_of_tasks)
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)
         self._warning = ""
 
     def page(self):

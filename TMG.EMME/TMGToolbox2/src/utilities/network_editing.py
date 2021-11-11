@@ -30,7 +30,7 @@ _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 _geolib = _MODELLER.module("tmg2.utilities.geometry")
 
 COORD_FACTOR = _MODELLER.emmebank.coord_unit_length
-EMME_VERSION = _util.getEmmeVersion(tuple)
+EMME_VERSION = _util.get_emme_version(tuple)
 
 
 class Face(_m.Tool()):

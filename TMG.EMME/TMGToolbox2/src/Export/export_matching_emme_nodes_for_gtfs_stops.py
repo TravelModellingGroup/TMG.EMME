@@ -40,7 +40,7 @@ _geo = _MODELLER.module("tmg2.utilities.geometry")
 _spindex = _MODELLER.module("tmg2.utilities.spatial_index")
 networkExportTool = _MODELLER.tool("inro.emme.data.network.export_network_as_shapefile")
 gtfsExportTool = _MODELLER.tool("tmg2.Convert.convert_gtfs_stops_to_shapefile")
-EMME_VERSION = _util.getEmmeVersion(tuple)
+EMME_VERSION = _util.get_emme_version(tuple)
 
 
 class GTFStoEmmeMap(_m.Tool()):
@@ -54,9 +54,9 @@ class GTFStoEmmeMap(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
     def page(self):
 

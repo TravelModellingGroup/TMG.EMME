@@ -48,9 +48,9 @@ class ExportNetworkAsShapefile(_m.Tool()):
 
     def __init__(self):
         # Init internal variables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
         # Set the defaults of parameters used by Modeller
         self.scenario = _MODELLER.scenario  # Default is primary scenario
@@ -75,7 +75,7 @@ class ExportNetworkAsShapefile(_m.Tool()):
         try:
             self._execute()
         except Exception as e:
-            raise Exception(_util.formatReverseStack())
+            raise Exception(_util.format_reverse_stack())
 
     def run_xtmf(self, parameters):
         self.scenario_number = parameters["scenario_number"]
@@ -87,7 +87,7 @@ class ExportNetworkAsShapefile(_m.Tool()):
         try:
             self._execute()
         except Exception as e:
-            raise Exception(_util.formatReverseStack())
+            raise Exception(_util.format_reverse_stack())
 
     def _execute(self):
 
