@@ -44,6 +44,7 @@ import inro.modeller as _m
 import traceback as _traceback
 from contextlib import contextmanager
 import multiprocessing
+import random
 
 _m.InstanceType = object
 _m.ListType = list
@@ -267,47 +268,54 @@ class AssignTraffic(_m.Tool()):
     def _temp_time_attribute(self, scenario, demand_matrix_list):
         time_attribute_list = []
         for i in range(len(demand_matrix_list)):
-            at = "@ltime" + str(i + 1)
-            time_attribute = scenario.extra_attribute(at)
-            if time_attribute is None:
-                # @ltime hasn't been defined
-                _m.logbook_write(
-                    "Creating temporary link time attribute '@ltime" + str(i + 1) + "'."
-                )
-                time_attribute = scenario.create_extra_attribute(
-                    "LINK", at, default_value=0
-                )
-                time_attribute_list.append(time_attribute)
-            elif scenario.extra_attribute(at).type != "LINK":
-                # '@ltime' exists, but is not a link attribute
-                _m.logbook_write(
-                    "Creating temporary link time attribute '@ltime" + str(i + 2) + "'."
-                )
-                time_attribute = scenario.create_extra_attribute(
-                    "LINK", at, default_value=0
-                )
-                time_attribute_list.append(time_attribute)
-            elif scenario.extra_attribute(at).type == "LINK":
-                # '@ltime' exists, and is a link attribute
-                at = "@ltime" + str(i + 2)
-                time_attribute = scenario.create_extra_attribute(
-                    "LINK", at, default_value=0
-                )
-                time_attribute_list.append(time_attribute)
-                _m.logbook_write("Initialized link time attribute to value of 0.")
-            else:
-                raise Exception(
-                    "Extra link time attribute %s was not found!" % time_attribute
-                )
-
+            ...
         return time_attribute_list
-        ...
 
-    def _temp_cost_attribute(self, scenario, parameters):
-        ...
+    def _temp_cost_attribute(self, scenario, demand_matrix_list):
+        cost_attribute_list = []
+        for i in range(len(demand_matrix_list)):
+            ...
+        return cost_attribute_list
 
     def _temp_transit_traffic_attribute(self, scenario, parameters):
         ...
+
+    def create_temp_attribute(scenario, attribute_type, description=None, default=0.0):
+        """
+        Creates a temporary extra attribute in a given scenario
+        """
+        ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
+
+        attribute_type = str(attribute_type).upper()
+        # check if the type provided is correct
+        if attribute_type not in ATTRIBUTE_TYPES:
+            raise TypeError(
+                "Attribute type '%s' provided is recognized." % attribute_type
+            )
+
+        # Check that this does not exist
+        prefix = attribute_type
+        search_if_existing = True
+        at = ""
+        while search_if_existing:
+            suffix = random.randint(1, 999)
+            at = "@%s%s" % (prefix, suffix)
+            if scenario.extra_attribute(at) is None:
+                search_if_existing = False
+            else:
+                search_if_existing = True
+
+        temp_extra_attribute = scenario.create_extra_attribute(
+            attribute_type, at, default
+        )
+
+        msg = "Created temporary attribute %s in scenario "
+        if description:
+            temp_extra_attribute.description = description
+            msg += ": %s" % description
+        _m.logbook_write(msg)
+
+        return temp_extra_attribute
 
     # ---CONTEXT MANAGERS---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
