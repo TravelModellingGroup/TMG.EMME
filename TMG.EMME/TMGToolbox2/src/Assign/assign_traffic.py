@@ -291,13 +291,7 @@ class AssignTraffic(_m.Tool()):
         """
         Creates a temporary extra attribute in a given scenario
         """
-        ATTRIBUTE_TYPES = {
-            "NODE": "ti",
-            "LINK": "tl",
-            "TURN": "tp",
-            "TRANSIT_LINE": "tt",
-            "TRANSIT_SEGMENT": "ts",
-        }
+        ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
 
         attribute_type = str(attribute_type).upper()
         # check if the type provided is correct
@@ -311,7 +305,7 @@ class AssignTraffic(_m.Tool()):
         search_if_existing = True
         attrib_id = ""
         while search_if_existing:
-            suffix = random.randint(1, 999)
+            suffix = random.randint(1, 999999)
             attrib_id = "@%s%s" % (prefix, suffix)
             if scenario.extra_attribute(attrib_id) is None:
                 search_if_existing = False
