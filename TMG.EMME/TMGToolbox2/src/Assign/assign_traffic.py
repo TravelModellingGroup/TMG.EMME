@@ -300,17 +300,19 @@ class AssignTraffic(_m.Tool()):
                 "Attribute type '%s' provided is recognized." % attribute_type
             )
 
-        # Check that this does not exist
+        if len(attribute_id) > 18:
+            raise ValueError(
+                "Attribute id '%s' can only be 19 characters long with no spaces plus  no '@'."
+                % attribute_id
+            )
         prefix = attribute_id
-        search_if_existing = True
+
         attrib_id = ""
-        while search_if_existing:
+        while search_if_existing == True:
             suffix = random.randint(1, 999999)
             attrib_id = "@%s%s" % (prefix, suffix)
             if scenario.extra_attribute(attrib_id) is None:
                 search_if_existing = False
-            else:
-                search_if_existing = True
 
         temp_extra_attribute = scenario.create_extra_attribute(
             attribute_type, attrib_id, default_value
