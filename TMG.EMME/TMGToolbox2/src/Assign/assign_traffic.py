@@ -268,23 +268,36 @@ class AssignTraffic(_m.Tool()):
     def _temp_time_attribute(self, scenario, demand_matrix_list):
         time_attribute_list = []
         for i in range(len(demand_matrix_list)):
-            ...
+            time_attribute = self._create_temp_attribute(
+                scenario, "ltime", "LINK", default_value=0.0
+            )
+            time_attribute_list.append(time_attribute)
         return time_attribute_list
 
     def _temp_cost_attribute(self, scenario, demand_matrix_list):
-        cost_attribute_list = []
-        for i in range(len(demand_matrix_list)):
-            ...
-        return cost_attribute_list
+        ...
 
     def _temp_transit_traffic_attribute(self, scenario, parameters):
         ...
 
-    def create_temp_attribute(scenario, attribute_type, description=None, default=0.0):
+    def _create_temp_attribute(
+        self,
+        scenario,
+        attribute_id,
+        attribute_type,
+        description=None,
+        default_value=0.0,
+    ):
         """
         Creates a temporary extra attribute in a given scenario
         """
-        ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
+        ATTRIBUTE_TYPES = {
+            "NODE": "ti",
+            "LINK": "tl",
+            "TURN": "tp",
+            "TRANSIT_LINE": "tt",
+            "TRANSIT_SEGMENT": "ts",
+        }
 
         attribute_type = str(attribute_type).upper()
         # check if the type provided is correct
@@ -294,22 +307,25 @@ class AssignTraffic(_m.Tool()):
             )
 
         # Check that this does not exist
-        prefix = attribute_type
+        prefix = attribute_id
         search_if_existing = True
-        at = ""
+        attrib_id = ""
         while search_if_existing:
             suffix = random.randint(1, 999)
-            at = "@%s%s" % (prefix, suffix)
-            if scenario.extra_attribute(at) is None:
+            attrib_id = "@%s%s" % (prefix, suffix)
+            if scenario.extra_attribute(attrib_id) is None:
                 search_if_existing = False
             else:
                 search_if_existing = True
 
         temp_extra_attribute = scenario.create_extra_attribute(
-            attribute_type, at, default
+            attribute_type, attrib_id, default_value
         )
 
-        msg = "Created temporary attribute %s in scenario "
+        msg = "Created temporary extra attribute %s in scenario %s" % (
+            attrib_id,
+            scenario.id,
+        )
         if description:
             temp_extra_attribute.description = description
             msg += ": %s" % description
