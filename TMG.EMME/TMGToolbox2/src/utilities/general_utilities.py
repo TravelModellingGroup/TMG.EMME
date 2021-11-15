@@ -390,7 +390,9 @@ def tempExtraAttributeMANAGER(
 
 
 @contextmanager
-def tempMatrixMANAGER(description="[No description]", matrix_type="FULL", default=0.0):
+def temp_matrix_manager(
+    description="[No description]", matrix_type="FULL", default=0.0
+):
     """
     Creates a temporary matrix in a context manager.
 
