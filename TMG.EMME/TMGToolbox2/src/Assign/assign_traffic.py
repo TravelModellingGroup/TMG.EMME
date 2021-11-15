@@ -166,8 +166,38 @@ class AssignTraffic(_m.Tool()):
             time_attribute_list = self._temp_time_attribute(
                 scenario, demand_matrix_list
             )
+            cost_attribute_list = self._temp_cost_attribute(
+                scenario, demand_matrix_list
+            )
+            t_traffic_attribute_list = self._temp_transit_traffic_attribute(
+                scenario, demand_matrix_list
+            )
             with self._time_attribute_manager(time_attribute_list) as time_attribute:
-                ...
+
+                with self._cost_attribute_manager(
+                    cost_attribute_list
+                ) as cost_attribute:
+
+                    with self._transit_traffic_attribute_manager(
+                        t_traffic_attribute_list
+                    ) as t_traffic_attribute:
+
+                        for tc in parameters["traffic_class"]:
+
+                            if (
+                                scenario.extra_attribute(tc["volume_attribute"])
+                                != "LINK"
+                            ):
+                                raise Exception(
+                                    "Volume Attribute '%s' is not a link type attribute"
+                                    % tc["volume_attribute"]
+                                )
+                            scenario.create_extra_attribute(
+                                "LINK", tc["volume_attribute"], default_value=0
+                            )
+
+                        # with _util.temp_matrix_manager(description="Peak hour matrix") for demand in demand_matrix_list as peak_hour_matrix:
+                        # ...
 
     # ---SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -179,6 +209,15 @@ class AssignTraffic(_m.Tool()):
 
     def _get_atts(self, parameters):
         ...
+
+    def _get_transit_bg_spec(self):
+        return {
+            "result": "@tvph",
+            "expression": "(60 / hdw) * (vauteq) * (ttf >= 3)",
+            "aggregation": "+",
+            "selections": {"link": "all", "transit_line": "all"},
+            "type": "NETWORK_CALCULATION",
+        }
 
     def _init_non_temp_matrices(self, parameters):
         checked_matrix_list = []
@@ -275,10 +314,22 @@ class AssignTraffic(_m.Tool()):
         return time_attribute_list
 
     def _temp_cost_attribute(self, scenario, demand_matrix_list):
-        ...
+        cost_attribute_list = []
+        for i in range(len(demand_matrix_list)):
+            cost_attribute = self._create_temp_attribute(
+                scenario, "lkcst", "LINK", default_value=0.0
+            )
+            cost_attribute_list.append(cost_attribute)
+        return cost_attribute_list
 
-    def _temp_transit_traffic_attribute(self, scenario, parameters):
-        ...
+    def _temp_transit_traffic_attribute(self, scenario, demand_matrix_list):
+        t_traffic_attribute_list = []
+        for i in range(len(demand_matrix_list)):
+            t_traffic_attribute = self._create_temp_attribute(
+                scenario, "tvph", "LINK", default_value=0.0
+            )
+            t_traffic_attribute_list.append(t_traffic_attribute)
+        return t_traffic_attribute_list
 
     def _create_temp_attribute(
         self,
@@ -308,11 +359,14 @@ class AssignTraffic(_m.Tool()):
         prefix = attribute_id
 
         attrib_id = ""
-        while search_if_existing == True:
+        while True:
             suffix = random.randint(1, 999999)
-            attrib_id = "@%s%s" % (prefix, suffix)
+            if prefix.startswith("@"):
+                attrib_id = "%s%s" % (prefix, suffix)
+            else:
+                attrib_id = "@%s%s" % (prefix, suffix)
             if scenario.extra_attribute(attrib_id) is None:
-                search_if_existing = False
+                break
 
         temp_extra_attribute = scenario.create_extra_attribute(
             attribute_type, attrib_id, default_value
@@ -378,3 +432,18 @@ class AssignTraffic(_m.Tool()):
                         "Deleting temporary link transit traffic attribute."
                     )
                     scenario.delete_extra_attribute(bg_traffic_attribute.id)
+
+    def _calculate_applied_toll_factor(self, parameters):
+        applied_toll_factor = []
+        for toll_weight in parameters["traffic_classes"]:
+            if toll_weight["toll_weight"] is not None:
+                applied_toll_factor.append(60.0 / toll_weight["toll_weight"])
+        return applied_toll_factor
+
+    @_m.method(return_type=_m.TupleType)
+    def percent_completed(self):
+        return self._tracker.getProgress()
+
+    @_m.method(return_type=str)
+    def tool_run_msg_status(self):
+        return self.tool_run_msg
