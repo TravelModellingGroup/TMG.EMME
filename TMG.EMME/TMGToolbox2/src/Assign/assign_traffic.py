@@ -182,22 +182,66 @@ class AssignTraffic(_m.Tool()):
                         t_traffic_attribute_list
                     ) as t_traffic_attribute:
 
-                        for tc in parameters["traffic_class"]:
-
-                            if (
-                                scenario.extra_attribute(tc["volume_attribute"])
-                                != "LINK"
-                            ):
-                                raise Exception(
-                                    "Volume Attribute '%s' is not a link type attribute"
-                                    % tc["volume_attribute"]
-                                )
-                            scenario.create_extra_attribute(
-                                "LINK", tc["volume_attribute"], default_value=0
+                        for tc in parameters["traffic_classes"]:
+                            self._create_volume_attribute(
+                                scenario, tc["volume_attribute"]
                             )
 
-                        # with _util.temp_matrix_manager(description="Peak hour matrix") for demand in demand_matrix_list as peak_hour_matrix:
-                        # ...
+                        peak_hour_matrix_list = self._init_temp_phf_matrices(
+                            demand_matrix_list
+                        )
+                        with self._temp_matrix_manager(
+                            peak_hour_matrix_list
+                        ) as peak_hour_matrix:
+                            if parameters["background_transit"] == "true" or True:
+                                if int(scenario.element_totals["transit_lines"]) > 0:
+                                    with _m.logbook_trace(
+                                        "Calculating transit background traffic"
+                                    ):
+                                        network_calculation_tool(
+                                            self._get_transit_bg_spec(),
+                                            scenario=scenario,
+                                        )
+                                        self._tracker.complete_subtask()
+
+                            applied_toll_factor = self._calculate_applied_toll_factor(
+                                parameters
+                            )
+
+                            with _m.logbook_trace("Calculating link costs"):
+                                for i in range(len(demand_matrix_list)):
+                                    # TODO: visit below
+                                    network_calculation_tool(
+                                        self._get_link_cost_calc_spec(
+                                            cost_attribute[i],
+                                            parameters["traffic_classes"][i][
+                                                "link_cost"
+                                            ],
+                                            parameters["traffic_classes"][i][
+                                                "link_toll_attribute_id"
+                                            ],
+                                            applied_toll_factor,
+                                        ),
+                                        scenario=scenario,
+                                    )
+                                self._tracker.complete_subtask()
+
+                            with _m.logbook_trace("Calculting peak hour matrix"):
+                                for i in range(len(demand_matrix_list)):
+                                    matrix_calc_tool(
+                                        self._get_peak_hour_spec(
+                                            peak_hour_matrix[i].id,
+                                            demand_matrix_list[i],
+                                            parameters["traffic_classes"][i][
+                                                "peak_hour_factor"
+                                            ],
+                                        ),
+                                        scenario=scenario,
+                                        num_processors=self.number_of_processors,
+                                    )
+                                self._tracker.complete_subtask()
+
+                            self._tracker.complete_subtask()
 
     # ---SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -383,6 +427,59 @@ class AssignTraffic(_m.Tool()):
 
         return temp_extra_attribute
 
+    def _init_temp_phf_matrices(self, demand_matrix_list):
+        peak_hour_matrix_list = []
+        for i in range(len(demand_matrix_list)):
+            peak_hour_matrix = _util.initialize_matrix(description="Peak hour matrix")
+            peak_hour_matrix_list.append(peak_hour_matrix)
+        return peak_hour_matrix_list
+
+    def _create_volume_attribute(self, scenario, volume_attribute):
+        volume_attribute_at = scenario.extra_attribute(volume_attribute)
+        if volume_attribute_at is None:
+            scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
+        elif volume_attribute_at.type != "LINK":
+            raise Exception(
+                "Volume Attribute '%s' is not a link type attribute" % volume_attribute
+            )
+        elif volume_attribute is not None:
+            # TODO: check if you can create_extra_attribute with the same name
+            _m.logbook_write("Deleting Previous Extra Attributes.")
+            scenario.delete_extra_attribute(volume_attribute_at)
+            scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
+        else:
+            scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
+
+    def _calculate_applied_toll_factor(self, parameters):
+        applied_toll_factor = []
+        for toll_weight in parameters["traffic_classes"]:
+            if toll_weight["toll_weight"] is not None:
+                applied_toll_factor.append(60.0 / toll_weight["toll_weight"])
+        return applied_toll_factor
+
+    def _get_link_cost_calc_spec(
+        self, cost_attribute_id, link_cost, link_toll_attribute_id, perception
+    ):
+        return {
+            "result": cost_attribute_id,
+            "expression": "(length * %f + %s)*%f"
+            % (link_cost, link_toll_attribute_id, perception),
+            "aggregation": None,
+            "selections": {"link": "all"},
+            "type": "NETWORK_CALCULATION",
+        }
+
+    def _get_peak_hour_spec(
+        self, peak_hour_matrix_id, demand_matrix_id, peak_hour_factor
+    ):
+        return {
+            "expression": demand_matrix_id + "*" + peak_hour_factor,
+            "result": peak_hour_matrix_id,
+            "constraint": {"by_value": None, "by_zone": None},
+            "aggregation": {"origins": None, "destinations": None},
+            "type": "MATRIX_CALCULATION",
+        }
+
     # ---CONTEXT MANAGERS---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     @contextmanager
@@ -432,13 +529,6 @@ class AssignTraffic(_m.Tool()):
                         "Deleting temporary link transit traffic attribute."
                     )
                     scenario.delete_extra_attribute(bg_traffic_attribute.id)
-
-    def _calculate_applied_toll_factor(self, parameters):
-        applied_toll_factor = []
-        for toll_weight in parameters["traffic_classes"]:
-            if toll_weight["toll_weight"] is not None:
-                applied_toll_factor.append(60.0 / toll_weight["toll_weight"])
-        return applied_toll_factor
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
