@@ -47,7 +47,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("run_title", "road assignment");
                     writer.WriteNumber("scenario_number", 1);
                     writer.WriteBoolean("sola_flag", true);
-                   
+
                     writer.WriteStartArray("traffic_classes");
                     writer.WriteStartObject();
                     writer.WriteString("name", "traffic class 1");
@@ -59,8 +59,8 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("peak_hour_factor", 1);
                     writer.WriteString("volume_attribute", "@auto_volume1");
                     writer.WriteString("link_toll_attribute_id", " @toll");
-                    writer.WriteNumber("toll_weight", 0);
-                    writer.WriteNumber("link_cost", 0);
+                    writer.WriteNumber("toll_weight", 0.0);
+                    writer.WriteNumber("link_cost", 0.0);
                     writer.WriteStartArray("path_analyses");
                     writer.WriteEndArray();
                     writer.WriteEndObject();
@@ -86,8 +86,8 @@ namespace TMG.Emme.Test.Assign
                     PeakHourFactor = Helper.CreateParameter(1f),
                     VolumeAttribute = Helper.CreateParameter("@auto_volume1"),
                     LinkTollAttributeID = Helper.CreateParameter("@toll"),
-                    TollWeight = Helper.CreateParameter(0f),
-                    LinkCost = Helper.CreateParameter(0f),
+                    TollWeight = Helper.CreateParameter(0.0f),
+                    LinkCost = Helper.CreateParameter(0.0f),
                     PathAnalyses = Array.Empty<IFunction<Emme.Assign.AssignTraffic.PathAnalysis>>()
                 }
             };
