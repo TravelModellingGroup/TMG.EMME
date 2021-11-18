@@ -542,6 +542,47 @@ class AssignTraffic(_m.Tool()):
             "type": "MATRIX_CALCULATION",
         }
 
+    # ---ALL THINGS SOLA GOES HERE------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    def _get_primary_SOLA_spec(
+        self,
+        peak_hour_matrix_list,
+        applied_toll_factor_list,
+        mode_list,
+        volume_attribute_list,
+        cost_matrix_list,
+        attribute_list,
+        matrix_list,
+        operator_list,
+        lower_bound_list,
+        upper_bound_list,
+        selector_list,
+        multiply_path_demand,
+        multiply_path_value,
+        parameters,
+    ):
+        if parameters["performance_flag"] == "true":
+            number_of_processors = multiprocessing.cpu_count()
+        else:
+            number_of_processors = max(multiprocessing.cpu_count() - 1, 1)
+        # Generic Spec for SOLA
+        SOLA_spec = {
+            "type": "SOLA_TRAFFIC_ASSIGNMENT",
+            "classes": [],
+            "path_analysis": None,
+            "cutoff_analysis": None,
+            "traversal_analysis": None,
+            "performance_settings": {"number_of_processors": number_of_processors},
+            "background_traffic": None,
+            "stopping_criteria": {
+                "max_iterations": self.iterations,
+                "relative_gap": self.r_gap,
+                "best_relative_gap": self.br_gap,
+                "normalized_gap": self.norm_gap,
+            },
+        }
+        ...
+
     # ---CONTEXT MANAGERS---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     @contextmanager
