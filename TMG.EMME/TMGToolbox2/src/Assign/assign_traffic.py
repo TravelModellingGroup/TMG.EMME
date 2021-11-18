@@ -182,7 +182,7 @@ class AssignTraffic(_m.Tool()):
                                                 )
                                                 self._tracker.complete_subtask()
 
-                                    applied_toll_factor = (
+                                    applied_toll_factor_list = (
                                         self._calculate_applied_toll_factor(parameters)
                                     )
 
@@ -198,7 +198,7 @@ class AssignTraffic(_m.Tool()):
                                                     parameters["traffic_classes"][i][
                                                         "link_toll_attribute_id"
                                                     ],
-                                                    applied_toll_factor[i],
+                                                    applied_toll_factor_list[i],
                                                 ),
                                                 scenario=scenario,
                                             )
@@ -224,15 +224,45 @@ class AssignTraffic(_m.Tool()):
                                     self._tracker.complete_subtask()
 
                                     with _m.logbook_trace("Running Road Assignments."):
+
                                         # TODO: Ignore path analysis and return to it later
                                         # {PATH ANALYSIS GOES HERE}
                                         # TODO: Ignore path analysis and return to it later
+
                                         path_analysis_is_complete = False
                                         if path_analysis_is_complete is False:
-                                            attribute = []
+                                            attribute_list = []
+                                            mode_list = [
+                                                mode["mode"]
+                                                for mode in parameters[
+                                                    "traffic_classes"
+                                                ]
+                                            ]
+                                            volume_attribute_list = [
+                                                self.get_attribute_name(
+                                                    volume_attribute["volume_attribute"]
+                                                )
+                                                for volume_attribute in parameters[
+                                                    "traffic_classes"
+                                                ]
+                                            ]
                                             for i in range(len(demand_matrix_list)):
-                                                attribute.append(None)
-                                            spec = self._get_primary_SOLA_spec()
+                                                attribute_list.append(None)
+                                            spec = self._get_primary_SOLA_spec(
+                                                peak_hour_matrix_list,
+                                                applied_toll_factor_list,
+                                                mode_list,
+                                                volume_attribute_list,
+                                                cost_matrix_list,
+                                                attribute_list,
+                                                None,
+                                                None,
+                                                None,
+                                                None,
+                                                None,
+                                                None,
+                                                None,
+                                            )
                                             report = self._tracker.run_tool(
                                                 traffic_assignment_tool,
                                                 spec,
@@ -280,6 +310,12 @@ class AssignTraffic(_m.Tool()):
 
     def _get_atts(self, parameters):
         ...
+
+    def get_attribute_name(at):
+        if at.startswith("@"):
+            return at
+        else:
+            return "@" + at
 
     # ---MATRICES  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -346,7 +382,9 @@ class AssignTraffic(_m.Tool()):
         return peak_hour_matrix_list
 
     def _create_volume_attribute(self, scenario, volume_attribute):
+
         volume_attribute_at = scenario.extra_attribute(volume_attribute)
+
         if volume_attribute_at is None:
             scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
         elif volume_attribute_at.type != "LINK":
