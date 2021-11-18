@@ -839,7 +839,7 @@ class progress_tracker:
             self._completedSubtasks = 0
         self._progress += self._taskIncr
 
-    def runTool(self, tool, *args, **kwargs):
+    def run_tool(self, tool, *args, **kwargs):
         """
         Launches another Emme Tool, 'capturing' its progress
         to report a combined overall progress.

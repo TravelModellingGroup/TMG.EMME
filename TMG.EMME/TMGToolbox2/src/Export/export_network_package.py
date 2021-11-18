@@ -283,7 +283,7 @@ class ExportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Exporting modes")
     def _batchout_modes(self, temp_folder, zf):
         export_file = _path.join(temp_folder, "modes.201")
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             _export_modes, export_file=export_file, scenario=self.Scenario
         )
         zf.write(export_file, arcname="modes.201")
@@ -295,7 +295,7 @@ class ExportNetworkPackage(_m.Tool()):
             self._export_blank_batch_file(export_file, "vehicles")
             self.TRACKER.completeTask()
         else:
-            self.TRACKER.runTool(
+            self.TRACKER.run_tool(
                 _export_vehicles, export_file=export_file, scenario=self.Scenario
             )
         zf.write(export_file, arcname="vehicles.202")
@@ -303,7 +303,7 @@ class ExportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Exporting base network")
     def _batchout_base(self, temp_folder, zf):
         export_file = _path.join(temp_folder, "base.211")
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             _export_base_network,
             export_file=export_file,
             scenario=self.Scenario,
@@ -314,7 +314,7 @@ class ExportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Exporting link shapes")
     def _batchout_shapes(self, temp_folder, zf):
         export_file = _path.join(temp_folder, "shapes.251")
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             _export_link_shapes, export_file=export_file, scenario=self.Scenario
         )
         zf.write(export_file, arcname="shapes.251")
@@ -339,7 +339,7 @@ class ExportNetworkPackage(_m.Tool()):
                         line.description = line.description[0:19]
             self.Scenario.publish_network(network)
 
-            self.TRACKER.runTool(
+            self.TRACKER.run_tool(
                 _export_transit_lines,
                 export_file=export_file,
                 scenario=self.Scenario,
@@ -353,7 +353,7 @@ class ExportNetworkPackage(_m.Tool()):
         if self.Scenario.element_totals["turns"] == 0:
             self.TRACKER.completeTask()
         else:
-            self.TRACKER.runTool(
+            self.TRACKER.run_tool(
                 _export_turns,
                 export_file=export_file,
                 scenario=self.Scenario,
@@ -364,7 +364,7 @@ class ExportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Exporting Functions")
     def _batchout_functions(self, temp_folder, zf):
         export_file = _path.join(temp_folder, "functions.411")
-        self.TRACKER.runTool(_export_functions, export_file=export_file)
+        self.TRACKER.run_tool(_export_functions, export_file=export_file)
         zf.write(export_file, arcname="functions.411")
 
     @_m.logbook_trace("Exporting extra attributes")
@@ -376,7 +376,7 @@ class ExportNetworkPackage(_m.Tool()):
         ]
         types = set([att.type.lower() for att in extra_attributes])
 
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             _export_attributes,
             extra_attributes,
             temp_folder,

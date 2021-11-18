@@ -616,12 +616,14 @@ class ImportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Reading modes")
     def _batchin_modes(self, scenario, temp_folder, zf):
         fileName = zf.extract(self._components.mode_file, temp_folder)
-        self.TRACKER.runTool(import_modes, transaction_file=fileName, scenario=scenario)
+        self.TRACKER.run_tool(
+            import_modes, transaction_file=fileName, scenario=scenario
+        )
 
     @_m.logbook_trace("Reading vehicles")
     def _batchin_vehicles(self, scenario, temp_folder, zf):
         zf.extract(self._components.vehicles_file, temp_folder)
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             import_vehicles,
             transaction_file=_path.join(temp_folder, self._components.vehicles_file),
             scenario=scenario,
@@ -630,7 +632,7 @@ class ImportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Reading base network")
     def _batchin_base(self, scenario, temp_folder, zf):
         zf.extract(self._components.base_file, temp_folder)
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             import_base,
             transaction_file=_path.join(temp_folder, self._components.base_file),
             scenario=scenario,
@@ -639,7 +641,7 @@ class ImportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Reading link shapes")
     def _batchin_link_shapes(self, scenario, temp_folder, zf):
         zf.extract(self._components.shape_file, temp_folder)
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             import_link_shape,
             transaction_file=_path.join(temp_folder, self._components.shape_file),
             scenario=scenario,
@@ -650,7 +652,7 @@ class ImportNetworkPackage(_m.Tool()):
         zf.extract(self._components.lines_file, temp_folder)
         if self.transit_file_change is True:
             self._transit_line_file_update(temp_folder)
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             import_lines,
             transaction_file=_path.join(temp_folder, self._components.lines_file),
             scenario=scenario,
@@ -662,7 +664,7 @@ class ImportNetworkPackage(_m.Tool()):
             self._components.turns_file in zf.namelist()
         ):
             zf.extract(self._components.turns_file, temp_folder)
-            self.TRACKER.runTool(
+            self.TRACKER.run_tool(
                 import_turns,
                 transaction_file=_path.join(temp_folder, self._components.turns_file),
                 scenario=scenario,
