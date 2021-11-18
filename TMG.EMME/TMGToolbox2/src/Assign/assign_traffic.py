@@ -223,8 +223,52 @@ class AssignTraffic(_m.Tool()):
 
                                     self._tracker.complete_subtask()
 
-                                    # with _m.logbook_trace("Running Road Assignments."):
-                                    #     ...
+                                    with _m.logbook_trace("Running Road Assignments."):
+                                        # TODO: Ignore path analysis and return to it later
+                                        # {PATH ANALYSIS GOES HERE}
+                                        # TODO: Ignore path analysis and return to it later
+                                        path_analysis_is_complete = False
+                                        if path_analysis_is_complete is False:
+                                            attribute = []
+                                            for i in range(len(demand_matrix_list)):
+                                                attribute.append(None)
+                                            spec = self._get_primary_SOLA_spec()
+                                            report = self._tracker.run_tool(
+                                                traffic_assignment_tool,
+                                                spec,
+                                                scenario=scenario,
+                                            )
+
+                                        stopping_criteron = report["stopping_criterion"]
+                                        iterations = report["iterations"]
+                                        if len(iterations) > 0:
+                                            final_iteration = iterations[-1]
+                                        else:
+                                            final_iteration = {"number": 0}
+                                            stopping_criteron == "MAX_ITERATIONS"
+                                        number = final_iteration["number"]
+
+                                        if stopping_criteron == "MAX_ITERATIONS":
+                                            val = final_iteration["number"]
+                                        elif stopping_criteron == "RELATIVE_GAP":
+                                            val = final_iteration["gaps"]["relative"]
+                                        elif stopping_criteron == "NORMALIZED_GAP":
+                                            val = final_iteration["gaps"]["normalized"]
+                                        elif stopping_criteron == "BEST_RELATIVE_GAP":
+                                            val = final_iteration["gaps"][
+                                                "best_relative"
+                                            ]
+                                        else:
+                                            val = "undefined"
+
+                                        print(
+                                            "Primary assignment complete at %s iterations."
+                                            % number
+                                        )
+                                        print(
+                                            "Stopping criterion was %s with a value of %s."
+                                            % (stopping_criteron, val)
+                                        )
 
     # ---SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
