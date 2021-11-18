@@ -164,21 +164,19 @@ class AssignTraffic(_m.Tool()):
 
             self._tracker.complete_subtask()
 
-            with self._time_attribute_manager(scenario) as time_attribute_list:
-                self._temp_time_attribute(
-                    scenario, demand_matrix_list, time_attribute_list
-                )
+            with self._temp_attribute_manager(scenario) as time_attribute_list:
+                self._time_attribute(scenario, demand_matrix_list, time_attribute_list)
 
-                with self._cost_attribute_manager(scenario) as cost_attribute_list:
-                    self._temp_cost_attribute(
+                with self._temp_attribute_manager(scenario) as cost_attribute_list:
+                    self._cost_attribute(
                         scenario, demand_matrix_list, cost_attribute_list
                     )
 
-                    with self._transit_traffic_attribute_manager(
+                    with self._temp_attribute_manager(
                         scenario
-                    ) as t_traffic_attribute_list:
-                        self._temp_transit_traffic_attribute(
-                            scenario, demand_matrix_list, t_traffic_attribute_list
+                    ) as transit_attribute_list:
+                        self._transit_traffic_attribute(
+                            scenario, demand_matrix_list, transit_attribute_list
                         )
 
                         for tc in parameters["traffic_classes"]:
@@ -240,6 +238,9 @@ class AssignTraffic(_m.Tool()):
 
                             self._tracker.complete_subtask()
 
+                            # with _m.logbook_trace("Running Road Assignments."):
+                            #     ...
+
     # ---SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     def _load_scenario(self, scenario_number):
@@ -286,63 +287,63 @@ class AssignTraffic(_m.Tool()):
 
         return demand_matrix_list
 
-    def _init_temp_matrix(self, parameters, temp_mtx_list):
+    def _init_temp_matrix(self, parameters, temp_matrix_list):
         # temp_mtx_list = []
         for temp_mtx in parameters["traffic_classes"]:
             # Check Cost Matrix
             cost_str = str(temp_mtx["cost_matrix"])
             if cost_str == "mf0":
-                temp_mtx_list.append(None)
+                temp_matrix_list.append(None)
             elif cost_str != "mf0" and _MODELLER.emmebank.matrix(cost_str) is None:
                 cost_mtx = _util.initialize_matrix(
                     cost_str,
                     name="acost",
                     description="AUTO COST FOR CLASS: %s" % temp_mtx["name"],
                 )
-                temp_mtx_list.append(cost_mtx)
+                temp_matrix_list.append(cost_mtx)
             elif str(_MODELLER.emmebank.matrix(cost_str)) == cost_str:
                 cost_mtx = _MODELLER.emmebank.matrix(cost_str)
-                temp_mtx_list.append(cost_mtx)
+                temp_matrix_list.append(cost_mtx)
             else:
                 raise Exception("Matrix %s was not found!" % cost_str)
 
             # Check Time Matrix
             time_str = str(temp_mtx["time_matrix"])
             if time_str == "mf0":
-                temp_mtx_list.append(None)
+                temp_matrix_list.append(None)
             elif time_str != "mf0" and _MODELLER.emmebank.matrix(time_str) is None:
                 time_mtx = _util.initialize_matrix(
                     time_str,
                     name="aivtt",
                     description="AUTO TIME FOR CLASS: %s" % temp_mtx["name"],
                 )
-                temp_mtx_list.append(time_mtx)
+                temp_matrix_list.append(time_mtx)
             elif str(_MODELLER.emmebank.matrix(time_str)) == time_str:
                 time_mtx = _MODELLER.emmebank.matrix(time_str)
-                temp_mtx_list.append(time_mtx)
+                temp_matrix_list.append(time_mtx)
             else:
                 raise Exception("Matrix %s was not found!" % time_str)
 
             # Check Toll Matrix
             toll_str = str(temp_mtx["toll_matrix"])
             if toll_str == "mf0":
-                temp_mtx_list.append(None)
+                temp_matrix_list.append(None)
             elif toll_str != "mf0" and _MODELLER.emmebank.matrix(toll_str) is None:
                 toll_mtx = _util.initialize_matrix(
                     toll_str,
                     name="atoll",
                     description="AUTO TOLL FOR CLASS: %s" % temp_mtx["name"],
                 )
-                temp_mtx_list.append(toll_mtx)
+                temp_matrix_list.append(toll_mtx)
             elif str(_MODELLER.emmebank.matrix(toll_str)) == toll_str:
                 toll_mtx = _MODELLER.emmebank.matrix(toll_str)
-                temp_mtx_list.append(toll_mtx)
+                temp_matrix_list.append(toll_mtx)
             else:
                 raise Exception("Matrix %s was not found!" % toll_str)
 
-        return temp_mtx_list
+        return temp_matrix_list
 
-    def _temp_time_attribute(self, scenario, demand_matrix_list, time_attribute_list):
+    def _time_attribute(self, scenario, demand_matrix_list, time_attribute_list):
         # time_attribute_list = []
         for i in range(len(demand_matrix_list)):
             time_attribute = self._create_temp_attribute(
@@ -351,7 +352,7 @@ class AssignTraffic(_m.Tool()):
             time_attribute_list.append(time_attribute)
         return time_attribute_list
 
-    def _temp_cost_attribute(self, scenario, demand_matrix_list, cost_attribute_list):
+    def _cost_attribute(self, scenario, demand_matrix_list, cost_attribute_list):
         # cost_attribute_list = []
         for i in range(len(demand_matrix_list)):
             cost_attribute = self._create_temp_attribute(
@@ -360,7 +361,7 @@ class AssignTraffic(_m.Tool()):
             cost_attribute_list.append(cost_attribute)
         return cost_attribute_list
 
-    def _temp_transit_traffic_attribute(
+    def _transit_traffic_attribute(
         self, scenario, demand_matrix_list, t_traffic_attribute_list
     ):
         # t_traffic_attribute_list = []
@@ -513,39 +514,52 @@ class AssignTraffic(_m.Tool()):
                     _MODELLER.emmebank.delete_matrix(matrix.id)
 
     @contextmanager
-    def _time_attribute_manager(self, scenario):
-        time_attribute_list = []
+    def _temp_attribute_manager(self, scenario):
+        temp_attribute_list = []
         try:
-            yield time_attribute_list
+            yield temp_attribute_list
         finally:
-            for time_attribute in time_attribute_list:
-                if time_attribute is not None:
-                    _m.logbook_write("Deleting temporary link time attribute.")
-                    scenario.delete_extra_attribute(time_attribute.id)
-
-    @contextmanager
-    def _cost_attribute_manager(self, scenario):
-        cost_attribute_list = []
-        try:
-            yield cost_attribute_list
-        finally:
-            for cost_attribute in cost_attribute_list:
-                if cost_attribute is not None:
-                    _m.logbook_write("Deleting temporary link cost attribute.")
-                    scenario.delete_extra_attribute(cost_attribute.id)
-
-    @contextmanager
-    def _transit_traffic_attribute_manager(self, scenario):
-        traffic_attribute_list = []
-        try:
-            yield traffic_attribute_list
-        finally:
-            for bg_traffic_attribute in traffic_attribute_list:
-                if bg_traffic_attribute is not None:
+            for temp_attribute in temp_attribute_list:
+                if temp_attribute is not None:
+                    scenario.delete_extra_attribute(temp_attribute.id)
                     _m.logbook_write(
-                        "Deleting temporary link transit traffic attribute."
+                        "Deleted temporary '%s' link attribute" % temp_attribute.id
                     )
-                    scenario.delete_extra_attribute(bg_traffic_attribute.id)
+
+    # @contextmanager
+    # def _time_attribute_manager(self, scenario):
+    #     time_attribute_list = []
+    #     try:
+    #         yield time_attribute_list
+    #     finally:
+    #         for time_attribute in time_attribute_list:
+    #             if time_attribute is not None:
+    #                 _m.logbook_write("Deleting temporary link time attribute.")
+    #                 scenario.delete_extra_attribute(time_attribute.id)
+
+    # @contextmanager
+    # def _cost_attribute_manager(self, scenario):
+    #     cost_attribute_list = []
+    #     try:
+    #         yield cost_attribute_list
+    #     finally:
+    #         for cost_attribute in cost_attribute_list:
+    #             if cost_attribute is not None:
+    #                 _m.logbook_write("Deleting temporary link cost attribute.")
+    #                 scenario.delete_extra_attribute(cost_attribute.id)
+
+    # @contextmanager
+    # def _transit_traffic_attribute_manager(self, scenario):
+    #     traffic_attribute_list = []
+    #     try:
+    #         yield traffic_attribute_list
+    #     finally:
+    #         for bg_traffic_attribute in traffic_attribute_list:
+    #             if bg_traffic_attribute is not None:
+    #                 _m.logbook_write(
+    #                     "Deleting temporary link transit traffic attribute."
+    #                 )
+    #                 scenario.delete_extra_attribute(bg_traffic_attribute.id)
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
