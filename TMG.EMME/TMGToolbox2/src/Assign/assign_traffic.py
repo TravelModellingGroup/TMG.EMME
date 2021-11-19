@@ -249,11 +249,13 @@ class AssignTraffic(_m.Tool()):
                                             for i in range(len(demand_matrix_list)):
                                                 attribute_list.append(None)
                                             spec = self._get_primary_SOLA_spec(
+                                                demand_matrix_list,
                                                 peak_hour_matrix_list,
                                                 applied_toll_factor_list,
                                                 mode_list,
                                                 volume_attribute_list,
                                                 cost_matrix_list,
+                                                time_matrix_list,
                                                 attribute_list,
                                                 None,
                                                 None,
@@ -546,11 +548,13 @@ class AssignTraffic(_m.Tool()):
 
     def _get_primary_SOLA_spec(
         self,
+        demand_matrix_list,
         peak_hour_matrix_list,
         applied_toll_factor_list,
         mode_list,
         volume_attribute_list,
         cost_matrix_list,
+        time_matrix_list,
         attribute_list,
         matrix_list,
         operator_list,
@@ -581,7 +585,59 @@ class AssignTraffic(_m.Tool()):
                 "normalized_gap": self.norm_gap,
             },
         }
-        ...
+        SOLA_path_analysis = []
+        for i in range(0, len(demand_matrix_list)):
+            if attribute_list[i] is None:
+                SOLA_path_analysis.append(None)
+            else:
+                SOLA_path_analysis.append([])
+                all_none = True
+                for j in range(len(attribute_list[i])):
+                    if attribute_list[i][j] is None:
+                        continue
+                    all_none = False
+                    path = {
+                        "link_component": attribute_list[i][j],
+                        "turn_component": None,
+                        "operator": operator_list[i][j],
+                        "selection_threshold": {
+                            "lower": lower_bound_list[i][j],
+                            "upper": upper_bound_list[i][j],
+                        },
+                        "path_to_od_composition": {
+                            "considered_paths": selector_list[i][j],
+                            "multiply_path_proportions_by": {
+                                "analyzed_demand": multiply_path_demand[i][j],
+                                "path_value": multiply_path_value[i][j],
+                            },
+                        },
+                        "results": {"od_values": matrix_list[i][j]},
+                        "analyzed_demand": None,
+                    }
+                    SOLA_path_analysis[i].append(path)
+                    if all_none is True:
+                        SOLA_path_analysis[i] = []
+        SOLA_class_generator = [
+            {
+                "mode": mode_list[i],
+                "demand": peak_hour_matrix_list[i].id,
+                "generalized_cost": {
+                    "link_costs": cost_matrix_list[i].id,
+                    "perception_factor": 1,
+                },
+                "results": {
+                    "link_volumes": volume_attribute_list[i],
+                    "turn_volumes": None,
+                    "od_travel_times": {"shortest_paths": time_matrix_list[i]},
+                },
+                "path_analyses": SOLA_path_analysis[i],
+            }
+            for i in range(len(mode_list))
+        ]
+
+        SOLA_spec["classes"] = SOLA_class_generator
+
+        return SOLA_spec
 
     # ---CONTEXT MANAGERS---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
