@@ -254,7 +254,7 @@ class AssignTraffic(_m.Tool()):
                                                 applied_toll_factor_list,
                                                 mode_list,
                                                 volume_attribute_list,
-                                                cost_matrix_list,
+                                                cost_attribute_list,
                                                 time_matrix_list,
                                                 attribute_list,
                                                 None,
@@ -264,6 +264,7 @@ class AssignTraffic(_m.Tool()):
                                                 None,
                                                 None,
                                                 None,
+                                                parameters,
                                             )
                                             report = self._tracker.run_tool(
                                                 traffic_assignment_tool,
@@ -313,7 +314,7 @@ class AssignTraffic(_m.Tool()):
     def _get_atts(self, parameters):
         ...
 
-    def get_attribute_name(at):
+    def get_attribute_name(self, at):
         if at.startswith("@"):
             return at
         else:
@@ -553,7 +554,7 @@ class AssignTraffic(_m.Tool()):
         applied_toll_factor_list,
         mode_list,
         volume_attribute_list,
-        cost_matrix_list,
+        cost_attribute_list,
         time_matrix_list,
         attribute_list,
         matrix_list,
@@ -579,16 +580,16 @@ class AssignTraffic(_m.Tool()):
             "performance_settings": {"number_of_processors": number_of_processors},
             "background_traffic": None,
             "stopping_criteria": {
-                "max_iterations": self.iterations,
-                "relative_gap": self.r_gap,
-                "best_relative_gap": self.br_gap,
-                "normalized_gap": self.norm_gap,
+                "max_iterations": parameters["iterations"],
+                "relative_gap": parameters["r_gap"],
+                "best_relative_gap": parameters["br_gap"],
+                "normalized_gap": parameters["norm_gap"],
             },
         }
         SOLA_path_analysis = []
         for i in range(0, len(demand_matrix_list)):
             if attribute_list[i] is None:
-                SOLA_path_analysis.append(None)
+                SOLA_path_analysis.append([])
             else:
                 SOLA_path_analysis.append([])
                 all_none = True
@@ -615,14 +616,14 @@ class AssignTraffic(_m.Tool()):
                         "analyzed_demand": None,
                     }
                     SOLA_path_analysis[i].append(path)
-                    if all_none is True:
-                        SOLA_path_analysis[i] = []
+                if all_none is True:
+                    SOLA_path_analysis[i] = []
         SOLA_class_generator = [
             {
                 "mode": mode_list[i],
                 "demand": peak_hour_matrix_list[i].id,
                 "generalized_cost": {
-                    "link_costs": cost_matrix_list[i].id,
+                    "link_costs": cost_attribute_list[i].id,
                     "perception_factor": 1,
                 },
                 "results": {
