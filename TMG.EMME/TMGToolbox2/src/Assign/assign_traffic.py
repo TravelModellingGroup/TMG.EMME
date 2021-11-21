@@ -40,11 +40,13 @@ Toll-Based Road Assignment
 
 """
 
+from os import error
 import inro.modeller as _m
 import traceback as _traceback
 from contextlib import contextmanager
 import multiprocessing
 import random
+import json
 
 _m.InstanceType = object
 _m.ListType = list
@@ -85,6 +87,8 @@ class AssignTraffic(_m.Tool()):
     #    get intitialized during construction (__init__)
     # ---Variable definitions
 
+    # Parameters takes in a json file name
+    parameters = _m.Attribute(str)
     number_of_processors = _m.Attribute(int)
 
     def __init__(self):
@@ -102,18 +106,20 @@ class AssignTraffic(_m.Tool()):
         )
         return pb.render()
 
-    def __call__(self):
-        # ---1 Set up Scenario
-        # self._load_scenario(scenario_number)
-
-        # TODO: Process parameters for __call__
-        pass
-
-    def run_xtmf(self, parameters):
-        Scenario = self._load_scenario(parameters["scenario_number"])
+    def __call__(self, parameters):
+        parameters = self._read_json_file(parameters)
+        scenario = self._load_scenario(parameters["scenario_number"])
 
         try:
-            self._execute(Scenario, parameters)
+            self._execute(scenario, parameters)
+        except Exception as e:
+            raise Exception(_util.format_reverse_stack())
+
+    def run_xtmf(self, parameters):
+        scenario = self._load_scenario(parameters["scenario_number"])
+
+        try:
+            self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
@@ -164,7 +170,8 @@ class AssignTraffic(_m.Tool()):
                                         demand_matrix_list, peak_hour_matrix_list
                                     )
                                     if (
-                                        parameters["background_transit"] == "true"
+                                        parameters["background_transit"].lower()
+                                        == "true"
                                         or True
                                     ):
                                         if (
@@ -310,6 +317,14 @@ class AssignTraffic(_m.Tool()):
         if scenario is None:
             raise Exception("Scenario %s was not found!" % scenario_number)
         return scenario
+
+    def _read_json_file(self, json_file_name):
+        try:
+            print("Reading parameters from json file '%s'." % json_file_name)
+            with open(json_file_name, "r") as json_file:
+                return json.load(json_file)
+        except:
+            raise Exception
 
     def _get_atts(self, parameters):
         ...
