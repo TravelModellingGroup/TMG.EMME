@@ -139,12 +139,16 @@ class AssignTraffic(_m.Tool()):
             self._tracker.complete_subtask()
 
             # Load initialized temporary and non-temp attributes
-            with self._load_attributes(
+            with self._load_temp_attributes(
                 scenario, parameters, demand_matrix_list
             ) as temporary_attributes:
                 time_attribute_list = temporary_attributes[0]
                 cost_attribute_list = temporary_attributes[1]
                 transit_attribute_list = temporary_attributes[2]
+
+                # Create volume attributes
+                for tc in parameters["traffic_classes"]:
+                    self._create_volume_attribute(scenario, tc["volume_attribute"])
 
                 if parameters["background_transit"].lower() == "true":
                     if int(scenario.element_totals["transit_lines"]) > 0:
@@ -174,28 +178,21 @@ class AssignTraffic(_m.Tool()):
                 )
                 self._tracker.complete_subtask()
 
-                self._tracker.complete_subtask()
-
+                # Assign traffic to road network
                 with _m.logbook_trace("Running Road Assignments."):
 
                     # TODO: Ignore path analysis and return to it later
                     # {PATH ANALYSIS GOES HERE}
-                    # TODO: Ignore path analysis and return to it later
 
                     path_analysis_is_complete = False
                     if path_analysis_is_complete is False:
-                        attribute_list = []
-                        mode_list = [
-                            mode["mode"] for mode in parameters["traffic_classes"]
-                        ]
-                        volume_attribute_list = [
-                            self.get_attribute_name(
-                                volume_attribute["volume_attribute"]
-                            )
-                            for volume_attribute in parameters["traffic_classes"]
-                        ]
-                        for i in range(len(demand_matrix_list)):
-                            attribute_list.append(None)
+                        attributes = self._load_attribute_list(
+                            parameters, demand_matrix_list
+                        )
+                        attribute_list = attributes[0]
+                        volume_attribute_list = attributes[1]
+                        mode_list = self._load_mode_list(parameters)
+
                         spec = self._get_primary_SOLA_spec(
                             demand_matrix_list,
                             peak_hour_matrix_list,
@@ -214,36 +211,22 @@ class AssignTraffic(_m.Tool()):
                             None,
                             parameters,
                         )
+
                         report = self._tracker.run_tool(
                             traffic_assignment_tool,
                             spec,
                             scenario=scenario,
                         )
 
-                    stopping_criteron = report["stopping_criterion"]
-                    iterations = report["iterations"]
-                    if len(iterations) > 0:
-                        final_iteration = iterations[-1]
-                    else:
-                        final_iteration = {"number": 0}
-                        stopping_criteron == "MAX_ITERATIONS"
-                    number = final_iteration["number"]
-
-                    if stopping_criteron == "MAX_ITERATIONS":
-                        val = final_iteration["number"]
-                    elif stopping_criteron == "RELATIVE_GAP":
-                        val = final_iteration["gaps"]["relative"]
-                    elif stopping_criteron == "NORMALIZED_GAP":
-                        val = final_iteration["gaps"]["normalized"]
-                    elif stopping_criteron == "BEST_RELATIVE_GAP":
-                        val = final_iteration["gaps"]["best_relative"]
-                    else:
-                        val = "undefined"
+                    checked = self._check_stopping_criteria(report)
+                    number = checked[0]
+                    stopping_criteron = checked[1]
+                    value = checked[2]
 
                     print("Primary assignment complete at %s iterations." % number)
                     print(
                         "Stopping criterion was %s with a value of %s."
-                        % (stopping_criteron, val)
+                        % (stopping_criteron, value)
                     )
 
     # ---SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -283,7 +266,7 @@ class AssignTraffic(_m.Tool()):
                         yield cost_matrix_list, time_matrix_list, toll_matrix_list, peak_hour_matrix_list
 
     @contextmanager
-    def _load_attributes(self, scenario, parameters, demand_matrix_list):
+    def _load_temp_attributes(self, scenario, parameters, demand_matrix_list):
         with self._temp_attribute_manager(scenario) as time_attribute_list:
             self._time_attribute(scenario, demand_matrix_list, time_attribute_list)
 
@@ -294,11 +277,21 @@ class AssignTraffic(_m.Tool()):
                     self._transit_traffic_attribute(
                         scenario, demand_matrix_list, transit_attribute_list
                     )
-                    # Create volume attributes
-                    for tc in parameters["traffic_classes"]:
-                        self._create_volume_attribute(scenario, tc["volume_attribute"])
-
                     yield time_attribute_list, cost_attribute_list, transit_attribute_list
+
+    def _load_attribute_list(self, parameters, demand_matrix_list):
+        attribute_list = []
+        volume_attribute_list = [
+            self.get_attribute_name(volume_attribute["volume_attribute"])
+            for volume_attribute in parameters["traffic_classes"]
+        ]
+        for i in range(len(demand_matrix_list)):
+            attribute_list.append(None)
+        return attribute_list, volume_attribute_list
+
+    def _load_mode_list(self, parameters):
+        mode_list = [mode["mode"] for mode in parameters["traffic_classes"]]
+        return mode_list
 
     def _calculate_link_cost(
         self,
@@ -342,6 +335,29 @@ class AssignTraffic(_m.Tool()):
             return at
         else:
             return "@" + at
+
+    def _check_stopping_criteria(self, report):
+        stopping_criteron = report["stopping_criterion"]
+        iterations = report["iterations"]
+        if len(iterations) > 0:
+            final_iteration = iterations[-1]
+        else:
+            final_iteration = {"number": 0}
+            stopping_criteron == "MAX_ITERATIONS"
+        number = final_iteration["number"]
+
+        if stopping_criteron == "MAX_ITERATIONS":
+            value = final_iteration["number"]
+        elif stopping_criteron == "RELATIVE_GAP":
+            value = final_iteration["gaps"]["relative"]
+        elif stopping_criteron == "NORMALIZED_GAP":
+            value = final_iteration["gaps"]["normalized"]
+        elif stopping_criteron == "BEST_RELATIVE_GAP":
+            value = final_iteration["gaps"]["best_relative"]
+        else:
+            value = "undefined"
+
+        return number, stopping_criteron, value
 
     # ---MATRICES  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
