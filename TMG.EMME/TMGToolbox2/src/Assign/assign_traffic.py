@@ -150,7 +150,7 @@ class AssignTraffic(_m.Tool()):
 
                 # Load initialized temporary and non-temp attributes
                 with self._load_temp_attributes(
-                    scenario, parameters, demand_matrix_list
+                    scenario, demand_matrix_list
                 ) as temporary_attributes:
                     time_attribute_list = temporary_attributes[0]
                     cost_attribute_list = temporary_attributes[1]
@@ -293,7 +293,7 @@ class AssignTraffic(_m.Tool()):
                         yield cost_matrix_list, time_matrix_list, toll_matrix_list, peak_hour_matrix_list
 
     @contextmanager
-    def _load_temp_attributes(self, scenario, parameters, demand_matrix_list):
+    def _load_temp_attributes(self, scenario, demand_matrix_list):
         with self._temp_attribute_manager(scenario) as time_attribute_list:
             self._time_attribute(scenario, demand_matrix_list, time_attribute_list)
 
@@ -460,7 +460,6 @@ class AssignTraffic(_m.Tool()):
                 "Volume Attribute '%s' is not a link type attribute" % volume_attribute
             )
         elif volume_attribute is not None:
-            # TODO: check if you can create_extra_attribute with the same name
             _m.logbook_write("Deleting Previous Extra Attributes.")
             scenario.delete_extra_attribute(volume_attribute_at)
             scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
@@ -470,7 +469,6 @@ class AssignTraffic(_m.Tool()):
     # ---EXTRA ATTRIBUTES  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     def _time_attribute(self, scenario, demand_matrix_list, time_attribute_list):
-        # time_attribute_list = []
         for i in range(len(demand_matrix_list)):
             time_attribute = self._create_temp_attribute(
                 scenario, "ltime", "LINK", default_value=0.0
