@@ -67,6 +67,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteEndArray();
                 }), LogbookLevel.Standard));
         }
+
         [TestMethod]
         public void AssignTrafficModule()
         {
