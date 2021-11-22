@@ -38,6 +38,8 @@ Toll-Based Road Assignment
 
     V 2.0.1 Updated to receive JSON object parameters from XTMX2
 
+    V 2.0.2 Updated to receive JSON file parameters from Python API call
+
 """
 
 from os import error
@@ -76,7 +78,7 @@ def blankManager(obj):
 
 
 class AssignTraffic(_m.Tool()):
-    version = "1.1.1"
+    version = "2.0.2"
     tool_run_msg = ""
     # For progress reporting, enter the integer number of tasks here
     number_of_tasks = 4
@@ -127,107 +129,117 @@ class AssignTraffic(_m.Tool()):
         # Initialize non-temporary matrices (input matrices)
         demand_matrix_list = self._init_non_temp_matrices(parameters)
 
-        # Load initialized temporary matrices (output matrices)
-        with self._load_temp_matrices(
-            parameters, demand_matrix_list
-        ) as temporary_matrices:
-            cost_matrix_list = temporary_matrices[0]
-            time_matrix_list = temporary_matrices[1]
-            toll_matrix_list = temporary_matrices[2]
-            peak_hour_matrix_list = temporary_matrices[3]
+        with _m.logbook_trace(
+            name="%s (%s v%s)"
+            % (parameters["run_title"], self.__class__.__name__, self.version),
+            attributes=self._get_atts(scenario, parameters),
+        ):
 
-            self._tracker.complete_subtask()
+            self._tracker.reset()
 
-            # Load initialized temporary and non-temp attributes
-            with self._load_temp_attributes(
-                scenario, parameters, demand_matrix_list
-            ) as temporary_attributes:
-                time_attribute_list = temporary_attributes[0]
-                cost_attribute_list = temporary_attributes[1]
-                transit_attribute_list = temporary_attributes[2]
+            # Load initialized temporary matrices (output matrices)
+            with self._load_temp_matrices(
+                parameters, demand_matrix_list
+            ) as temporary_matrices:
+                cost_matrix_list = temporary_matrices[0]
+                time_matrix_list = temporary_matrices[1]
+                toll_matrix_list = temporary_matrices[2]
+                peak_hour_matrix_list = temporary_matrices[3]
 
-                # Create volume attributes
-                for tc in parameters["traffic_classes"]:
-                    self._create_volume_attribute(scenario, tc["volume_attribute"])
-
-                if parameters["background_transit"].lower() == "true":
-                    if int(scenario.element_totals["transit_lines"]) > 0:
-                        with _m.logbook_trace("Calculating transit background traffic"):
-                            network_calculation_tool(
-                                self._get_transit_bg_spec(),
-                                scenario=scenario,
-                            )
-                            self._tracker.complete_subtask()
-
-                applied_toll_factor_list = self._calculate_applied_toll_factor(
-                    parameters
-                )
-
-                # Calculate link costs
-                self._calculate_link_cost(
-                    scenario,
-                    parameters,
-                    demand_matrix_list,
-                    applied_toll_factor_list,
-                    cost_attribute_list,
-                )
-
-                # Calculate peak hour matrix
-                self._calculate_peak_hour_matrix(
-                    scenario, parameters, demand_matrix_list, peak_hour_matrix_list
-                )
                 self._tracker.complete_subtask()
 
-                # Assign traffic to road network
-                with _m.logbook_trace("Running Road Assignments."):
+                # Load initialized temporary and non-temp attributes
+                with self._load_temp_attributes(
+                    scenario, parameters, demand_matrix_list
+                ) as temporary_attributes:
+                    time_attribute_list = temporary_attributes[0]
+                    cost_attribute_list = temporary_attributes[1]
+                    transit_attribute_list = temporary_attributes[2]
 
-                    # TODO: Ignore path analysis and return to it later
-                    # {PATH ANALYSIS GOES HERE}
+                    # Create volume attributes
+                    for tc in parameters["traffic_classes"]:
+                        self._create_volume_attribute(scenario, tc["volume_attribute"])
 
-                    path_analysis_is_complete = False
-                    if path_analysis_is_complete is False:
-                        attributes = self._load_attribute_list(
-                            parameters, demand_matrix_list
-                        )
-                        attribute_list = attributes[0]
-                        volume_attribute_list = attributes[1]
-                        mode_list = self._load_mode_list(parameters)
+                    if parameters["background_transit"].lower() == "true":
+                        if int(scenario.element_totals["transit_lines"]) > 0:
+                            with _m.logbook_trace(
+                                "Calculating transit background traffic"
+                            ):
+                                network_calculation_tool(
+                                    self._get_transit_bg_spec(),
+                                    scenario=scenario,
+                                )
+                                self._tracker.complete_subtask()
 
-                        spec = self._get_primary_SOLA_spec(
-                            demand_matrix_list,
-                            peak_hour_matrix_list,
-                            applied_toll_factor_list,
-                            mode_list,
-                            volume_attribute_list,
-                            cost_attribute_list,
-                            time_matrix_list,
-                            attribute_list,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            parameters,
-                        )
-
-                        report = self._tracker.run_tool(
-                            traffic_assignment_tool,
-                            spec,
-                            scenario=scenario,
-                        )
-
-                    checked = self._check_stopping_criteria(report)
-                    number = checked[0]
-                    stopping_criteron = checked[1]
-                    value = checked[2]
-
-                    print("Primary assignment complete at %s iterations." % number)
-                    print(
-                        "Stopping criterion was %s with a value of %s."
-                        % (stopping_criteron, value)
+                    applied_toll_factor_list = self._calculate_applied_toll_factor(
+                        parameters
                     )
+
+                    # Calculate link costs
+                    self._calculate_link_cost(
+                        scenario,
+                        parameters,
+                        demand_matrix_list,
+                        applied_toll_factor_list,
+                        cost_attribute_list,
+                    )
+
+                    # Calculate peak hour matrix
+                    self._calculate_peak_hour_matrix(
+                        scenario, parameters, demand_matrix_list, peak_hour_matrix_list
+                    )
+                    self._tracker.complete_subtask()
+
+                    # Assign traffic to road network
+                    with _m.logbook_trace("Running Road Assignments."):
+
+                        # TODO: Ignore path analysis and return to it later
+                        # {PATH ANALYSIS GOES HERE}
+
+                        path_analysis_is_complete = False
+                        if path_analysis_is_complete is False:
+                            attributes = self._load_attribute_list(
+                                parameters, demand_matrix_list
+                            )
+                            attribute_list = attributes[0]
+                            volume_attribute_list = attributes[1]
+                            mode_list = self._load_mode_list(parameters)
+
+                            spec = self._get_primary_SOLA_spec(
+                                demand_matrix_list,
+                                peak_hour_matrix_list,
+                                applied_toll_factor_list,
+                                mode_list,
+                                volume_attribute_list,
+                                cost_attribute_list,
+                                time_matrix_list,
+                                attribute_list,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                parameters,
+                            )
+
+                            report = self._tracker.run_tool(
+                                traffic_assignment_tool,
+                                spec,
+                                scenario=scenario,
+                            )
+
+                        checked = self._check_stopping_criteria(report)
+                        number = checked[0]
+                        stopping_criteron = checked[1]
+                        value = checked[2]
+
+                        print("Primary assignment complete at %s iterations." % number)
+                        print(
+                            "Stopping criterion was %s with a value of %s."
+                            % (stopping_criteron, value)
+                        )
 
     # ---SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -242,8 +254,23 @@ class AssignTraffic(_m.Tool()):
         with open(json_file_name, "r") as json_file:
             return json.load(json_file)
 
-    def _get_atts(self, parameters):
-        ...
+    def _get_atts(self, scenario, parameters):
+        time_matrix_ids = [mtx["time_matrix"] for mtx in parameters["traffic_classes"]]
+        peak_hr_factors = [
+            str(phf["peak_hour_factor"]) for phf in parameters["traffic_classes"]
+        ]
+        link_costs = [str(lc["link_cost"]) for lc in parameters["traffic_classes"]]
+        atts = {
+            "Run Title": parameters["run_title"],
+            "Scenario": str(scenario.id),
+            "Times Matrix": str(", ".join(time_matrix_ids)),
+            "Peak Hour Factor": str(", ".join(peak_hr_factors)),
+            "Link Cost": str(", ".join(link_costs)),
+            "Iterations": str(parameters["iterations"]),
+            "self": self.__MODELLER_NAMESPACE__,
+        }
+
+        return atts
 
     @contextmanager
     def _load_temp_matrices(self, parameters, demand_matrix_list):
