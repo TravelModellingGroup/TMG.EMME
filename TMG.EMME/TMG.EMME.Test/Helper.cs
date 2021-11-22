@@ -53,7 +53,7 @@ namespace TMG.Emme.Test
                             {
                                 if (reader.TokenType == JsonTokenType.PropertyName)
                                 {
-                                    if(reader.ValueTextEquals(ProjectFileProperty))
+                                    if (reader.ValueTextEquals(ProjectFileProperty))
                                     {
                                         reader.Read();
                                         ProjectFile = reader.GetString();
@@ -87,7 +87,7 @@ namespace TMG.Emme.Test
             };
         }
 
-        internal static void ImportFrabitztownNetwork (int scenarioNumber)
+        internal static void ImportFrabitztownNetwork(int scenarioNumber)
         {
             Helper.ImportNetwork(scenarioNumber, Path.GetFullPath("TestFiles/test.nwp"));
         }
@@ -98,7 +98,7 @@ namespace TMG.Emme.Test
                Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
-                    writer.WriteString("network_package_file", filePath );
+                    writer.WriteString("network_package_file", filePath);
                     writer.WriteString("scenario_description", "Test Network");
                     writer.WriteNumber("scenario_number", scenarioNumber);
                     writer.WriteString("conflict_option", "PRESERVE");
@@ -141,7 +141,6 @@ namespace TMG.Emme.Test
                     Value = v
                 }
                 ).ToArray();
-       
         }
     }
 }
