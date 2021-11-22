@@ -47,7 +47,6 @@ namespace TMG.Emme.Assign
         public IFunction<float> normGap;
 
         [Parameter(Name = "Performance Flag", DefaultValue = "true", Description = "Set this to false to leave a free core for other work",
-
             Index = 5)]
         public IFunction<bool> PerformanceFlag;
 
@@ -237,6 +236,6 @@ namespace TMG.Emme.Assign
                 writer.WriteEndArray();
             }), LogbookLevel.Standard);
         }
-        
+
     }
 }
