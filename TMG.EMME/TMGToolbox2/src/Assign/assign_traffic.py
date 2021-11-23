@@ -160,17 +160,10 @@ class AssignTraffic(_m.Tool()):
                     for tc in parameters["traffic_classes"]:
                         self._create_volume_attribute(scenario, tc["volume_attribute"])
 
-                    if parameters["background_transit"].lower() == "true":
-                        if int(scenario.element_totals["transit_lines"]) > 0:
-                            with _m.logbook_trace(
-                                "Calculating transit background traffic"
-                            ):
-                                network_calculation_tool(
-                                    self._get_transit_bg_spec(),
-                                    scenario=scenario,
-                                )
-                                self._tracker.complete_subtask()
+                    # Calculate transit background traffic
+                    self._calculate_transit_background_traffic(scenario, parameters)
 
+                    # Calculate applied toll factor
                     applied_toll_factor_list = self._calculate_applied_toll_factor(
                         parameters
                     )
@@ -192,11 +185,64 @@ class AssignTraffic(_m.Tool()):
 
                     # Assign traffic to road network
                     with _m.logbook_trace("Running Road Assignments."):
-
-                        # TODO: Ignore path analysis and return to it later
-                        # {PATH ANALYSIS GOES HERE}
-
+                        attribute_is_defined = False
                         path_analysis_is_complete = False
+                        all_attributes = []
+                        all_matrices = []
+                        operators = []
+                        lower_bounds = []
+                        upper_bounds = []
+                        path_selectors = []
+                        multiply_path_demand = []
+                        multiply_path_value = []
+                        traffic_classes = parameters["traffic_classes"]
+                        class_name_list = [tc["name"] for tc in traffic_classes]
+                        link_toll_attribute_id = [
+                            tc["link_toll_attribute_id"] for tc in traffic_classes
+                        ]
+                        # read path analysis parameters
+                        for i in range(len(demand_matrix_list)):
+                            all_attributes.append([])
+                            all_matrices.append([])
+                            operators.append([])
+                            lower_bounds.append([])
+                            upper_bounds.append([])
+                            path_selectors.append([])
+                            multiply_path_demand.append([])
+                            multiply_path_value.append([])
+                            if cost_matrix_list[i] is not None:
+                                _m.logbook_write(
+                                    "Cost matrix defined for class %s"
+                                    % (str(class_name_list[i]))
+                                )
+                                all_attributes[i].append(cost_attribute_list[i].id)
+                                all_matrices[i].append(cost_matrix_list[i])
+                                operators[i].append("+")
+                                lower_bounds[i].append(None)
+                                upper_bounds[i].append(None)
+                                path_selectors[i].append("ALL")
+                                multiply_path_demand[i].append(False)
+                                multiply_path_value[i].append(True)
+                                attribute_is_defined = True
+                            else:
+                                all_attributes[i].append(None)
+                            if toll_matrix_list[i] is not None:
+                                _m.logbook_write(
+                                    "Toll matrix defined for class %s"
+                                    % (str(class_name_list[i]))
+                                )
+                                all_attributes[i].append(link_toll_attribute_id[i])
+                                all_matrices[i].append(toll_matrix_list[i])
+                                operators[i].append("+")
+                                lower_bounds[i].append(None)
+                                upper_bounds[i].append(None)
+                                path_selectors[i].append("ALL")
+                                multiply_path_demand[i].append(False)
+                                multiply_path_value[i].append(True)
+                                attribute_is_defined = True
+                            else:
+                                all_attributes[i].append(None)
+
                         if path_analysis_is_complete is False:
                             attributes = self._load_attribute_list(
                                 parameters, demand_matrix_list
@@ -356,6 +402,16 @@ class AssignTraffic(_m.Tool()):
                     num_processors=self.number_of_processors,
                 )
             self._tracker.complete_subtask()
+
+    def _calculate_transit_background_traffic(self, scenario, parameters):
+        if parameters["background_transit"].lower() == "true":
+            if int(scenario.element_totals["transit_lines"]) > 0:
+                with _m.logbook_trace("Calculating transit background traffic"):
+                    network_calculation_tool(
+                        self._get_transit_bg_spec(),
+                        scenario=scenario,
+                    )
+                    self._tracker.complete_subtask()
 
     def get_attribute_name(self, at):
         if at.startswith("@"):
