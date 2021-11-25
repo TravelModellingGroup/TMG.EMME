@@ -157,7 +157,7 @@ namespace TMG.Emme.Assign
 
             [Parameter(Name = "Aggregation Matrix", DefaultValue = "0", Description = "The matrix number to store the results into",
                 Index = 1)]
-            public IFunction<int> AggregationMatrix;
+            public IFunction<string> AggregationMatrix;
 
             [Parameter(Name = "Operator", DefaultValue = "+", Description = "The operator to use to aggregate the matrix. Example:'+' for emissions",
                 Index = 2)]
@@ -202,7 +202,7 @@ namespace TMG.Emme.Assign
             {
                 writer.WriteStartObject();
                 writer.WriteString("attribute_id", AttributeId.Invoke());
-                writer.WriteNumber("aggregation_matrix", AggregationMatrix.Invoke());
+                writer.WriteString("aggregation_matrix", AggregationMatrix.Invoke());
                 writer.WriteString("aggregation_operator", AggregationOperator.Invoke());
                 writer.WriteString("lower_bound", LowerBound.Invoke());
                 writer.WriteString("upper_bound", UpperBound.Invoke());
