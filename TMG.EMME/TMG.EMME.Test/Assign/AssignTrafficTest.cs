@@ -47,7 +47,6 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("run_title", "road assignment");
                     writer.WriteNumber("scenario_number", 1);
                     writer.WriteBoolean("sola_flag", true);
-
                     writer.WriteStartArray("traffic_classes");
                     writer.WriteStartObject();
                     writer.WriteString("name", "traffic class 1");
@@ -62,9 +61,22 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("toll_weight", 0.0);
                     writer.WriteNumber("link_cost", 0.0);
                     writer.WriteStartArray("path_analyses");
+                    writer.WriteStartObject();
+                    writer.WriteString("attribute_id", "1");
+                    writer.WriteString("aggregation_matrix", "");
+                    writer.WriteString("aggregation_operator", "max");
+                    writer.WriteString("lower_bound", "7");
+                    writer.WriteString("upper_bound", "7");
+                    writer.WriteString("path_selection", "all");
+                    writer.WriteString("multiply_path_prop_by_demand", "7");
+                    writer.WriteString("multiply_path_prop_by_value", "7");
+                    writer.WriteString("analysis_attributes", "");
+                    writer.WriteString("analysis_attributes_matrix", "mf0");
+                    writer.WriteEndObject();
                     writer.WriteEndArray();
                     writer.WriteEndObject();
                     writer.WriteEndArray();
+
                 }), LogbookLevel.Standard));
         }
 
@@ -74,11 +86,29 @@ namespace TMG.Emme.Test.Assign
             Helper.ImportFrabitztownNetwork(1);
             Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
 
+            var pathAnalyses = new[]
+            {
+                new Emme.Assign.AssignTraffic.PathAnalysis()
+                {
+                    Name = "PathAnalysis",
+                    AttributeId = Helper.CreateParameter("1"),
+                    AggregationMatrix = Helper.CreateParameter(""),
+                    AggregationOperator = Helper.CreateParameter("max"),
+                    LowerBound = Helper.CreateParameter("7"),
+                    UpperBound = Helper.CreateParameter("7"),
+                    PathSelection = Helper.CreateParameter("all"),
+                    MultiplyPathPropByDemand = Helper.CreateParameter("7"),
+                    MultiplyPathPropByValue = Helper.CreateParameter("7"),
+                    AnalysisAttributes = Helper.CreateParameter(""),
+                    AnalysisAttributesMatrixId = Helper.CreateParameter("mf0"),
+                }
+            };
+
             var trafficClasses = new[]
             {
                 new Emme.Assign.AssignTraffic.TrafficClass()
                 {
-                    Name = "traffic class 1",
+                    Name = "TrafficClass1",
                     Mode = Helper.CreateParameter('c'),
                     DemandMatrixNumber = Helper.CreateParameter("mf1"),
                     TimeMatrix = Helper.CreateParameter("mf0"),
@@ -89,10 +119,9 @@ namespace TMG.Emme.Test.Assign
                     LinkTollAttributeID = Helper.CreateParameter("@toll"),
                     TollWeight = Helper.CreateParameter(0.0f),
                     LinkCost = Helper.CreateParameter(0.0f),
-                    PathAnalyses = Array.Empty<IFunction<Emme.Assign.AssignTraffic.PathAnalysis>>()
+                    PathAnalyses = Helper.CreateParameters(pathAnalyses),
                 }
             };
-
             var module = new Emme.Assign.AssignTraffic()
             {
                 Name = "AssignTraffic",
