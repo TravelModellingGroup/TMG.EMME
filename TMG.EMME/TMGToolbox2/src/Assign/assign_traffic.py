@@ -109,7 +109,7 @@ class AssignTraffic(_m.Tool()):
         return pb.render()
 
     def __call__(self, parameters):
-        parameters = self._read_json_file(parameters)
+        parameters = self._load_json_file(parameters)
         scenario = self._load_scenario(parameters["scenario_number"])
 
         try:
@@ -127,12 +127,12 @@ class AssignTraffic(_m.Tool()):
 
     def _execute(self, scenario, parameters):
         # Initialize non-temporary matrices (input matrices)
-        demand_matrix_list = self._init_non_temp_matrices(parameters)
+        demand_matrix_list = self._init_non_temporary_matrices(parameters)
 
         with _m.logbook_trace(
             name="%s (%s v%s)"
             % (parameters["run_title"], self.__class__.__name__, self.version),
-            attributes=self._get_atts(scenario, parameters),
+            attributes=self._load_atts(scenario, parameters),
         ):
 
             self._tracker.reset()
@@ -185,6 +185,10 @@ class AssignTraffic(_m.Tool()):
 
                     # Assign traffic to road network
                     with _m.logbook_trace("Running Road Assignments."):
+
+                        pa_param_dict = self._load_path_analysis_param_dict(
+                            parameters, demand_matrix_list
+                        )
                         attribute_is_defined = False
                         path_analysis_is_complete = False
                         all_attributes = []
@@ -242,7 +246,7 @@ class AssignTraffic(_m.Tool()):
                                 attribute_is_defined = True
                             else:
                                 all_attributes[i].append(None)
-
+                        # TODO: Load path analysis lists
                         if path_analysis_is_complete is False:
                             attributes = self._load_attribute_list(
                                 parameters, demand_matrix_list
@@ -276,7 +280,7 @@ class AssignTraffic(_m.Tool()):
                                 scenario=scenario,
                             )
 
-                        checked = self._check_stopping_criteria(report)
+                        checked = self._load_stopping_criteria(report)
                         number = checked[0]
                         stopping_criteron = checked[1]
                         value = checked[2]
@@ -287,7 +291,11 @@ class AssignTraffic(_m.Tool()):
                             % (stopping_criteron, value)
                         )
 
-    # ---SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    def _load_json_file(self, json_file_name):
+        print("Reading parameters from json file '%s'." % json_file_name)
+        with open(json_file_name, "r") as json_file:
+            return json.load(json_file)
 
     def _load_scenario(self, scenario_number):
         scenario = _m.Modeller().emmebank.scenario(scenario_number)
@@ -295,12 +303,7 @@ class AssignTraffic(_m.Tool()):
             raise Exception("Scenario %s was not found!" % scenario_number)
         return scenario
 
-    def _read_json_file(self, json_file_name):
-        print("Reading parameters from json file '%s'." % json_file_name)
-        with open(json_file_name, "r") as json_file:
-            return json.load(json_file)
-
-    def _get_atts(self, scenario, parameters):
+    def _load_atts(self, scenario, parameters):
         time_matrix_ids = [mtx["time_matrix"] for mtx in parameters["traffic_classes"]]
         peak_hr_factors = [
             str(phf["peak_hour_factor"]) for phf in parameters["traffic_classes"]
@@ -315,47 +318,12 @@ class AssignTraffic(_m.Tool()):
             "Iterations": str(parameters["iterations"]),
             "self": self.__MODELLER_NAMESPACE__,
         }
-
         return atts
-
-    @contextmanager
-    def _load_temp_matrices(self, parameters, demand_matrix_list):
-        with self._temp_matrix_manager() as cost_matrix_list:
-            # Initialize cost matrices (output matrices)
-            self._init_temp_matrix("cost_matrix", parameters, cost_matrix_list)
-
-            with self._temp_matrix_manager() as time_matrix_list:
-                # Initialize time matrices (output matrices)
-                self._init_temp_matrix("time_matrix", parameters, time_matrix_list)
-
-                with self._temp_matrix_manager() as toll_matrix_list:
-                    # Initialize toll matrices (output matrices)
-                    self._init_temp_matrix("toll_matrix", parameters, toll_matrix_list)
-
-                    with self._temp_matrix_manager() as peak_hour_matrix_list:
-                        self._init_temp_phf_matrices(
-                            demand_matrix_list, peak_hour_matrix_list
-                        )
-                        yield cost_matrix_list, time_matrix_list, toll_matrix_list, peak_hour_matrix_list
-
-    @contextmanager
-    def _load_temp_attributes(self, scenario, demand_matrix_list):
-        with self._temp_attribute_manager(scenario) as time_attribute_list:
-            self._time_attribute(scenario, demand_matrix_list, time_attribute_list)
-
-            with self._temp_attribute_manager(scenario) as cost_attribute_list:
-                self._cost_attribute(scenario, demand_matrix_list, cost_attribute_list)
-
-                with self._temp_attribute_manager(scenario) as transit_attribute_list:
-                    self._transit_traffic_attribute(
-                        scenario, demand_matrix_list, transit_attribute_list
-                    )
-                    yield time_attribute_list, cost_attribute_list, transit_attribute_list
 
     def _load_attribute_list(self, parameters, demand_matrix_list):
         attribute_list = []
         volume_attribute_list = [
-            self.get_attribute_name(volume_attribute["volume_attribute"])
+            self.load_attribute_name(volume_attribute["volume_attribute"])
             for volume_attribute in parameters["traffic_classes"]
         ]
         for i in range(len(demand_matrix_list)):
@@ -366,60 +334,13 @@ class AssignTraffic(_m.Tool()):
         mode_list = [mode["mode"] for mode in parameters["traffic_classes"]]
         return mode_list
 
-    def _calculate_link_cost(
-        self,
-        scenario,
-        parameters,
-        demand_matrix_list,
-        applied_toll_factor_list,
-        cost_attribute_list,
-    ):
-        with _m.logbook_trace("Calculating link costs"):
-            for i in range(len(demand_matrix_list)):
-                network_calculation_tool(
-                    self._get_link_cost_calc_spec(
-                        cost_attribute_list[i].id,
-                        parameters["traffic_classes"][i]["link_cost"],
-                        parameters["traffic_classes"][i]["link_toll_attribute_id"],
-                        applied_toll_factor_list[i],
-                    ),
-                    scenario=scenario,
-                )
-            self._tracker.complete_subtask()
-
-    def _calculate_peak_hour_matrix(
-        self, scenario, parameters, demand_matrix_list, peak_hour_matrix_list
-    ):
-        with _m.logbook_trace("Calculting peak hour matrix"):
-            for i in range(len(demand_matrix_list)):
-                matrix_calc_tool(
-                    self._get_peak_hour_spec(
-                        peak_hour_matrix_list[i].id,
-                        demand_matrix_list[i].id,
-                        parameters["traffic_classes"][i]["peak_hour_factor"],
-                    ),
-                    scenario=scenario,
-                    num_processors=self.number_of_processors,
-                )
-            self._tracker.complete_subtask()
-
-    def _calculate_transit_background_traffic(self, scenario, parameters):
-        if parameters["background_transit"].lower() == "true":
-            if int(scenario.element_totals["transit_lines"]) > 0:
-                with _m.logbook_trace("Calculating transit background traffic"):
-                    network_calculation_tool(
-                        self._get_transit_bg_spec(),
-                        scenario=scenario,
-                    )
-                    self._tracker.complete_subtask()
-
-    def get_attribute_name(self, at):
+    def load_attribute_name(self, at):
         if at.startswith("@"):
             return at
         else:
             return "@" + at
 
-    def _check_stopping_criteria(self, report):
+    def _load_stopping_criteria(self, report):
         stopping_criteron = report["stopping_criterion"]
         iterations = report["iterations"]
         if len(iterations) > 0:
@@ -442,9 +363,122 @@ class AssignTraffic(_m.Tool()):
 
         return number, stopping_criteron, value
 
-    # ---MATRICES  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    def _load_path_analysis_param_dict(self, parameters, demand_matrix_list):
+        pa_param_dict = {}
 
-    def _init_non_temp_matrices(self, parameters):
+        self._create_path_analysis_param_dict(parameters, pa_param_dict)
+
+        self._update_pa_param_dict_0(parameters, demand_matrix_list, pa_param_dict)
+        self._update_pa_param_dict_1(parameters, demand_matrix_list, pa_param_dict)
+        self._update_pa_param_dict_2(parameters, demand_matrix_list, pa_param_dict)
+        self._update_pa_param_dict_3(parameters, demand_matrix_list, pa_param_dict)
+        self._update_pa_param_dict_4(parameters, demand_matrix_list, pa_param_dict)
+        self._update_pa_param_dict_5(parameters, demand_matrix_list, pa_param_dict)
+
+        return pa_param_dict
+
+    def _update_pa_param_dict_0(self, parameters, demand_matrix_list, pa_param_dict):
+        for i in range(len(demand_matrix_list)):
+            for j in range(len(pa_param_dict["analysis_attributes"][i])):
+                # Make the blank attributes None for better use in spec
+                if pa_param_dict["analysis_attributes"][i][j] == "":
+                    pa_param_dict["analysis_attributes"][i][j] = None
+                # Make mf0 matrices None for better use in spec
+                if (
+                    pa_param_dict["analysis_attributes_matrix_ids"][i][j] == "mf0"
+                    or pa_param_dict["analysis_attributes_matrix_ids"][i][j] == ""
+                ):
+                    pa_param_dict["analysis_attributes_matrix_ids"][i][j] = None
+
+    def _update_pa_param_dict_1(self, parameters, demand_matrix_list, pa_param_dict):
+        for i in range(len(demand_matrix_list)):
+            for j in range(len(pa_param_dict["analysis_attributes"][i])):
+                try:
+                    pa_param_dict["lower_bounds"][i][j] = float(
+                        pa_param_dict["lower_bounds"][i][j]
+                    )
+                    pa_param_dict["upper_bounds"][i][j] = float(
+                        pa_param_dict["upper_bounds"][i][j]
+                    )
+                except:
+                    if (
+                        pa_param_dict["lower_bounds"][i][j].lower() == "none"
+                        or pa_param_dict["lower_bounds"][i][j].lower() == ""
+                    ):
+                        pa_param_dict["lower_bounds"][i][j] = None
+                    else:
+                        raise Exception(
+                            "Lower bound not specified correct for attribute  %s"
+                            % pa_param_dict["analysis_attributes"][i][j]
+                        )
+                    if (
+                        pa_param_dict["upper_bounds"][i][j].lower() == "none"
+                        or pa_param_dict["upper_bounds"][i][j].lower() == ""
+                    ):
+                        pa_param_dict["upper_bounds"][i][j] = None
+                    else:
+                        raise Exception(
+                            "Upper bound not specified correct for attribute  %s"
+                            % pa_param_dict["analysis_attributes"][i][j]
+                        )
+
+    def _update_pa_param_dict_2(self, parameters, demand_matrix_list, pa_param_dict):
+        for i in range(len(demand_matrix_list)):
+            for j in range(len(pa_param_dict["analysis_attributes"][i])):
+                if pa_param_dict["path_selections"][i][j].lower() == "all":
+                    pa_param_dict["path_selections"][i][j] = "ALL"
+                elif pa_param_dict["path_selections"][i][j].lower() == "selected":
+                    pa_param_dict["path_selections"][i][j] = "SELECTED"
+                else:
+                    pa_param_dict["path_selections"][i][j] = None
+
+    def _update_pa_param_dict_3(self, parameters, demand_matrix_list, pa_param_dict):
+        operator_list = ["+", "-", "*", "/", "%", ".max.", ".min."]
+        for i in range(len(demand_matrix_list)):
+            for j in range(len(pa_param_dict["analysis_attributes"][i])):
+                if pa_param_dict["aggregation_operators"][i][j] not in operator_list:
+                    if pa_param_dict["aggregation_operators"][i][j].lower() == "max":
+                        pa_param_dict["aggregation_operators"][i][j] = ".max."
+                    elif pa_param_dict["aggregation_operators"][i][j].lower() == "min":
+                        pa_param_dict["aggregation_operators"][i][j] = ".min."
+                    elif (
+                        pa_param_dict["aggregation_operators"][i][j].lower() == "none"
+                        or pa_param_dict["aggregation_operators"][i][j].strip(" ") == ""
+                    ):
+                        pa_param_dict["aggregation_operators"][i][j] = None
+                    else:
+                        raise Exception(
+                            "The Path operator for the %s attribute is not specified correctly. It needs to be a binary operator"
+                            % pa_param_dict["analysis_attributes"][i][j]
+                        )
+
+    def _update_pa_param_dict_4(self, parameters, demand_matrix_list, pa_param_dict):
+        for i in range(len(demand_matrix_list)):
+            for j in range(len(pa_param_dict["analysis_attributes"][i])):
+                if str(pa_param_dict["multiply_path_demands"][i][j]).lower() == "true":
+                    pa_param_dict["multiply_path_demands"][i][j] = True
+                elif (
+                    str(pa_param_dict["multiply_path_demands"][i][j]).lower() == "false"
+                ):
+                    pa_param_dict["multiply_path_demands"][i][j] = False
+                else:
+                    pa_param_dict["multiply_path_demands"][i][j] = None
+
+    def _update_pa_param_dict_5(self, parameters, demand_matrix_list, pa_param_dict):
+        for i in range(len(demand_matrix_list)):
+            for j in range(len(pa_param_dict["analysis_attributes"][i])):
+                if str(pa_param_dict["multiply_path_values"][i][j]).lower() == "true":
+                    pa_param_dict["multiply_path_values"][i][j] = True
+                elif (
+                    str(pa_param_dict["multiply_path_values"][i][j]).lower() == "false"
+                ):
+                    pa_param_dict["multiply_path_values"][i][j] = False
+                else:
+                    pa_param_dict["multiply_path_values"][i][j] = None
+
+    # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    def _init_non_temporary_matrices(self, parameters):
         checked_matrix_list = []
         demand_matrix_list = []
 
@@ -470,7 +504,7 @@ class AssignTraffic(_m.Tool()):
 
         return demand_matrix_list
 
-    def _init_temp_matrix(self, matrix_name, parameters, temp_matrix_list):
+    def _init_temporary_matrix(self, matrix_name, parameters, temp_matrix_list):
         traffic_classes = parameters["traffic_classes"]
         for temp_matrix in traffic_classes:
             # TODO: process matrix id
@@ -499,11 +533,43 @@ class AssignTraffic(_m.Tool()):
             else:
                 raise Exception("Matrix %s was not found!" % matrix_id)
 
-    def _init_temp_phf_matrices(self, demand_matrix_list, peak_hour_matrix_list):
+    def _init_temporary_PHF_matrix(self, demand_matrix_list, peak_hour_matrix_list):
         for i in range(len(demand_matrix_list)):
             peak_hour_matrix = _util.initialize_matrix(description="Peak hour matrix")
             peak_hour_matrix_list.append(peak_hour_matrix)
         return peak_hour_matrix_list
+
+    # ---CREATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    def _create_time_attribute_list(
+        self, scenario, demand_matrix_list, time_attribute_list
+    ):
+        for i in range(len(demand_matrix_list)):
+            time_attribute = self._create_temp_attribute(
+                scenario, "ltime", "LINK", default_value=0.0
+            )
+            time_attribute_list.append(time_attribute)
+        return time_attribute_list
+
+    def _create_cost_attribute_list(
+        self, scenario, demand_matrix_list, cost_attribute_list
+    ):
+        for i in range(len(demand_matrix_list)):
+            cost_attribute = self._create_temp_attribute(
+                scenario, "lkcst", "LINK", default_value=0.0
+            )
+            cost_attribute_list.append(cost_attribute)
+        return cost_attribute_list
+
+    def create_transit_traffic_attribute_list(
+        self, scenario, demand_matrix_list, transit_traffic_attribute_list
+    ):
+        for i in range(len(demand_matrix_list)):
+            t_traffic_attribute = self._create_temp_attribute(
+                scenario, "tvph", "LINK", default_value=0.0
+            )
+            transit_traffic_attribute_list.append(t_traffic_attribute)
+        return transit_traffic_attribute_list
 
     def _create_volume_attribute(self, scenario, volume_attribute):
 
@@ -521,34 +587,6 @@ class AssignTraffic(_m.Tool()):
             scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
         else:
             scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
-
-    # ---EXTRA ATTRIBUTES  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    def _time_attribute(self, scenario, demand_matrix_list, time_attribute_list):
-        for i in range(len(demand_matrix_list)):
-            time_attribute = self._create_temp_attribute(
-                scenario, "ltime", "LINK", default_value=0.0
-            )
-            time_attribute_list.append(time_attribute)
-        return time_attribute_list
-
-    def _cost_attribute(self, scenario, demand_matrix_list, cost_attribute_list):
-        for i in range(len(demand_matrix_list)):
-            cost_attribute = self._create_temp_attribute(
-                scenario, "lkcst", "LINK", default_value=0.0
-            )
-            cost_attribute_list.append(cost_attribute)
-        return cost_attribute_list
-
-    def _transit_traffic_attribute(
-        self, scenario, demand_matrix_list, t_traffic_attribute_list
-    ):
-        for i in range(len(demand_matrix_list)):
-            t_traffic_attribute = self._create_temp_attribute(
-                scenario, "tvph", "LINK", default_value=0.0
-            )
-            t_traffic_attribute_list.append(t_traffic_attribute)
-        return t_traffic_attribute_list
 
     def _create_temp_attribute(
         self,
@@ -616,7 +654,108 @@ class AssignTraffic(_m.Tool()):
 
         return temp_extra_attribute
 
-    # ---SPECIFICATIONS & CALCULATIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    def _create_path_analysis_param_dict(self, parameters, pa_param_dict):
+        attribute_id_lists = []
+        aggregation_matrix_lists = []
+        aggregation_operator_lists = []
+        analysis_attributes_lists = []
+        lower_bound_lists = []
+        upper_bound_lists = []
+        path_selection_lists = []
+        multiply_path_demand_lists = []
+        multiply_path_value_lists = []
+        analysis_attributes_matrix_id_lists = []
+
+        # Read path analysis parameters
+        for tc in parameters["traffic_classes"]:
+            attribute_id_lists.append(
+                [pa["attribute_id"] for pa in tc["path_analyses"]]
+            )
+            aggregation_matrix_lists.append(
+                [pa["aggregation_matrix"] for pa in tc["path_analyses"]]
+            )
+            aggregation_operator_lists.append(
+                [pa["aggregation_operator"] for pa in tc["path_analyses"]]
+            )
+            analysis_attributes_lists.append(
+                [pa["analysis_attributes"] for pa in tc["path_analyses"]]
+            )
+            lower_bound_lists.append([pa["lower_bound"] for pa in tc["path_analyses"]])
+            upper_bound_lists.append([pa["upper_bound"] for pa in tc["path_analyses"]])
+            path_selection_lists.append(
+                [pa["path_selection"] for pa in tc["path_analyses"]]
+            )
+            multiply_path_demand_lists.append(
+                [pa["multiply_path_prop_by_demand"] for pa in tc["path_analyses"]]
+            )
+            multiply_path_value_lists.append(
+                [pa["multiply_path_prop_by_value"] for pa in tc["path_analyses"]]
+            )
+            analysis_attributes_matrix_id_lists.append(
+                [pa["analysis_attributes_matrix"] for pa in tc["path_analyses"]]
+            )
+
+        pa_param_dict["attribute_ids"] = attribute_id_lists
+        pa_param_dict["aggregation_matrices"] = aggregation_matrix_lists
+        pa_param_dict["aggregation_operators"] = aggregation_operator_lists
+        pa_param_dict["analysis_attributes"] = analysis_attributes_lists
+        pa_param_dict["lower_bounds"] = lower_bound_lists
+        pa_param_dict["upper_bounds"] = upper_bound_lists
+        pa_param_dict["path_selections"] = path_selection_lists
+        pa_param_dict["multiply_path_demands"] = multiply_path_demand_lists
+        pa_param_dict["multiply_path_values"] = multiply_path_value_lists
+        pa_param_dict[
+            "analysis_attributes_matrix_ids"
+        ] = analysis_attributes_matrix_id_lists
+
+    # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    def _calculate_link_cost(
+        self,
+        scenario,
+        parameters,
+        demand_matrix_list,
+        applied_toll_factor_list,
+        cost_attribute_list,
+    ):
+        with _m.logbook_trace("Calculating link costs"):
+            for i in range(len(demand_matrix_list)):
+                network_calculation_tool(
+                    self._get_link_cost_calc_spec(
+                        cost_attribute_list[i].id,
+                        parameters["traffic_classes"][i]["link_cost"],
+                        parameters["traffic_classes"][i]["link_toll_attribute_id"],
+                        applied_toll_factor_list[i],
+                    ),
+                    scenario=scenario,
+                )
+            self._tracker.complete_subtask()
+
+    def _calculate_peak_hour_matrix(
+        self, scenario, parameters, demand_matrix_list, peak_hour_matrix_list
+    ):
+        with _m.logbook_trace("Calculting peak hour matrix"):
+            for i in range(len(demand_matrix_list)):
+                matrix_calc_tool(
+                    self._get_peak_hour_spec(
+                        peak_hour_matrix_list[i].id,
+                        demand_matrix_list[i].id,
+                        parameters["traffic_classes"][i]["peak_hour_factor"],
+                    ),
+                    scenario=scenario,
+                    num_processors=self.number_of_processors,
+                )
+            self._tracker.complete_subtask()
+
+    def _calculate_transit_background_traffic(self, scenario, parameters):
+        if parameters["background_transit"].lower() == "true":
+            if int(scenario.element_totals["transit_lines"]) > 0:
+                with _m.logbook_trace("Calculating transit background traffic"):
+                    network_calculation_tool(
+                        self._get_transit_bg_spec(),
+                        scenario=scenario,
+                    )
+                    self._tracker.complete_subtask()
+
     def _calculate_applied_toll_factor(self, parameters):
         applied_toll_factor = []
         for toll_weight in parameters["traffic_classes"]:
@@ -630,6 +769,7 @@ class AssignTraffic(_m.Tool()):
 
         return applied_toll_factor
 
+    # ---SPECIFICATION - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _get_transit_bg_spec(self):
         return {
             "result": "@tvph",
@@ -661,8 +801,6 @@ class AssignTraffic(_m.Tool()):
             "aggregation": {"origins": None, "destinations": None},
             "type": "MATRIX_CALCULATION",
         }
-
-    # ---ALL THINGS SOLA GOES HERE------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     def _get_primary_SOLA_spec(
         self,
@@ -758,6 +896,45 @@ class AssignTraffic(_m.Tool()):
         return SOLA_spec
 
     # ---CONTEXT MANAGERS---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    @contextmanager
+    def _load_temp_matrices(self, parameters, demand_matrix_list):
+        with self._temp_matrix_manager() as cost_matrix_list:
+            # Initialize cost matrices (output matrices)
+            self._init_temporary_matrix("cost_matrix", parameters, cost_matrix_list)
+
+            with self._temp_matrix_manager() as time_matrix_list:
+                # Initialize time matrices (output matrices)
+                self._init_temporary_matrix("time_matrix", parameters, time_matrix_list)
+
+                with self._temp_matrix_manager() as toll_matrix_list:
+                    # Initialize toll matrices (output matrices)
+                    self._init_temporary_matrix(
+                        "toll_matrix", parameters, toll_matrix_list
+                    )
+
+                    with self._temp_matrix_manager() as peak_hour_matrix_list:
+                        self._init_temporary_PHF_matrix(
+                            demand_matrix_list, peak_hour_matrix_list
+                        )
+                        yield cost_matrix_list, time_matrix_list, toll_matrix_list, peak_hour_matrix_list
+
+    @contextmanager
+    def _load_temp_attributes(self, scenario, demand_matrix_list):
+        with self._temp_attribute_manager(scenario) as time_attribute_list:
+            self._create_time_attribute_list(
+                scenario, demand_matrix_list, time_attribute_list
+            )
+
+            with self._temp_attribute_manager(scenario) as cost_attribute_list:
+                self._create_cost_attribute_list(
+                    scenario, demand_matrix_list, cost_attribute_list
+                )
+
+                with self._temp_attribute_manager(scenario) as transit_attribute_list:
+                    self.create_transit_traffic_attribute_list(
+                        scenario, demand_matrix_list, transit_attribute_list
+                    )
+                    yield time_attribute_list, cost_attribute_list, transit_attribute_list
 
     @contextmanager
     def _temp_matrix_manager(self):
