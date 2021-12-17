@@ -368,7 +368,9 @@ class AssignTraffic(_m.Tool()):
 
         self._create_path_analysis_param_dict(parameters, pa_param_dict)
 
-        self._update_pa_param_dict_0(parameters, demand_matrix_list, pa_param_dict)
+        self._update_pa_param_dict_l_u_bounds(
+            parameters, demand_matrix_list, pa_param_dict
+        )
         self._update_pa_param_dict_1(parameters, demand_matrix_list, pa_param_dict)
         self._update_pa_param_dict_2(parameters, demand_matrix_list, pa_param_dict)
         self._update_pa_param_dict_3(parameters, demand_matrix_list, pa_param_dict)
@@ -377,7 +379,9 @@ class AssignTraffic(_m.Tool()):
 
         return pa_param_dict
 
-    def _update_pa_param_dict_0(self, parameters, demand_matrix_list, pa_param_dict):
+    def _update_pa_param_dict_l_u_bounds(
+        self, parameters, demand_matrix_list, pa_param_dict
+    ):
         for i in range(len(demand_matrix_list)):
             for j in range(len(pa_param_dict["analysis_attributes"][i])):
                 # Make the blank attributes None for better use in spec

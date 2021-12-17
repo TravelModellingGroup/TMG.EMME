@@ -60,7 +60,7 @@ from re import split as _regex_split
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
-NullPointerException = _util.NullPointerException
+null_pointer_exception = _util.null_pointer_exception
 
 _m.TupleType = object
 _m.ListType = list
@@ -162,7 +162,7 @@ class AssignVBoardingPenalties(_m.Tool()):
             if len(self.Scenarios) == 0:
                 raise Exception("No scenarios selected.")
             if self.penalty_filter_string is None:
-                raise NullPointerException("Penalties not specified")
+                raise null_pointer_exception("Penalties not specified")
 
             self._Execute()
         except Exception as e:
