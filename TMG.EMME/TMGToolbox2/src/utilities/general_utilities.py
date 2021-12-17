@@ -1024,7 +1024,7 @@ class Record:
         return s
 
 
-class NullPointerException(Exception):
+class null_pointer_exception(Exception):
     pass
 
 
