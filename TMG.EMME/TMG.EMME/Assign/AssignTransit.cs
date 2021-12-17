@@ -31,7 +31,7 @@ namespace TMG.Emme.Assign
     public class AssignTransit : BaseAction<ModellerController>
     {
 		[Parameter(Name = "Calculate Congested Ivtt Flag", Description = "",
-	Index = 0)]
+			Index = 0)]
 		public IFunction<bool> CalculateCongestedIvttFlag;
 
 		[Parameter(Name = "Node Logit Scale", Description = "",
@@ -114,12 +114,12 @@ namespace TMG.Emme.Assign
 			Index = 35)]
 		public IFunction<string> XRowTTFRange;
 
-
 		[SubModule(Name = "Transit Classes", Description = "", Index = 0)]
 		public IFunction<TransitClass>[] TransitClasses;
 
 		[Module(Name = "Transit Class", Description = "",
 		DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+		
 		public class TransitClass : XTMF2.IModule
 		{
 			[Parameter(Name = "Board Penalty Matrix", Description = "",
@@ -239,7 +239,6 @@ namespace TMG.Emme.Assign
 			{
 				return true;
 			}
-
 			public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
 			{
 				writer.WriteStartObject();
@@ -248,7 +247,6 @@ namespace TMG.Emme.Assign
 				writer.WriteEndObject();
 			}
 		}
-			
 		public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Assign.assign_transit", JSONParameterBuilder.BuildParameters(writer =>
@@ -263,9 +261,6 @@ namespace TMG.Emme.Assign
 				writer.WriteNumber("rel_gap", RelativeGap.Invoke());
 				writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
 				writer.WriteNumber("walk_speed", WalkSpeed.Invoke());
-				
-				
-				
 				writer.WriteString("impedance_matrix", ImpedanceMatrix.Invoke());
 				writer.WriteString("congestion_exponent", CongestionExponent.Invoke());
 				writer.WriteNumber("assignment_period", AssignmentPeriod.Invoke());
@@ -277,7 +272,6 @@ namespace TMG.Emme.Assign
 				writer.WriteString("surface_transit_speed", SurfaceTransitSpeed.Invoke());
 				writer.WriteString("walk_all_way_flag", WalkAllWayFlag.Invoke());
 				writer.WriteString("xrow_ttf_range", XRowTTFRange.Invoke());
-
 				writer.WriteStartArray("transit_classes");
 				foreach (var transitClass in TransitClasses)
 				{

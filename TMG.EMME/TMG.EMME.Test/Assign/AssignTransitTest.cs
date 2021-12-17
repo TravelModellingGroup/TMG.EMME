@@ -41,7 +41,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteBoolean("calculate_congested_ivtt_flag", true);
                     writer.WriteNumber("node_logit_scale", 0.0f);
                     writer.WriteString("effective_headway_attribute_id", "@ehdw");
-                    writer.WriteNumber("effective_headway_slope", 0.0f);
+                    writer.WriteNumber("effective_headway_slope", 0.165f);
                     writer.WriteString("headway_fraction_attribute_id", "@frac");
                     writer.WriteNumber("iterations", 100);
                     writer.WriteNumber("norm_gap", 0.0f);
@@ -51,7 +51,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteStartArray("transit_classes");
                     writer.WriteStartObject();
                     writer.WriteString("board_penalty_matrix", "mf0");
-                    writer.WriteNumber("board_penalty_perception", 0.0f);
+                    writer.WriteNumber("board_penalty_perception", 1.0f);
                     writer.WriteString("congestion_matrix", "mf0");
                     writer.WriteString("demand_matrix", "mf0");
                     writer.WriteString("fare_matrix", "mf0");
@@ -111,7 +111,7 @@ namespace TMG.Emme.Test.Assign
                 {
                     Name = "TransitClass1",
                     BoardPenaltyMatrix = Helper.CreateParameter("mf0"),
-                    BoardingPenaltyPerception = Helper.CreateParameter(0.0f),
+                    BoardingPenaltyPerception = Helper.CreateParameter(1.0f),
                     CongestionMatrix = Helper.CreateParameter("mf0"),
                     DemandMatrix = Helper.CreateParameter("mf0"),
                     FareMatrix = Helper.CreateParameter("mf0"),
@@ -133,7 +133,7 @@ namespace TMG.Emme.Test.Assign
                 CalculateCongestedIvttFlag = Helper.CreateParameter(true),
                 NodeLogitScale = Helper.CreateParameter(0.0f),
                 EffectiveHeadwayAttributeId = Helper.CreateParameter("@ehdw"),
-                EffectiveHeadwaySlope = Helper.CreateParameter(0.0f),
+                EffectiveHeadwaySlope = Helper.CreateParameter(0.165f),
                 HeadwayFractionAttributeId = Helper.CreateParameter("@frac"),
                 Iterations = Helper.CreateParameter(100),
                 NormalizedGap = Helper.CreateParameter(0.0f),
@@ -153,7 +153,6 @@ namespace TMG.Emme.Test.Assign
                 XRowTTFRange = Helper.CreateParameter(""),
             };
             module.Invoke(Helper.Modeller);
-
         }
     }
 }
