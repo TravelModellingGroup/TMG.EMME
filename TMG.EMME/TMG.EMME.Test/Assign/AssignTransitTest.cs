@@ -91,11 +91,66 @@ namespace TMG.Emme.Test.Assign
         [TestMethod]
         public void AssignTransitModule()
         {
+            Helper.ImportFrabitztownNetwork(1);
+            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            
+            var walkPerceptions = new[]
+            {
+
+                new Emme.Assign.AssignTransit.WalkPerceptions()
+                {
+                    Name = "WalkPerceptions",
+                    Filter = Helper.CreateParameter("i=10000"),
+                    WalkPerceptionValue = Helper.CreateParameter(1),
+                }
+            };
+
+            var transitClasses = new[]
+            {
+                new Emme.Assign.AssignTransit.TransitClass()
+                {
+                    Name = "TransitClass1",
+                    BoardPenaltyMatrix = Helper.CreateParameter("mf0"),
+                    BoardingPenaltyPerception = Helper.CreateParameter(0.0f),
+                    CongestionMatrix = Helper.CreateParameter("mf0"),
+                    DemandMatrix = Helper.CreateParameter("mf0"),
+                    FareMatrix = Helper.CreateParameter("mf0"),
+                    FarePerception = Helper.CreateParameter(0.0f),
+                    InVehicleTimeMatrix = Helper.CreateParameter(""),
+                    LinkFareAttributeId = Helper.CreateParameter("@lfare"),
+                    Mode = Helper.CreateParameter("*"),
+                    PerceivedTravelTimeMatrix = Helper.CreateParameter("mf0"),
+                    SegmentFareAttributeId = Helper.CreateParameter("@sfare"),
+                    WaitTimePerception = Helper.CreateParameter(0.0f),
+                    WaitTimeMatrix = Helper.CreateParameter("mf0"),
+                    WalkTimePerceptionAttributeId = Helper.CreateParameter("@walkp"),
+                    WalkTimeMatrix = Helper.CreateParameter("mf0"),
+                }
+            };
+
             var module = new Emme.Assign.AssignTransit()
             {
-                
-
-
+                CalculateCongestedIvttFlag = Helper.CreateParameter(true),
+                NodeLogitScale = Helper.CreateParameter(0.0f),
+                EffectiveHeadwayAttributeId = Helper.CreateParameter("@ehdw"),
+                EffectiveHeadwaySlope = Helper.CreateParameter(0.0f),
+                HeadwayFractionAttributeId = Helper.CreateParameter("@frac"),
+                Iterations = Helper.CreateParameter(100),
+                NormalizedGap = Helper.CreateParameter(0.0f),
+                RelativeGap = Helper.CreateParameter(0.0f),
+                ScenarioNumber = Helper.CreateParameter(0),
+                WalkSpeed = Helper.CreateParameter(0.0f),
+                ImpedanceMatrix = Helper.CreateParameter("mf0"),
+                CongestionExponent = Helper.CreateParameter(""),
+                AssignmentPeriod = Helper.CreateParameter(0.0f),
+                NameString = Helper.CreateParameter(""),
+                CongestedAssignment = Helper.CreateParameter(""),
+                CSVFile = Helper.CreateParameter(""),
+                OriginDistributionLogitScale = Helper.CreateParameter(0.0f),
+                WalkDistributionLogitScale = Helper.CreateParameter(0.0f),
+                SurfaceTransitSpeed = Helper.CreateParameter(""),
+                WalkAllWayFlag = Helper.CreateParameter(""),
+                XRowTTFRange = Helper.CreateParameter(""),
             };
             module.Invoke(Helper.Modeller);
 
