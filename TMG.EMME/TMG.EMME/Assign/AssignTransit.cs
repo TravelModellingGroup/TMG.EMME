@@ -222,7 +222,7 @@ namespace TMG.Emme.Assign
 		}
 
 		[Module(Name = "Walk Perceptions", Description = "",
-		DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+		DocumentationLink = "http://tzmg.utoronto.ca/doc/2.0")]
 		public class WalkPerceptions : XTMF2.IModule
 		{
 			[Parameter(Name = "Filter", Description = "",
