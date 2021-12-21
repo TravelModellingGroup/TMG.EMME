@@ -80,7 +80,7 @@ class ExportBinaryMatrix(_m.Tool()):
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        return self.TRACKER.getProgress()
+        return self.TRACKER.get_progress()
 
     @_m.method(return_type=str)
     def tool_run_msg_status(self):

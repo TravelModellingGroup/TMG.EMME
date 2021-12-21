@@ -809,12 +809,12 @@ class progress_tracker:
     tasks are not known at initialization.
     """
 
-    def __init__(self, numberOfTasks):
-        self._taskIncr = 1000.0 / numberOfTasks  # floating point number
+    def __init__(self, number_of_tasks):
+        self._taskIncr = 1000.0 / number_of_tasks  # floating point number
         self.reset()
         self._errorTools = set()
 
-    def reset(self, numberOfTasks=None):
+    def reset(self, number_of_tasks=None):
         self._subTasks = 0
         self._completedSubtasks = 0
         self._progress = 0.0  # floating point number
@@ -822,8 +822,8 @@ class progress_tracker:
         self._processIsRunning = False
         self._activeTool = None
 
-        if numberOfTasks is not None:  # Can be reset with a new number of tasks
-            self._taskIncr = 1000.0 / numberOfTasks
+        if number_of_tasks is not None:  # Can be reset with a new number of tasks
+            self._taskIncr = 1000.0 / number_of_tasks
 
     def completeTask(self):
         """
@@ -887,7 +887,7 @@ class progress_tracker:
             self._completedSubtasks += 1
 
     # @_m.method(return_type=_m.TupleType)
-    def getProgress(self):
+    def get_progress(self):
         """
         Call inside a Tool's percent_completed method
         in order to report that Tool's progress.

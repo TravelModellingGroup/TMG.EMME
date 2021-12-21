@@ -109,9 +109,7 @@ class AssignTraffic(_m.Tool()):
         return pb.render()
 
     def __call__(self, parameters):
-        parameters = self._load_json_file(parameters)
         scenario = self._load_scenario(parameters["scenario_number"])
-
         try:
             self._execute(scenario, parameters)
         except Exception as e:
@@ -292,11 +290,6 @@ class AssignTraffic(_m.Tool()):
                         )
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    def _load_json_file(self, json_file_name):
-        print("Reading parameters from json file '%s'." % json_file_name)
-        with open(json_file_name, "r") as json_file:
-            return json.load(json_file)
-
     def _load_scenario(self, scenario_number):
         scenario = _m.Modeller().emmebank.scenario(scenario_number)
         if scenario is None:
@@ -969,7 +962,7 @@ class AssignTraffic(_m.Tool()):
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        return self._tracker.getProgress()
+        return self._tracker.get_progress()
 
     @_m.method(return_type=str)
     def tool_run_msg_status(self):
