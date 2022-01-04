@@ -61,6 +61,7 @@ _m.ListType = list
 _m.InstanceType = object
 
 _trace = _m.logbook_trace
+_write = _m.logbook_write
 _MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
@@ -150,13 +151,16 @@ class AssignTransit(_m.Tool()):
         # Initialize demand matrices (input matrices)
         demand_matrix_list = self._init_demand_matrices(parameters)
 
-        with _m.logbook_trace(
-            name="%s (%s v%s)"
-            % (parameters["run_title"], self.__class__.__name__, self.version),
+        with _trace(
+            name="(%s v%s)" % (self.__class__.__name__, self.version),
             attributes=self._load_atts(scenario, parameters),
         ):
 
             self._tracker.reset()
+            with _trace("Checking travel time functions..."):
+                changes = self._heal_travel_time_functions()
+                if changes == 0:
+                    _write("No problems were found")
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -164,6 +168,11 @@ class AssignTransit(_m.Tool()):
         if scenario is None:
             raise Exception("Scenario %s was not found!" % scenario_number)
         return scenario
+
+    def _load_atts(self, scenario, parameters):
+        # TODO: Load atts
+        atts = {}
+        return atts
 
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _initialize_matrices(self, parameters):
@@ -197,6 +206,39 @@ class AssignTransit(_m.Tool()):
                 raise Exception("Matrix %s was not found!" % matrix_string)
 
         return checked_matrix_list
+
+    def _heal_travel_time_functions(self):
+        changes = 0
+        for function in _bank.functions():
+            if function.type != "TRANSIT_TIME":
+                continue
+            cleaned_expression = function.expression.replace(" ", "")
+            if "us3" in cleaned_expression:
+                if cleaned_expression.endswith("*(1+us3)"):
+                    index = cleaned_expression.find("*(1+us3)")
+                    new_expression = cleaned_expression[:index]
+                    function.expression = new_expression
+                    print(
+                        "Detected function %s with existing congestion term." % function
+                    )
+                    print("Original expression= '%s'" % cleaned_expression)
+                    print("Healed expression= '%s'" % new_expression)
+                    print("")
+                    _m.logbook_write(
+                        "Detected function %s with existing congestion term." % function
+                    )
+                    _m.logbook_write("Original expression= '%s'" % cleaned_expression)
+                    _m.logbook_write("Healed expression= '%s'" % new_expression)
+                    changes += 1
+                else:
+                    raise Exception(
+                        "Function %s already uses US3, which is reserved for transit"
+                        % function
+                        + " segment congestion values. Please modify the expression "
+                        + "to use different attributes."
+                    )
+
+        return changes
 
     @_m.method(return_type=str)
     def get_scenario_node_attributes(self, scenario):
