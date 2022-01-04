@@ -236,6 +236,5 @@ namespace TMG.Emme.Assign
                 writer.WriteEndArray();
             }), LogbookLevel.Standard);
         }
-
     }
 }
