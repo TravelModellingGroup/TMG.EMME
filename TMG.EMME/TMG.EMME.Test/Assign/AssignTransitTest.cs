@@ -46,7 +46,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("iterations", 100);
                     writer.WriteNumber("norm_gap", 0.0f);
                     writer.WriteNumber("rel_gap", 0.0f);
-                    writer.WriteNumber("scenario_number", 0);
+                    writer.WriteNumber("scenario_number", 1);
                     writer.WriteNumber("walk_speed", 0.0f);
                     writer.WriteStartArray("transit_classes");
                     writer.WriteStartObject();
@@ -80,7 +80,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("congested_assignment", "");
                     writer.WriteString("csvfile", "");
                     writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
-                    writer.WriteNumber("walk_distribution_logit_scale", 0.0f);
+                    writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
                     writer.WriteString("surface_transit_speed", "");
                     writer.WriteString("walk_all_way_flag", "");
                     writer.WriteString("xrow_ttf_range", "");                  
@@ -138,11 +138,11 @@ namespace TMG.Emme.Test.Assign
                 Iterations = Helper.CreateParameter(100),
                 NormalizedGap = Helper.CreateParameter(0.0f),
                 RelativeGap = Helper.CreateParameter(0.0f),
-                ScenarioNumber = Helper.CreateParameter(0),
+                ScenarioNumber = Helper.CreateParameter(1),
                 WalkSpeed = Helper.CreateParameter(0.0f),
                 ImpedanceMatrix = Helper.CreateParameter("mf0"),
                 CongestionExponent = Helper.CreateParameter(""),
-                AssignmentPeriod = Helper.CreateParameter(0.0f),
+                AssignmentPeriod = Helper.CreateParameter(3.0f),
                 NameString = Helper.CreateParameter(""),
                 CongestedAssignment = Helper.CreateParameter(""),
                 CSVFile = Helper.CreateParameter(""),
