@@ -69,11 +69,7 @@ namespace TMG.Emme.Assign
 		[Parameter(Name = "Walk Speed", Description = "",
 			Index = 9)]
 		public IFunction<float> WalkSpeed;
-
-		[Parameter(Name = "Impedance Matrix", Description = "",
-			Index = 25)]
-		public IFunction<string> ImpedanceMatrix;
-
+		
 		[Parameter(Name = "Congestion Exponent", Description = "",
 			Index = 26)]
 		public IFunction<string> CongestionExponent;
@@ -106,9 +102,9 @@ namespace TMG.Emme.Assign
 			Index = 33)]
 		public IFunction<string> SurfaceTransitSpeed;
 
-		[Parameter(Name = "Walk All WayFlag", Description = "",
+		[Parameter(Name = "Walk All Way Flag", Description = "",
 			Index = 34)]
-		public IFunction<string> WalkAllWayFlag;
+		public IFunction<bool> WalkAllWayFlag;
 
 		[Parameter(Name = "Xrow TTF Range", Description = "",
 			Index = 35)]
@@ -149,6 +145,10 @@ namespace TMG.Emme.Assign
 			[Parameter(Name = "InVehicle Time Matrix", Description = "",
 				Index = 6)]
 			public IFunction<string> InVehicleTimeMatrix;
+
+			[Parameter(Name = "Impedance Matrix", Description = "",
+			Index = 25)]
+			public IFunction<string> ImpedanceMatrix;
 
 			[Parameter(Name = "Link Fare Attribute Id", Description = "",
 				Index = 7)]
@@ -203,6 +203,7 @@ namespace TMG.Emme.Assign
 				writer.WriteString("fare_matrix", FareMatrix.Invoke());
 				writer.WriteNumber("fare_perception", FarePerception.Invoke());
 				writer.WriteString("in_vehicle_time_matrix", InVehicleTimeMatrix.Invoke());
+				writer.WriteString("impedance_matrix", ImpedanceMatrix.Invoke());
 				writer.WriteString("link_fare_attribute_id", LinkFareAttributeId.Invoke());
 				writer.WriteString("mode", Mode.Invoke());
 				writer.WriteString("perceived_travel_time_matrix", PerceivedTravelTimeMatrix.Invoke());
@@ -261,7 +262,6 @@ namespace TMG.Emme.Assign
 				writer.WriteNumber("rel_gap", RelativeGap.Invoke());
 				writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
 				writer.WriteNumber("walk_speed", WalkSpeed.Invoke());
-				writer.WriteString("impedance_matrix", ImpedanceMatrix.Invoke());
 				writer.WriteString("congestion_exponent", CongestionExponent.Invoke());
 				writer.WriteNumber("assignment_period", AssignmentPeriod.Invoke());
 				writer.WriteString("name_string", NameString.Invoke());
@@ -270,7 +270,7 @@ namespace TMG.Emme.Assign
 				writer.WriteNumber("origin_distribution_logit_scale", OriginDistributionLogitScale.Invoke());
 				writer.WriteNumber("walk_distribution_logit_scale", WalkDistributionLogitScale.Invoke());
 				writer.WriteString("surface_transit_speed", SurfaceTransitSpeed.Invoke());
-				writer.WriteString("walk_all_way_flag", WalkAllWayFlag.Invoke());
+				writer.WriteBoolean("walk_all_way_flag", WalkAllWayFlag.Invoke());
 				writer.WriteString("xrow_ttf_range", XRowTTFRange.Invoke());
 				writer.WriteStartArray("transit_classes");
 				foreach (var transitClass in TransitClasses)

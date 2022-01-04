@@ -57,6 +57,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("fare_matrix", "mf0");
                     writer.WriteNumber("fare_perception", 0.0f);
                     writer.WriteString("in_vehicle_time_matrix", "mf0");
+                    writer.WriteString("impedance_matrix", "mf0");
                     writer.WriteString("link_fare_attribute_id", "@lfare");
                     writer.WriteString("mode", "*");
                     writer.WriteString("perceived_travel_time_matrix", "mf0");
@@ -73,7 +74,6 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteEndArray();
                     writer.WriteEndObject();
                     writer.WriteEndArray();
-                    writer.WriteString("impedance_matrix", "");
                     writer.WriteString("congestion_exponent", "");
                     writer.WriteNumber("assignment_period", 0.0f);
                     writer.WriteString("name_string", "");
@@ -82,7 +82,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
                     writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
                     writer.WriteString("surface_transit_speed", "");
-                    writer.WriteString("walk_all_way_flag", "");
+                    writer.WriteBoolean("walk_all_way_flag", false);
                     writer.WriteString("xrow_ttf_range", "");                  
 
                 }), LogbookLevel.Standard));
@@ -116,7 +116,8 @@ namespace TMG.Emme.Test.Assign
                     DemandMatrix = Helper.CreateParameter("mf0"),
                     FareMatrix = Helper.CreateParameter("mf0"),
                     FarePerception = Helper.CreateParameter(0.0f),
-                    InVehicleTimeMatrix = Helper.CreateParameter(""),
+                    InVehicleTimeMatrix = Helper.CreateParameter("mf0"),
+                    ImpedanceMatrix = Helper.CreateParameter("mf0"),
                     LinkFareAttributeId = Helper.CreateParameter("@lfare"),
                     Mode = Helper.CreateParameter("*"),
                     PerceivedTravelTimeMatrix = Helper.CreateParameter("mf0"),
@@ -125,6 +126,7 @@ namespace TMG.Emme.Test.Assign
                     WaitTimeMatrix = Helper.CreateParameter("mf0"),
                     WalkTimePerceptionAttributeId = Helper.CreateParameter("@walkp"),
                     WalkTimeMatrix = Helper.CreateParameter("mf0"),
+                    WalkPerceptions =  Helper.CreateParameters(walkPerceptions),
                 }
             };
 
@@ -140,7 +142,6 @@ namespace TMG.Emme.Test.Assign
                 RelativeGap = Helper.CreateParameter(0.0f),
                 ScenarioNumber = Helper.CreateParameter(1),
                 WalkSpeed = Helper.CreateParameter(0.0f),
-                ImpedanceMatrix = Helper.CreateParameter("mf0"),
                 CongestionExponent = Helper.CreateParameter(""),
                 AssignmentPeriod = Helper.CreateParameter(3.0f),
                 NameString = Helper.CreateParameter(""),
@@ -149,8 +150,9 @@ namespace TMG.Emme.Test.Assign
                 OriginDistributionLogitScale = Helper.CreateParameter(0.0f),
                 WalkDistributionLogitScale = Helper.CreateParameter(0.0f),
                 SurfaceTransitSpeed = Helper.CreateParameter(""),
-                WalkAllWayFlag = Helper.CreateParameter(""),
+                WalkAllWayFlag = Helper.CreateParameter(false),
                 XRowTTFRange = Helper.CreateParameter(""),
+                TransitClasses = Helper.CreateParameters(transitClasses),
             };
             module.Invoke(Helper.Modeller);
         }

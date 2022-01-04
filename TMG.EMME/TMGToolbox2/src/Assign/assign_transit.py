@@ -161,6 +161,7 @@ class AssignTransit(_m.Tool()):
                 changes = self._heal_travel_time_functions()
                 if changes == 0:
                     _write("No problems were found")
+            self._initialize_matrices(parameters)
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -176,7 +177,25 @@ class AssignTransit(_m.Tool()):
 
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _initialize_matrices(self, parameters):
-        ...
+        transit_classes = parameters["transit_classes"]
+        for matrix in transit_classes:
+            self._matrix_to_initialize(matrix, "in_vehicle_time_matrix")
+            self._matrix_to_initialize(matrix, "congestion_matrix")
+            self._matrix_to_initialize(matrix, "walk_time_matrix")
+            self._matrix_to_initialize(matrix, "wait_time_matrix")
+            self._matrix_to_initialize(matrix, "fare_matrix")
+            self._matrix_to_initialize(matrix, "board_penalty_matrix")
+            self._matrix_to_initialize(matrix, "impedance_matrix")
+
+    def _matrix_to_initialize(self, matrix, matrix_type_name_string):
+        matrix_name = matrix[matrix_type_name_string]
+        if matrix_name != "mf0":
+            _util.initialize_matrix(
+                id=matrix_name,
+                description="Transit in-vehicle travel times for %s" % matrix["name"],
+            )
+        else:
+            matrix_name = None
 
     def _init_demand_matrices(self, parameters):
         checked_matrix_list = self._check_non_zero_matrix(parameters)
