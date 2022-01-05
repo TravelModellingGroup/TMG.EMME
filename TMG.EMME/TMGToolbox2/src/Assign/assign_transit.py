@@ -163,6 +163,9 @@ class AssignTransit(_m.Tool()):
                     _write("No problems were found")
             self._initialize_matrices(parameters)
             self._change_walk_speed(scenario, parameters["walk_speed"])
+            with self._temp_matrix_manager() as impedance_matrix_list:
+
+                ...
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -287,6 +290,25 @@ class AssignTransit(_m.Tool()):
             _write("Changed mode %s" % mode.id)
         baton = partial_network.get_attribute_values("MODE", ["speed"])
         scenario.set_attribute_values("MODE", ["speed"], baton)
+
+    # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    @contextmanager
+    def _temp_matrix_manager(self):
+        """
+        Matrix objects created & added to this matrix list are deleted when this manager exits.
+        """
+        temp_matrix_list = []
+        try:
+            yield temp_matrix_list
+        finally:
+            for matrix in temp_matrix_list:
+                if matrix is not None:
+                    _write("Deleting temporary matrix '%s': " % matrix.id)
+                    _bank.delete_matrix(matrix.id)
+
+    @contextmanager
+    def _get_impedance_matrices(self):
+        ...
 
     @_m.method(return_type=str)
     def get_scenario_node_attributes(self, scenario):
