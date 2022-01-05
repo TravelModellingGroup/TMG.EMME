@@ -162,6 +162,7 @@ class AssignTransit(_m.Tool()):
                 if changes == 0:
                     _write("No problems were found")
             self._initialize_matrices(parameters)
+            self._change_walk_speed(scenario, parameters["walk_speed"])
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -262,6 +263,30 @@ class AssignTransit(_m.Tool()):
                     )
 
         return changes
+
+    def _change_walk_speed(self, scenario, walk_speed):
+        with _trace("Setting walk speeds to %s" % walk_speed):
+            if EMME_VERSION >= (4, 1):
+                self._change_walk_speed_4p1(scenario, walk_speed)
+            else:
+                self._change_walk_speed_4p0(scenario, walk_speed)
+
+    def _change_walk_speed_4p0(self, scenario, walk_speed):
+        change_mode_tool = _MODELLER.tool("inro.emme.data.network.mode.change_mode")
+        for mode in scenario.modes():
+            if mode.type != "AUX_TRANSIT":
+                continue
+            change_mode_tool(mode, mode_speed=walk_speed, scenario=scenario)
+
+    def _change_walk_speed_4p1(self, scenario, walk_speed):
+        partial_network = scenario.get_partial_network(["MODE"], True)
+        for mode in partial_network.modes():
+            if mode.type != "AUX_TRANSIT":
+                continue
+            mode.speed = walk_speed
+            _write("Changed mode %s" % mode.id)
+        baton = partial_network.get_attribute_values("MODE", ["speed"])
+        scenario.set_attribute_values("MODE", ["speed"], baton)
 
     @_m.method(return_type=str)
     def get_scenario_node_attributes(self, scenario):
