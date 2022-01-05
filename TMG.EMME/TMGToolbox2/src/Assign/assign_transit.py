@@ -188,11 +188,12 @@ class AssignTransit(_m.Tool()):
             self._matrix_to_initialize(matrix, "impedance_matrix")
 
     def _matrix_to_initialize(self, matrix, matrix_type_name_string):
-        matrix_name = matrix[matrix_type_name_string]
+        matrix_name = matrix[str(matrix_type_name_string)]
         if matrix_name != "mf0":
             _util.initialize_matrix(
                 id=matrix_name,
-                description="Transit in-vehicle travel times for %s" % matrix["name"],
+                description="Transit %s for %s"
+                % (" ".join(str(matrix_type_name_string).split("_")), matrix["name"]),
             )
         else:
             matrix_name = None
