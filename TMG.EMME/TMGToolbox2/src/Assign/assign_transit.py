@@ -178,22 +178,25 @@ class AssignTransit(_m.Tool()):
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _initialize_matrices(self, parameters):
         transit_classes = parameters["transit_classes"]
-        for matrix in transit_classes:
-            self._matrix_to_initialize(matrix, "in_vehicle_time_matrix")
-            self._matrix_to_initialize(matrix, "congestion_matrix")
-            self._matrix_to_initialize(matrix, "walk_time_matrix")
-            self._matrix_to_initialize(matrix, "wait_time_matrix")
-            self._matrix_to_initialize(matrix, "fare_matrix")
-            self._matrix_to_initialize(matrix, "board_penalty_matrix")
-            self._matrix_to_initialize(matrix, "impedance_matrix")
+        for tc_parameter in transit_classes:
+            self._matrix_to_initialize(tc_parameter, "in_vehicle_time_matrix")
+            self._matrix_to_initialize(tc_parameter, "congestion_matrix")
+            self._matrix_to_initialize(tc_parameter, "walk_time_matrix")
+            self._matrix_to_initialize(tc_parameter, "wait_time_matrix")
+            self._matrix_to_initialize(tc_parameter, "fare_matrix")
+            self._matrix_to_initialize(tc_parameter, "board_penalty_matrix")
+            self._matrix_to_initialize(tc_parameter, "impedance_matrix")
 
-    def _matrix_to_initialize(self, matrix, matrix_type_name_string):
-        matrix_name = matrix[str(matrix_type_name_string)]
+    def _matrix_to_initialize(self, tc_parameter, matrix_type_name_string):
+        matrix_name = tc_parameter[str(matrix_type_name_string)]
         if matrix_name != "mf0":
             _util.initialize_matrix(
                 id=matrix_name,
                 description="Transit %s for %s"
-                % (" ".join(str(matrix_type_name_string).split("_")), matrix["name"]),
+                % (
+                    " ".join(str(matrix_type_name_string).split("_")),
+                    tc_parameter["name"],
+                ),
             )
         else:
             matrix_name = None
