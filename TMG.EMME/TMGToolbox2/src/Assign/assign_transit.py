@@ -164,8 +164,8 @@ class AssignTransit(_m.Tool()):
             self._initialize_matrices(parameters)
             self._change_walk_speed(scenario, parameters["walk_speed"])
             with self._temp_matrix_manager() as impedance_matrix_list:
-
-                ...
+                self._get_impedance_matrices(parameters, impedance_matrix_list)
+                self._tracker.start_process(5)
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -189,7 +189,6 @@ class AssignTransit(_m.Tool()):
             self._matrix_to_initialize(tc_parameter, "wait_time_matrix")
             self._matrix_to_initialize(tc_parameter, "fare_matrix")
             self._matrix_to_initialize(tc_parameter, "board_penalty_matrix")
-            self._matrix_to_initialize(tc_parameter, "impedance_matrix")
 
     def _matrix_to_initialize(self, tc_parameter, matrix_type_name_string):
         matrix_name = tc_parameter[str(matrix_type_name_string)]
@@ -251,11 +250,11 @@ class AssignTransit(_m.Tool()):
                     print("Original expression= '%s'" % cleaned_expression)
                     print("Healed expression= '%s'" % new_expression)
                     print("")
-                    _m.logbook_write(
+                    _write(
                         "Detected function %s with existing congestion term." % function
                     )
-                    _m.logbook_write("Original expression= '%s'" % cleaned_expression)
-                    _m.logbook_write("Healed expression= '%s'" % new_expression)
+                    _write("Original expression= '%s'" % cleaned_expression)
+                    _write("Healed expression= '%s'" % new_expression)
                     changes += 1
                 else:
                     raise Exception(
@@ -291,6 +290,31 @@ class AssignTransit(_m.Tool()):
         baton = partial_network.get_attribute_values("MODE", ["speed"])
         scenario.set_attribute_values("MODE", ["speed"], baton)
 
+    def _get_impedance_matrices(self, parameters, impedance_matrix_list):
+        # initialize
+        transit_classes = parameters["transit_classes"]
+        for tc_parameter in transit_classes:
+            matrix_id = tc_parameter["impedance_matrix"]
+            if matrix_id != "mf0":
+                _util.initialize_matrix(
+                    id=matrix_id,
+                    description="Transit Perceived Travel times for %s"
+                    % tc_parameter["name"],
+                )
+                impedance_matrix_list.append(matrix_id)
+            else:
+                _write(
+                    "Creating temporary Impendence Matrix for class %s"
+                    % tc_parameter["name"]
+                )
+                matrix = _util.initialize_matrix(
+                    default=0.0,
+                    description="Temporary Impedence for class %s"
+                    % tc_parameter["name"],
+                    matrix_type="FULL",
+                )
+                impedance_matrix_list.append(matrix.id)
+
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     @contextmanager
     def _temp_matrix_manager(self):
@@ -305,10 +329,6 @@ class AssignTransit(_m.Tool()):
                 if matrix is not None:
                     _write("Deleting temporary matrix '%s': " % matrix.id)
                     _bank.delete_matrix(matrix.id)
-
-    @contextmanager
-    def _get_impedance_matrices(self):
-        ...
 
     @_m.method(return_type=str)
     def get_scenario_node_attributes(self, scenario):
