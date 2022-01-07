@@ -168,6 +168,8 @@ class AssignTransit(_m.Tool()):
                 self._tracker.start_process(5)
                 self._assign_headway_fraction(scenario, parameters)
                 self._tracker.complete_subtask()
+                self._assign_effective_headway(scenario, parameters)
+                self._tracker.complete_subtask()
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -320,6 +322,28 @@ class AssignTransit(_m.Tool()):
     def _assign_headway_fraction(self, scenario, parameters):
         exatt = scenario.extra_attribute(parameters["headway_fraction_attribute_id"])
         exatt.initialize(0.5)
+
+    def _assign_effective_headway(self, scenario, parameters):
+        exatt = scenario.extra_attribute(parameters["effective_headway_attribute_id"])
+        exatt.initialize(0.0)
+        small_headway_spec = {
+            "result": parameters["effective_headway_attribute_id"],
+            "expression": "hdw",
+            "aggregation": None,
+            "selections": {"transit_line": "hdw=0,15"},
+            "type": "NETWORK_CALCULATION",
+        }
+        large_headway_spec = {
+            "result": parameters["effective_headway_attribute_id"],
+            "expression": "15+2*"
+            + str(parameters["effective_headway_slope"])
+            + "*(hdw-15)",
+            "aggregation": None,
+            "selections": {"transit_line": "hdw=15,999"},
+            "type": "NETWORK_CALCULATION",
+        }
+        network_calc_tool(small_headway_spec, scenario)
+        network_calc_tool(large_headway_spec, scenario)
 
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     @contextmanager
