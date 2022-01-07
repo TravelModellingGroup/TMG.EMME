@@ -166,6 +166,8 @@ class AssignTransit(_m.Tool()):
             with self._temp_matrix_manager() as impedance_matrix_list:
                 self._get_impedance_matrices(parameters, impedance_matrix_list)
                 self._tracker.start_process(5)
+                self._assign_headway_fraction(scenario, parameters)
+                self._tracker.complete_subtask()
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -315,6 +317,10 @@ class AssignTransit(_m.Tool()):
                 )
                 impedance_matrix_list.append(matrix.id)
 
+    def _assign_headway_fraction(self, scenario, parameters):
+        exatt = scenario.extra_attribute(parameters["headway_fraction_attribute_id"])
+        exatt.initialize(0.5)
+
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     @contextmanager
     def _temp_matrix_manager(self):
@@ -327,8 +333,8 @@ class AssignTransit(_m.Tool()):
         finally:
             for matrix in temp_matrix_list:
                 if matrix is not None:
-                    _write("Deleting temporary matrix '%s': " % matrix.id)
-                    _bank.delete_matrix(matrix.id)
+                    _write("Deleting temporary matrix '%s': " % matrix)
+                    _bank.delete_matrix(matrix)
 
     @_m.method(return_type=str)
     def get_scenario_node_attributes(self, scenario):

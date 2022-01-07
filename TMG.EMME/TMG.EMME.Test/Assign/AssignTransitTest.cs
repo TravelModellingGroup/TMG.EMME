@@ -50,6 +50,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("walk_speed", 0.0f);
                     writer.WriteStartArray("transit_classes");
                     writer.WriteStartObject();
+                    writer.WriteString("name", "transit_class_1");
                     writer.WriteString("board_penalty_matrix", "mf0");
                     writer.WriteNumber("board_penalty_perception", 1.0f);
                     writer.WriteString("congestion_matrix", "mf0");
