@@ -170,6 +170,9 @@ class AssignTransit(_m.Tool()):
                 self._tracker.complete_subtask()
                 self._assign_effective_headway(scenario, parameters)
                 self._tracker.complete_subtask()
+                # self._assign_walk_perception(
+                #     scenario, perception_array, walk_attribute_id
+                # )
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -344,6 +347,24 @@ class AssignTransit(_m.Tool()):
         }
         network_calc_tool(small_headway_spec, scenario)
         network_calc_tool(large_headway_spec, scenario)
+
+    def _assign_walk_perception(self, scenario, perception_array, walk_attribute_id):
+        exatt = scenario.extra_attribute(walk_attribute_id)
+        exatt.initialize(1.0)
+
+        def apply_selection(val, selection):
+            spec = {
+                "result": walk_attribute_id,
+                "expression": str(val),
+                "aggregation": None,
+                "selections": {"link": selection},
+                "type": "NETWORK_CALCULATION",
+            }
+            network_calc_tool(spec, scenario)
+
+        with _trace("Assigning perception factors"):
+            for i in range(0, len(perception_array)):
+                apply_selection(perception_array[i][0], perception_array[i][1])
 
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     @contextmanager
