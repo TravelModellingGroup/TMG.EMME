@@ -422,6 +422,74 @@ class AssignTransit(_m.Tool()):
 
         return effective_headway_attribute_list
 
+    def _create_temp_attribute(
+        self,
+        scenario,
+        attribute_id,
+        attribute_type,
+        description=None,
+        default_value=0.0,
+    ):
+        """
+        Creates a temporary extra attribute in a given scenario
+        """
+        ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
+
+        attribute_type = str(attribute_type).upper()
+        # check if the type provided is correct
+        if attribute_type not in ATTRIBUTE_TYPES:
+            raise TypeError(
+                "Attribute type '%s' provided is not recognized." % attribute_type
+            )
+
+        if len(attribute_id) > 18:
+            raise ValueError(
+                "Attribute id '%s' can only be 19 characters long with no spaces plus no '@'."
+                % attribute_id
+            )
+        suffix = str(attribute_id)
+        attrib_id = ""
+        if suffix != "@tvph" and suffix != "tvph":
+            while True:
+                suffix = random.randint(1, 999999)
+                if suffix.startswith("@"):
+                    attrib_id = "%s%s" % (suffix, suffix)
+                else:
+                    attrib_id = "@%s%s" % (suffix, suffix)
+
+                if scenario.extra_attribute(attrib_id) is None:
+                    temp_extra_attribute = scenario.create_extra_attribute(
+                        attribute_type, attrib_id, default_value
+                    )
+                    break
+        else:
+            attrib_id = suffix
+            if suffix.startswith("@"):
+                attrib_id = "%s" % (suffix)
+            else:
+                attrib_id = "@%s" % (suffix)
+
+            if scenario.extra_attribute(attrib_id) is None:
+                temp_extra_attribute = scenario.create_extra_attribute(
+                    attribute_type, attrib_id, default_value
+                )
+                _write("Created extra attribute '@tvph'")
+            else:
+                temp_extra_attribute = scenario.extra_attribute(attrib_id).initialize(
+                    default_value
+                )
+
+        msg = "Created temporary extra attribute %s in scenario %s" % (
+            attrib_id,
+            scenario.id,
+        )
+        if description:
+            temp_extra_attribute.description = description
+            msg += ": %s" % description
+        _write(msg)
+
+        return temp_extra_attribute
+
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     @contextmanager
     def _temp_matrix_manager(self):
