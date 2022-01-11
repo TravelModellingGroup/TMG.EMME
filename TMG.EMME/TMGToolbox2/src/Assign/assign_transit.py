@@ -49,6 +49,7 @@ TMG Transit Assignment Tool
 import traceback as _traceback
 import time as _time
 import multiprocessing
+from typing import DefaultDict
 import inro.modeller as _m
 from contextlib import contextmanager
 import random
@@ -165,14 +166,33 @@ class AssignTransit(_m.Tool()):
             self._change_walk_speed(scenario, parameters["walk_speed"])
             with self._temp_matrix_manager() as impedance_matrix_list:
                 self._get_impedance_matrices(parameters, impedance_matrix_list)
-                self._tracker.start_process(5)
-                self._assign_headway_fraction(scenario, parameters)
-                self._tracker.complete_subtask()
-                self._assign_effective_headway(scenario, parameters)
-                self._tracker.complete_subtask()
-                # self._assign_walk_perception(
-                #     scenario, perception_array, walk_attribute_id
-                # )
+                with self._temp_attribute_manager(
+                    scenario
+                ) as effective_headway_attribute_list:
+                    self._assign_effective_headway_attribute(
+                        scenario, parameters, effective_headway_attribute_list
+                    )
+                    with self._temp_attribute_manager(
+                        scenario
+                    ) as headway_fraction_attribute_list:
+                        self._assign_headway_fraction_attribute(
+                            scenario, parameters, headway_fraction_attribute_list
+                        )
+                        with self._temp_attribute_manager(
+                            scenario
+                        ) as walk_time_peception_attribute_list:
+                            self._create_walk_time_peception_attribute_list(
+                                scenario, parameters, walk_time_peception_attribute_list
+                            )
+                            self._tracker.start_process(5)
+                            self._assign_effective_headway(scenario, parameters)
+                            self._tracker.complete_subtask()
+                            self._assign_walk_perception(
+                                scenario,
+                                parameters,
+                                walk_time_peception_attribute_list[i],
+                            )
+                            self._tracker.complete_subtask()
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -322,22 +342,18 @@ class AssignTransit(_m.Tool()):
                 )
                 impedance_matrix_list.append(matrix.id)
 
-    def _assign_headway_fraction(self, scenario, parameters):
-        exatt = scenario.extra_attribute(parameters["headway_fraction_attribute_id"])
-        exatt.initialize(0.5)
-
-    def _assign_effective_headway(self, scenario, parameters):
-        exatt = scenario.extra_attribute(parameters["effective_headway_attribute_id"])
-        exatt.initialize(0.0)
+    def _assign_effective_headway(
+        self, scenario, parameters, effective_headway_attribute_id
+    ):
         small_headway_spec = {
-            "result": parameters["effective_headway_attribute_id"],
+            "result": effective_headway_attribute_id,
             "expression": "hdw",
             "aggregation": None,
             "selections": {"transit_line": "hdw=0,15"},
             "type": "NETWORK_CALCULATION",
         }
         large_headway_spec = {
-            "result": parameters["effective_headway_attribute_id"],
+            "result": effective_headway_attribute_id,
             "expression": "15+2*"
             + str(parameters["effective_headway_slope"])
             + "*(hdw-15)",
@@ -348,23 +364,29 @@ class AssignTransit(_m.Tool()):
         network_calc_tool(small_headway_spec, scenario)
         network_calc_tool(large_headway_spec, scenario)
 
-    def _assign_walk_perception(self, scenario, perception_array, walk_attribute_id):
-        exatt = scenario.extra_attribute(walk_attribute_id)
-        exatt.initialize(1.0)
-
-        def apply_selection(val, selection):
+    def _assign_walk_perception(
+        self, scenario, parameters, walk_time_peception_attribute_list
+    ):
+        def apply_selection(perception, selection, walk_time_peception_attribute_id):
             spec = {
-                "result": walk_attribute_id,
-                "expression": str(val),
+                "result": walk_time_peception_attribute_id,
+                "expression": str(perception),
                 "aggregation": None,
                 "selections": {"link": selection},
                 "type": "NETWORK_CALCULATION",
             }
             network_calc_tool(spec, scenario)
 
-        with _trace("Assigning perception factors"):
-            for i in range(0, len(perception_array)):
-                apply_selection(perception_array[i][0], perception_array[i][1])
+        for tc_parameters in parameters["transit_classes"]:
+
+            for tc_parameter in tc_parameters:
+                with _trace("Assigning perception factors"):
+                    for perception in tc_parameter["walk_perceptions"]:
+                        apply_selection(
+                            perception["walk_perception_value"],
+                            perception["filter"],
+                            tc_parameter["walk_time_perception_attribute_id"],
+                        )
 
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     @contextmanager
@@ -380,6 +402,19 @@ class AssignTransit(_m.Tool()):
                 if matrix is not None:
                     _write("Deleting temporary matrix '%s': " % matrix)
                     _bank.delete_matrix(matrix)
+
+    @contextmanager
+    def _temp_attribute_manager(self, scenario):
+        temp_attribute_list = []
+        try:
+            yield temp_attribute_list
+        finally:
+            for temp_attribute in temp_attribute_list:
+                if temp_attribute is not None:
+                    scenario.delete_extra_attribute(temp_attribute.id)
+                    _m.logbook_write(
+                        "Deleted temporary '%s' link attribute" % temp_attribute.id
+                    )
 
     @_m.method(return_type=str)
     def get_scenario_node_attributes(self, scenario):
