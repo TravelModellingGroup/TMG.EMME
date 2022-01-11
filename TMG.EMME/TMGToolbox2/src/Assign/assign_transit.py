@@ -409,6 +409,19 @@ class AssignTransit(_m.Tool()):
 
         return headway_fraction_attribute_list
 
+    def _assign_effective_headway_attribute_list(
+        self, scenario, parameters, effective_headway_attribute_list
+    ):
+        effective_headway_attribute = self._create_temp_attribute(
+            scenario,
+            str(parameters["effective_headway_attribute_id"]),
+            "TRANSIT_LINE",
+            default_value=0.0,
+        )
+        effective_headway_attribute_list.append(effective_headway_attribute)
+
+        return effective_headway_attribute_list
+
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     @contextmanager
     def _temp_matrix_manager(self):
