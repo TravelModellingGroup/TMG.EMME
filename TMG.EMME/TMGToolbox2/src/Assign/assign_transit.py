@@ -169,13 +169,13 @@ class AssignTransit(_m.Tool()):
                 with self._temp_attribute_manager(
                     scenario
                 ) as effective_headway_attribute_list:
-                    self._assign_effective_headway_attribute(
+                    self._assign_effective_headway_attribute_list(
                         scenario, parameters, effective_headway_attribute_list
                     )
                     with self._temp_attribute_manager(
                         scenario
                     ) as headway_fraction_attribute_list:
-                        self._assign_headway_fraction_attribute(
+                        self._assign_headway_fraction_attribute_list(
                             scenario, parameters, headway_fraction_attribute_list
                         )
                         with self._temp_attribute_manager(
@@ -395,6 +395,19 @@ class AssignTransit(_m.Tool()):
             walk_time_peception_attribute_list.append(walk_time_peception_attribute)
 
         return walk_time_peception_attribute_list
+
+    def _create_headway_fraction_attribute_list(
+        self, scenario, parameters, headway_fraction_attribute_list
+    ):
+        headway_fraction_attribute = self._create_temp_attribute(
+            scenario,
+            str(parameters["headway_fraction_attribute_id"]),
+            "NODE",
+            default_value=0.5,
+        )
+        headway_fraction_attribute_list.append(headway_fraction_attribute)
+
+        return headway_fraction_attribute_list
 
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     @contextmanager
