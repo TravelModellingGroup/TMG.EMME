@@ -169,13 +169,13 @@ class AssignTransit(_m.Tool()):
                 with self._temp_attribute_manager(
                     scenario
                 ) as effective_headway_attribute_list:
-                    self._assign_effective_headway_attribute_list(
+                    self._create_effective_headway_attribute_list(
                         scenario, parameters, effective_headway_attribute_list
                     )
                     with self._temp_attribute_manager(
                         scenario
                     ) as headway_fraction_attribute_list:
-                        self._assign_headway_fraction_attribute_list(
+                        self._create_headway_fraction_attribute_list(
                             scenario, parameters, headway_fraction_attribute_list
                         )
                         with self._temp_attribute_manager(
@@ -409,7 +409,7 @@ class AssignTransit(_m.Tool()):
 
         return headway_fraction_attribute_list
 
-    def _assign_effective_headway_attribute_list(
+    def _create_effective_headway_attribute_list(
         self, scenario, parameters, effective_headway_attribute_list
     ):
         effective_headway_attribute = self._create_temp_attribute(
