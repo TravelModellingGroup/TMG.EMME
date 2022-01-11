@@ -185,7 +185,11 @@ class AssignTransit(_m.Tool()):
                                 scenario, parameters, walk_time_peception_attribute_list
                             )
                             self._tracker.start_process(5)
-                            self._assign_effective_headway(scenario, parameters)
+                            self._assign_effective_headway(
+                                scenario,
+                                parameters,
+                                effective_headway_attribute_list[0],
+                            )
                             self._tracker.complete_subtask()
                             self._assign_walk_perception(scenario, parameters)
                             self._tracker.complete_subtask()
@@ -447,15 +451,15 @@ class AssignTransit(_m.Tool()):
                 "Attribute id '%s' can only be 19 characters long with no spaces plus no '@'."
                 % attribute_id
             )
-        suffix = str(attribute_id)
+        prefix = str(attribute_id)
         attrib_id = ""
-        if suffix != "@tvph" and suffix != "tvph":
+        if prefix != "@tvph" and prefix != "tvph":
             while True:
                 suffix = random.randint(1, 999999)
-                if suffix.startswith("@"):
-                    attrib_id = "%s%s" % (suffix, suffix)
+                if prefix.startswith("@"):
+                    attrib_id = "%s%s" % (prefix, suffix)
                 else:
-                    attrib_id = "@%s%s" % (suffix, suffix)
+                    attrib_id = "@%s%s" % (prefix, suffix)
 
                 if scenario.extra_attribute(attrib_id) is None:
                     temp_extra_attribute = scenario.create_extra_attribute(
@@ -463,11 +467,11 @@ class AssignTransit(_m.Tool()):
                     )
                     break
         else:
-            attrib_id = suffix
-            if suffix.startswith("@"):
-                attrib_id = "%s" % (suffix)
+            attrib_id = prefix
+            if prefix.startswith("@"):
+                attrib_id = "%s" % (prefix)
             else:
-                attrib_id = "@%s" % (suffix)
+                attrib_id = "@%s" % (prefix)
 
             if scenario.extra_attribute(attrib_id) is None:
                 temp_extra_attribute = scenario.create_extra_attribute(
