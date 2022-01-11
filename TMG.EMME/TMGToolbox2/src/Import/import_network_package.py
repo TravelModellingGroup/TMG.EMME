@@ -802,7 +802,7 @@ class ImportNetworkPackage(_m.Tool()):
 
         index, _ = scenario.get_attribute_values("LINK", ["data1"])
         tables = []
-        with _util.tempExtraAttributeMANAGER(
+        with _util.temp_extra_attribute_manager(
             scenario, "LINK", returnId=True
         ) as temp_attribute:
             column_labels = {0: "i_node", 1: "j_node"}
@@ -817,7 +817,7 @@ class ImportNetworkPackage(_m.Tool()):
 
         index, _ = scenario.get_attribute_values("TURN", ["data1"])
         tables = []
-        with _util.tempExtraAttributeMANAGER(
+        with _util.temp_extra_attribute_manager(
             scenario, "TURN", returnId=True
         ) as temp_attribute:
             column_labels = {0: "i_node", 1: "j_node", 2: "k_node"}
@@ -841,7 +841,7 @@ class ImportNetworkPackage(_m.Tool()):
         attribute_names = ["transit_boardings", "transit_time", "transit_volume"]
         index, _ = scenario.get_attribute_values("TRANSIT_SEGMENT", ["data1"])
         tables = []
-        with _util.tempExtraAttributeMANAGER(
+        with _util.temp_extra_attribute_manager(
             scenario, "TRANSIT_SEGMENT", returnId=True
         ) as temp_attribute:
             column_labels = {0: "line", 1: "i_node", 2: "j_node", 3: "loop_idx"}
@@ -872,7 +872,7 @@ class ImportNetworkPackage(_m.Tool()):
             index, _ = scenario.get_attribute_values("LINK", ["data1"])
 
             tables = []
-            with _util.tempExtraAttributeMANAGER(
+            with _util.temp_extra_attribute_manager(
                 scenario, "LINK", returnId=True
             ) as temp_attribute:
                 column_labels = {0: "i_node", 1: "j_node"}

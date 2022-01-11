@@ -321,7 +321,7 @@ TEMP_ATT_PREFIXES = {
 
 
 @contextmanager
-def tempExtraAttributeMANAGER(
+def temp_extra_attribute_manager(
     scenario, domain, default=0.0, description=None, returnId=False
 ):
     """

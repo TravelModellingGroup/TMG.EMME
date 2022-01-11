@@ -140,7 +140,7 @@ class ReverseTransitLines(_m.Tool()):
             attributes=self._GetAtts(),
         ):
 
-            with _util.tempExtraAttributeMANAGER(
+            with _util.temp_extra_attribute_manager(
                 self.scenario, "TRANSIT_LINE"
             ) as lineFlagAttribute:
                 self._FlagLines(lineFlagAttribute.id)

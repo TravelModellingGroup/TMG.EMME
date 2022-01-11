@@ -69,8 +69,8 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("walk_time_matrix", "mf0");
                     writer.WriteStartArray("walk_perceptions");
                     writer.WriteStartObject();
-                    writer.WriteString("filter", "i=10000");
-                    writer.WriteNumber("walk_perception_value", 1);
+                    writer.WriteString("filter", "i=10000,20000 or j=10000,20000 or i=97000,98000 or j=97000,98000");
+                    writer.WriteNumber("walk_perception_value", 1.8f);
                     writer.WriteEndObject();
                     writer.WriteEndArray();
                     writer.WriteEndObject();
@@ -101,8 +101,8 @@ namespace TMG.Emme.Test.Assign
                 new Emme.Assign.AssignTransit.WalkPerceptions()
                 {
                     Name = "WalkPerceptions",
-                    Filter = Helper.CreateParameter("i=10000"),
-                    WalkPerceptionValue = Helper.CreateParameter(1),
+                    Filter = Helper.CreateParameter("i=10000,20000 or j=10000,20000 or i=97000,98000 or j=97000,98000"),
+                    WalkPerceptionValue = Helper.CreateParameter(1.8f),
                 }
             };
 

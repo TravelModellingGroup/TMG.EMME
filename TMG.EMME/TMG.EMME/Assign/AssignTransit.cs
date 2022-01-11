@@ -232,7 +232,7 @@ namespace TMG.Emme.Assign
 
 			[Parameter(Name = "Walk Perception Value", Description = "",
 				Index = 1)]
-			public IFunction<int> WalkPerceptionValue;
+			public IFunction<float> WalkPerceptionValue;
 
 			public string Name { get; set; }
 
