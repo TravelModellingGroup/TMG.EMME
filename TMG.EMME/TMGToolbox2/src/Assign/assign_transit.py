@@ -187,11 +187,7 @@ class AssignTransit(_m.Tool()):
                             self._tracker.start_process(5)
                             self._assign_effective_headway(scenario, parameters)
                             self._tracker.complete_subtask()
-                            self._assign_walk_perception(
-                                scenario,
-                                parameters,
-                                walk_time_peception_attribute_list[i],
-                            )
+                            self._assign_walk_perception(scenario, parameters)
                             self._tracker.complete_subtask()
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -364,9 +360,7 @@ class AssignTransit(_m.Tool()):
         network_calc_tool(small_headway_spec, scenario)
         network_calc_tool(large_headway_spec, scenario)
 
-    def _assign_walk_perception(
-        self, scenario, parameters, walk_time_peception_attribute_list
-    ):
+    def _assign_walk_perception(self, scenario, parameters):
         def apply_selection(perception, selection, walk_time_peception_attribute_id):
             spec = {
                 "result": walk_time_peception_attribute_id,
@@ -387,6 +381,20 @@ class AssignTransit(_m.Tool()):
                             perception["filter"],
                             tc_parameter["walk_time_perception_attribute_id"],
                         )
+
+    def _create_walk_time_peception_attribute_list(
+        self, scenario, parameters, walk_time_peception_attribute_list
+    ):
+        for tc_parameter in parameters["transit_classes"]:
+            walk_time_peception_attribute = self._create_temp_attribute(
+                scenario,
+                str(tc_parameter["walk_time_perception_attribute_id"]),
+                "LINK",
+                default_value=1.0,
+            )
+            walk_time_peception_attribute_list.append(walk_time_peception_attribute)
+
+        return walk_time_peception_attribute_list
 
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     @contextmanager
