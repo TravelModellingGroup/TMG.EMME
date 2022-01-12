@@ -40,9 +40,9 @@ namespace TMG.Emme.Test.Assign
                 {
                     writer.WriteBoolean("calculate_congested_ivtt_flag", true);
                     writer.WriteNumber("node_logit_scale", 0.0f);
-                    writer.WriteString("effective_headway_attribute_id", "@ehdw");
+                    writer.WriteString("effective_headway_attribute_id", "@ehdw1");
                     writer.WriteNumber("effective_headway_slope", 0.165f);
-                    writer.WriteString("headway_fraction_attribute_id", "@frac");
+                    writer.WriteString("headway_fraction_attribute_id", "@frac1");
                     writer.WriteNumber("iterations", 100);
                     writer.WriteNumber("norm_gap", 0.0f);
                     writer.WriteNumber("rel_gap", 0.0f);
@@ -59,13 +59,13 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("fare_perception", 0.0f);
                     writer.WriteString("in_vehicle_time_matrix", "mf0");
                     writer.WriteString("impedance_matrix", "mf0");
-                    writer.WriteString("link_fare_attribute_id", "@lfare");
+                    writer.WriteString("link_fare_attribute_id", "@lfare1");
                     writer.WriteString("mode", "*");
                     writer.WriteString("perceived_travel_time_matrix", "mf0");
-                    writer.WriteString("segment_fare_attribute_id", "@sfare");
+                    writer.WriteString("segment_fare_attribute_id", "@sfare1");
                     writer.WriteNumber("wait_time_perception", 0.0f);
                     writer.WriteString("wait_time_matrix", "mf0");
-                    writer.WriteString("walk_time_perception_attribute_id", "@walkp");
+                    writer.WriteString("walk_time_perception_attribute_id", "@walkp1");
                     writer.WriteString("walk_time_matrix", "mf0");
                     writer.WriteStartArray("walk_perceptions");
                     writer.WriteStartObject();
@@ -119,13 +119,13 @@ namespace TMG.Emme.Test.Assign
                     FarePerception = Helper.CreateParameter(0.0f),
                     InVehicleTimeMatrix = Helper.CreateParameter("mf0"),
                     ImpedanceMatrix = Helper.CreateParameter("mf0"),
-                    LinkFareAttributeId = Helper.CreateParameter("@lfare"),
+                    LinkFareAttributeId = Helper.CreateParameter("@lfare1"),
                     Mode = Helper.CreateParameter("*"),
                     PerceivedTravelTimeMatrix = Helper.CreateParameter("mf0"),
-                    SegmentFareAttributeId = Helper.CreateParameter("@sfare"),
+                    SegmentFareAttributeId = Helper.CreateParameter("@sfare1"),
                     WaitTimePerception = Helper.CreateParameter(0.0f),
                     WaitTimeMatrix = Helper.CreateParameter("mf0"),
-                    WalkTimePerceptionAttributeId = Helper.CreateParameter("@walkp"),
+                    WalkTimePerceptionAttributeId = Helper.CreateParameter("@walkp1"),
                     WalkTimeMatrix = Helper.CreateParameter("mf0"),
                     WalkPerceptions =  Helper.CreateParameters(walkPerceptions),
                 }
@@ -135,9 +135,9 @@ namespace TMG.Emme.Test.Assign
             {
                 CalculateCongestedIvttFlag = Helper.CreateParameter(true),
                 NodeLogitScale = Helper.CreateParameter(0.0f),
-                EffectiveHeadwayAttributeId = Helper.CreateParameter("@ehdw"),
+                EffectiveHeadwayAttributeId = Helper.CreateParameter("@ehdw1"),
                 EffectiveHeadwaySlope = Helper.CreateParameter(0.165f),
-                HeadwayFractionAttributeId = Helper.CreateParameter("@frac"),
+                HeadwayFractionAttributeId = Helper.CreateParameter("@frac1"),
                 Iterations = Helper.CreateParameter(100),
                 NormalizedGap = Helper.CreateParameter(0.0f),
                 RelativeGap = Helper.CreateParameter(0.0f),

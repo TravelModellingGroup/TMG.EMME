@@ -376,15 +376,12 @@ class AssignTransit(_m.Tool()):
             network_calc_tool(spec, scenario)
 
         for tc_parameters in parameters["transit_classes"]:
-
-            for tc_parameter in tc_parameters:
-                with _trace("Assigning perception factors"):
-                    for perception in tc_parameter["walk_perceptions"]:
-                        apply_selection(
-                            perception["walk_perception_value"],
-                            perception["filter"],
-                            tc_parameter["walk_time_perception_attribute_id"],
-                        )
+            for perception in tc_parameters["walk_perceptions"]:
+                apply_selection(
+                    perception["walk_perception_value"],
+                    perception["filter"],
+                    tc_parameters["walk_time_perception_attribute_id"],
+                )
 
     def _create_walk_time_peception_attribute_list(
         self, scenario, parameters, walk_time_peception_attribute_list
@@ -453,31 +450,24 @@ class AssignTransit(_m.Tool()):
             )
         prefix = str(attribute_id)
         attrib_id = ""
-        if prefix != "@tvph" and prefix != "tvph":
-            while True:
-                suffix = random.randint(1, 999999)
-                if prefix.startswith("@"):
-                    attrib_id = "%s%s" % (prefix, suffix)
-                else:
-                    attrib_id = "@%s%s" % (prefix, suffix)
-
-                if scenario.extra_attribute(attrib_id) is None:
-                    temp_extra_attribute = scenario.create_extra_attribute(
-                        attribute_type, attrib_id, default_value
-                    )
-                    break
-        else:
-            attrib_id = prefix
+        while True:
             if prefix.startswith("@"):
                 attrib_id = "%s" % (prefix)
             else:
                 attrib_id = "@%s" % (prefix)
-
-            if scenario.extra_attribute(attrib_id) is None:
+            checked_extra_attribute = scenario.extra_attribute(attrib_id)
+            if checked_extra_attribute == None:
                 temp_extra_attribute = scenario.create_extra_attribute(
                     attribute_type, attrib_id, default_value
                 )
-                _write("Created extra attribute '@tvph'")
+                break
+            elif (
+                checked_extra_attribute != None
+                and checked_extra_attribute.extra_attribute_type == attribute_type
+            ):
+                raise Exception(
+                    "Attribute %s already exist or has some issues!" % attrib_id
+                )
             else:
                 temp_extra_attribute = scenario.extra_attribute(attrib_id).initialize(
                     default_value
