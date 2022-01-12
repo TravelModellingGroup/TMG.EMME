@@ -472,6 +472,7 @@ class AssignTransit(_m.Tool()):
                 temp_extra_attribute = scenario.extra_attribute(attrib_id).initialize(
                     default_value
                 )
+                break
 
         msg = "Created temporary extra attribute %s in scenario %s" % (
             attrib_id,
