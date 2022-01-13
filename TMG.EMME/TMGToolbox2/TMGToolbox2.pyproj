@@ -13,7 +13,7 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterId>Global|VisualStudio|Python37</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>"..\TMG.EMME.Test\bin\$(Configuration)\netcoreapp3.1\DebugProject\DebugProject.emp" XTMF 0 DEBUG_EMME</CommandLineArguments>
+    <CommandLineArguments>"..\TMG.EMME.Test\bin\$(Configuration)\net6.0\DebugProject\DebugProject.emp" XTMF 0 DEBUG_EMME</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <Environment>Path="C:\Program Files\INRO\Emme\Emme 4\Emme-4.5.1.1\Python37";C:\Program Files\INRO\Emme\Emme 4\Emme-4.5.1.1\programs"</Environment>
   </PropertyGroup>
@@ -24,8 +24,6 @@
   </PropertyGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|2.7" />
-    <InterpreterReference Include="Global|VisualStudio|EMME" />
-    <InterpreterReference Include="Global|VisualStudio|EMME Python" />
     <InterpreterReference Include="Global|VisualStudio|Python37" />
   </ItemGroup>
   <ItemGroup>
@@ -33,6 +31,9 @@
       <Link>ModellerBridge.py</Link>
     </Compile>
     <Compile Include="build_toolbox.py" />
+    <Compile Include="src\Assign\assign_boarding_penalty.py" />
+    <Compile Include="src\Assign\assign_traffic.py" />
+    <Compile Include="src\Assign\assign_transit.py" />
     <Compile Include="src\Convert\convert_gtfs_stops_to_shapefile.py">
       <SubType>Code</SubType>
     </Compile>
@@ -64,6 +65,8 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="src\" />
+    <Folder Include="src\Assign\" />
+    <Folder Include="src\Assign\__pycache__\" />
     <Folder Include="src\Filter\" />
     <Folder Include="src\Import\" />
     <Folder Include="src\Export\" />
@@ -77,6 +80,8 @@
   <ItemGroup>
     <Content Include="Build Consolidated Toolbox.bat" />
     <Content Include="Build Toolbox.bat" />
+    <Content Include="src\Assign\__pycache__\assign_boarding_penalty.cpython-37.pyc" />
+    <Content Include="src\Assign\__pycache__\assign_demand_to_road_network.cpython-37.pyc" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
