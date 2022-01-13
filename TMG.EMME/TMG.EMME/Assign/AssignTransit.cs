@@ -36,7 +36,7 @@ namespace TMG.Emme.Assign
 
 		[Parameter(Name = "Node Logit Scale", Description = "",
 			Index = 1)]
-		public IFunction<float> NodeLogitScale;
+		public IFunction<bool> NodeLogitScale;
 
 		[Parameter(Name = "Effective Headway Attribute Id", Description = "",
 			Index = 2)]
@@ -253,7 +253,7 @@ namespace TMG.Emme.Assign
             context.Run(this, "tmg2.Assign.assign_transit", JSONParameterBuilder.BuildParameters(writer =>
             {
 				writer.WriteBoolean("calculate_congested_ivtt_flag", CalculateCongestedIvttFlag.Invoke());
-				writer.WriteNumber("node_logit_scale", NodeLogitScale.Invoke());
+				writer.WriteBoolean("node_logit_scale", NodeLogitScale.Invoke());
 				writer.WriteString("effective_headway_attribute_id", EffectiveHeadwayAttributeId.Invoke());
 				writer.WriteNumber("effective_headway_slope", EffectiveHeadwaySlope.Invoke());
 				writer.WriteString("headway_fraction_attribute_id", HeadwayFractionAttributeId.Invoke());

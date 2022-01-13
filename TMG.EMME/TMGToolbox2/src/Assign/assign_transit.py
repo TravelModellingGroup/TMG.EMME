@@ -156,7 +156,6 @@ class AssignTransit(_m.Tool()):
             name="(%s v%s)" % (self.__class__.__name__, self.version),
             attributes=self._load_atts(scenario, parameters),
         ):
-
             self._tracker.reset()
             with _trace("Checking travel time functions..."):
                 changes = self._heal_travel_time_functions()
@@ -318,7 +317,6 @@ class AssignTransit(_m.Tool()):
         scenario.set_attribute_values("MODE", ["speed"], baton)
 
     def _get_impedance_matrices(self, parameters, impedance_matrix_list):
-        # initialize
         transit_classes = parameters["transit_classes"]
         for tc_parameter in transit_classes:
             matrix_id = tc_parameter["impedance_matrix"]
@@ -328,7 +326,7 @@ class AssignTransit(_m.Tool()):
                     description="Transit Perceived Travel times for %s"
                     % tc_parameter["name"],
                 )
-                impedance_matrix_list.append(matrix_id)
+                impedance_matrix_list.append(matrix)
             else:
                 _write(
                     "Creating temporary Impendence Matrix for class %s"
@@ -340,7 +338,7 @@ class AssignTransit(_m.Tool()):
                     % tc_parameter["name"],
                     matrix_type="FULL",
                 )
-                impedance_matrix_list.append(matrix.id)
+                impedance_matrix_list.append(matrix)
 
     def _assign_effective_headway(
         self, scenario, parameters, effective_headway_attribute_id
@@ -485,6 +483,9 @@ class AssignTransit(_m.Tool()):
 
         return temp_extra_attribute
 
+    def _parse_exponent_string(self):
+        ...
+
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     @contextmanager
     def _temp_matrix_manager(self):
@@ -497,8 +498,8 @@ class AssignTransit(_m.Tool()):
         finally:
             for matrix in temp_matrix_list:
                 if matrix is not None:
-                    _write("Deleting temporary matrix '%s': " % matrix)
-                    _bank.delete_matrix(matrix)
+                    _write("Deleting temporary matrix '%s': " % matrix.id)
+                    _bank.delete_matrix(matrix.id)
 
     @contextmanager
     def _temp_attribute_manager(self, scenario):
@@ -509,9 +510,18 @@ class AssignTransit(_m.Tool()):
             for temp_attribute in temp_attribute_list:
                 if temp_attribute is not None:
                     scenario.delete_extra_attribute(temp_attribute.id)
-                    _m.logbook_write(
-                        "Deleted temporary '%s' link attribute" % temp_attribute.id
-                    )
+                    _write("Deleted temporary '%s' link attribute" % temp_attribute.id)
+
+    @contextmanager
+    def _temp_STFU_ttfs_manager(self, scenario, parameters):
+        # TODO: check if ttfs changed
+        temp_stfu_ttf_dict = {}
+        try:
+            yield temp_stfu_ttf_dict
+        finally:
+            for ttf in temp_stfu_ttf_dict:
+                if ttf is not None:
+                    scenario.emmebank.delete_function(ttf)
 
     @_m.method(return_type=str)
     def get_scenario_node_attributes(self, scenario):

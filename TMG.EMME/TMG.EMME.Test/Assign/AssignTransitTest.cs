@@ -39,7 +39,7 @@ namespace TMG.Emme.Test.Assign
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteBoolean("calculate_congested_ivtt_flag", true);
-                    writer.WriteNumber("node_logit_scale", 0.0f);
+                    writer.WriteBoolean("node_logit_scale", true);
                     writer.WriteString("effective_headway_attribute_id", "@ehdw1");
                     writer.WriteNumber("effective_headway_slope", 0.165f);
                     writer.WriteString("headway_fraction_attribute_id", "@frac1");
@@ -134,7 +134,7 @@ namespace TMG.Emme.Test.Assign
             var module = new Emme.Assign.AssignTransit()
             {
                 CalculateCongestedIvttFlag = Helper.CreateParameter(true),
-                NodeLogitScale = Helper.CreateParameter(0.0f),
+                NodeLogitScale = Helper.CreateParameter(true),
                 EffectiveHeadwayAttributeId = Helper.CreateParameter("@ehdw1"),
                 EffectiveHeadwaySlope = Helper.CreateParameter(0.165f),
                 HeadwayFractionAttributeId = Helper.CreateParameter("@frac1"),
