@@ -80,8 +80,6 @@
   <ItemGroup>
     <Content Include="Build Consolidated Toolbox.bat" />
     <Content Include="Build Toolbox.bat" />
-    <Content Include="src\Assign\__pycache__\assign_boarding_penalty.cpython-37.pyc" />
-    <Content Include="src\Assign\__pycache__\assign_demand_to_road_network.cpython-37.pyc" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
