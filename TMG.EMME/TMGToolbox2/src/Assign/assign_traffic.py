@@ -265,14 +265,6 @@ class AssignTraffic(_m.Tool()):
                 )
                 temp_matrix_list.append(matrix)
                 output_matrix_list.append(matrix)
-            elif _bank.matrix(matrix_id) is None:
-                matrix = _util.initialize_matrix(
-                    id=matrix_id,
-                    name=str(matrix_name),
-                    description=description if description != "" else desc,
-                )
-                temp_matrix_list.append(matrix)
-                output_matrix_list.append(matrix)
             else:
                 matrix = _bank.matrix(matrix_id)
                 output_matrix_list.append(matrix)
