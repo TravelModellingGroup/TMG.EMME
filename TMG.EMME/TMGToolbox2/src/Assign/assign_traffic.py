@@ -45,6 +45,7 @@ Toll-Based Road Assignment
 from inspect import Parameter
 from os import error
 from pydoc import describe
+from tabnanny import check
 import inro.modeller as _m
 import traceback as _traceback
 from contextlib import contextmanager
@@ -129,26 +130,47 @@ class AssignTraffic(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def _execute(self, scenario, parameters):
-        with self._temp_matrix_manager() as temp_matrix_list:
-            # Initialize input matrices
-            demand_matrix_list = self._init_demand_matrices(
-                parameters, temp_matrix_list
-            )
-            with _trace(
-                name="%s (%s v%s)"
-                % (parameters["run_title"], self.__class__.__name__, self.version),
-                attributes=self._load_atts(scenario, parameters),
-            ):
-                self._tracker.reset()
-                # Load initialized output matrices
-                output_matrices = self._load_output_matrices(
+        load_input_matrix_list = self._load_input_matrices(parameters, "demand_matrix")
+        load_output_matrix_dict = self._load_output_matrices(
+            parameters,
+            matrix_name=["cost_matrix", "time_matrix", "toll_matrix"],
+        )
+        with _trace(
+            name="%s (%s v%s)"
+            % (parameters["run_title"], self.__class__.__name__, self.version),
+            attributes=self._load_atts(scenario, parameters),
+        ):
+            self._tracker.reset()
+            with self._temp_matrix_manager() as temp_matrix_list:
+                demand_matrix_list = self._init_input_matrices(
+                    load_input_matrix_list, temp_matrix_list
+                )
+                class_name_list = self._load_traffic_class_names(parameters)
+                cost_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="cost_matrix",
+                    description="",
+                )
+                time_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="time_matrix",
+                    description="",
+                )
+                toll_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="toll_matrix",
+                    description="",
+                )
+                peak_hour_matrix_list = self._init_temp_peak_hour_matrix(
                     parameters, temp_matrix_list
                 )
-                cost_matrix_list = output_matrices[0]
-                time_matrix_list = output_matrices[1]
-                toll_matrix_list = output_matrices[2]
-                peak_hour_matrix_list = output_matrices[3]
                 self._tracker.complete_subtask()
+
+                with self._temp_attribute_manager(scenario) as temp_attribute_list:
+                    ...
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -203,7 +225,6 @@ class AssignTraffic(_m.Tool()):
             final_iteration = {"number": 0}
             stopping_criteron == "MAX_ITERATIONS"
         number = final_iteration["number"]
-
         if stopping_criteron == "MAX_ITERATIONS":
             value = final_iteration["number"]
         elif stopping_criteron == "RELATIVE_GAP":
@@ -214,61 +235,74 @@ class AssignTraffic(_m.Tool()):
             value = final_iteration["gaps"]["best_relative"]
         else:
             value = "undefined"
-
         return number, stopping_criteron, value
 
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    def _load_traffic_class_names(self, parameters):
+        traffic_classes = parameters["traffic_classes"]
+        class_list = [class_name["name"] for class_name in traffic_classes]
+        return class_list
 
-    def _init_demand_matrices(self, parameters, temp_matrix_list):
-        checked_list = []
-        demand_matrix_list = []
-        # temp_matrix_list = []
+    def _load_output_matrices(self, parameters, matrix_name=list):
+        """
+        This loads all output matrices by matrix_name list provided but
+        assigns None to all zero matrices for later initialization
+        """
+        mtx_dict = {}
+        traffic_classes = parameters["traffic_classes"]
+        for i in range(0, len(matrix_name)):
+            mtx_dict[matrix_name[i]] = [tc[matrix_name[i]] for tc in traffic_classes]
+        for mtx_name, mtx_ids in mtx_dict.items():
+            mtx = [None if id == "mf0" else _bank.matrix(id) for id in mtx_ids]
+            mtx_dict[mtx_name] = mtx
+        return mtx_dict
 
-        # Check all non-mf0 matrix
-        for traffic_class in parameters["traffic_classes"]:
-            demand_matrix_id = str(traffic_class["demand_matrix"]).lower()
-            if demand_matrix_id == "mf0":
-                checked_list.append(demand_matrix_id)
-            elif _bank.matrix(demand_matrix_id) is None:
-                raise Exception("Matrix %s was not found!" % demand_matrix_id)
-            elif str(_bank.matrix(demand_matrix_id).id) == demand_matrix_id:
-                checked_list.append(demand_matrix_id)
+    def _load_input_matrices(self, parameters, matrix_name):
+        def exception(mtx_id):
+            raise Exception("Matrix %s was not found!" % mtx_id)
+
+        traffic_classes = parameters["traffic_classes"]
+        mtx_name = matrix_name
+        mtx_list = [
+            _bank.matrix(tc[mtx_name])
+            if tc[mtx_name] == "mf0" or _bank.matrix(tc[mtx_name]).id == tc[mtx_name]
+            else exception(tc[mtx_name])
+            for tc in traffic_classes
+        ]
+        return mtx_list
+
+    def _init_input_matrices(self, load_input_matrix_list, temp_matrix_list):
+        input_matrix_list = []
+        for mtx in load_input_matrix_list:
+            if mtx.id == "mf0":
+                mtx = _util.initialize_matrix(matrix_type="FULL")
+                input_matrix_list.append(_bank.matrix(mtx.id))
+                temp_matrix_list.append(mtx)
             else:
-                raise Exception("Matrix %s was not found!" % demand_matrix_id)
-
-        # Initializing all non-specified matrices and returning all
-        for demand_matrix_id in checked_list:
-            if demand_matrix_id == "mf0":
-                demand_matrix = _util.initialize_matrix(matrix_type="FULL")
-                demand_matrix_list.append(_bank.matrix(demand_matrix.id))
-                temp_matrix_list.append(demand_matrix)
-            else:
-                demand_matrix_list.append(_bank.matrix(demand_matrix_id))
-
-        return demand_matrix_list
+                input_matrix_list.append(mtx)
+        return input_matrix_list
 
     def _init_output_matrices(
-        self, parameters, matrix_name, temp_matrix_list, description=""
+        self,
+        load_output_matrix_dict,
+        temp_matrix_list,
+        matrix_name="",
+        description="",
     ):
         output_matrix_list = []
-        traffic_classes = parameters["traffic_classes"]
-        for traffic_class in traffic_classes:
-            matrix_id = traffic_class[str(matrix_name)]
-            desc = "AUTO %s FOR CLASS: %s" % (
-                str(matrix_name).upper(),
-                str(traffic_class["name"]).upper(),
-            )
-            if matrix_id == "mf0":
-                matrix = _util.initialize_matrix(
-                    name=str(matrix_name),
-                    description=description if description != "" else desc,
-                )
-                temp_matrix_list.append(matrix)
-                output_matrix_list.append(matrix)
-            else:
-                matrix = _bank.matrix(matrix_id)
-                output_matrix_list.append(matrix)
-
+        desc = "AUTO %s FOR CLASS" % (matrix_name.upper())
+        for mtx_name, mtxs in load_output_matrix_dict.items():
+            for mtx in mtxs:
+                if mtx_name == matrix_name:
+                    if mtx == None:
+                        matrix = _util.initialize_matrix(
+                            name=matrix_name,
+                            description=description if description != "" else desc,
+                        )
+                        output_matrix_list.append(matrix)
+                        temp_matrix_list.append(matrix)
+                    else:
+                        output_matrix_list.append(mtx)
         return output_matrix_list
 
     def _init_temp_peak_hour_matrix(self, parameters, temp_matrix_list):
@@ -296,8 +330,11 @@ class AssignTraffic(_m.Tool()):
         return time_attribute_list
 
     def _create_cost_attribute_list(
-        self, scenario, demand_matrix_list, cost_attribute_list
+        self,
+        scenario,
+        demand_matrix_list,
     ):
+        cost_attribute_list = []
         for i in range(len(demand_matrix_list)):
             cost_attribute = self._create_temp_attribute(
                 scenario, "lkcst", "LINK", default_value=0.0
@@ -305,9 +342,8 @@ class AssignTraffic(_m.Tool()):
             cost_attribute_list.append(cost_attribute)
         return cost_attribute_list
 
-    def create_transit_traffic_attribute_list(
-        self, scenario, demand_matrix_list, transit_traffic_attribute_list
-    ):
+    def create_transit_traffic_attribute_list(self, scenario, demand_matrix_list):
+        transit_traffic_attribute_list = []
         for i in range(len(demand_matrix_list)):
             t_traffic_attribute = self._create_temp_attribute(
                 scenario, "tvph", "LINK", default_value=0.0
@@ -344,49 +380,42 @@ class AssignTraffic(_m.Tool()):
         Creates a temporary extra attribute in a given scenario
         """
         ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
-
         attribute_type = str(attribute_type).upper()
         # check if the type provided is correct
         if attribute_type not in ATTRIBUTE_TYPES:
             raise TypeError(
-                "Attribute type '%s' provided is recognized." % attribute_type
+                "Attribute type '%s' provided is not recognized." % attribute_type
             )
-
         if len(attribute_id) > 18:
             raise ValueError(
-                "Attribute id '%s' can only be 19 characters long with no spaces plus  no '@'."
+                "Attribute id '%s' can only be 19 characters long with no spaces plus no '@'."
                 % attribute_id
             )
         prefix = str(attribute_id)
         attrib_id = ""
-        if prefix != "@tvph" and prefix != "tvph":
-            while True:
-                suffix = random.randint(1, 999999)
-                if prefix.startswith("@"):
-                    attrib_id = "%s%s" % (prefix, suffix)
-                else:
-                    attrib_id = "@%s%s" % (prefix, suffix)
-
-                if scenario.extra_attribute(attrib_id) is None:
-                    temp_extra_attribute = scenario.create_extra_attribute(
-                        attribute_type, attrib_id, default_value
-                    )
-                    break
-        else:
-            attrib_id = prefix
+        while True:
             if prefix.startswith("@"):
                 attrib_id = "%s" % (prefix)
             else:
                 attrib_id = "@%s" % (prefix)
-
-            if scenario.extra_attribute(attrib_id) is None:
+            checked_extra_attribute = scenario.extra_attribute(attrib_id)
+            if checked_extra_attribute == None:
                 temp_extra_attribute = scenario.create_extra_attribute(
                     attribute_type, attrib_id, default_value
                 )
-                _m.logbook_write("Created extra attribute '@tvph'")
+                break
+            elif (
+                checked_extra_attribute != None
+                and checked_extra_attribute.extra_attribute_type == attribute_type
+            ):
+                raise Exception(
+                    "Attribute %s already exist or has some issues!" % attrib_id
+                )
             else:
-                temp_extra_attribute = scenario.extra_attribute(attrib_id).initialize(0)
-
+                temp_extra_attribute = scenario.extra_attribute(attrib_id).initialize(
+                    default_value
+                )
+                break
         msg = "Created temporary extra attribute %s in scenario %s" % (
             attrib_id,
             scenario.id,
@@ -394,8 +423,7 @@ class AssignTraffic(_m.Tool()):
         if description:
             temp_extra_attribute.description = description
             msg += ": %s" % description
-        _m.logbook_write(msg)
-
+        _write(msg)
         return temp_extra_attribute
 
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -585,28 +613,7 @@ class AssignTraffic(_m.Tool()):
 
         return SOLA_spec
 
-    def _load_output_matrices(self, parameters, temp_matrix_list):
-        cost_matrix_list = self._init_output_matrices(
-            parameters, "cost_matrix", temp_matrix_list, description="Cost matrix"
-        )
-        time_matrix_list = self._init_output_matrices(
-            parameters, "time_matrix", temp_matrix_list, description=""
-        )
-        toll_matrix_list = self._init_output_matrices(
-            parameters, "toll_matrix", temp_matrix_list, description="Time matrix"
-        )
-        peak_hour_matrix_list = self._init_temp_peak_hour_matrix(
-            parameters, temp_matrix_list
-        )
-        return (
-            cost_matrix_list,
-            time_matrix_list,
-            toll_matrix_list,
-            peak_hour_matrix_list,
-        )
-
     # ---CONTEXT MANAGERS---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
     @contextmanager
     def _load_temp_attributes(self, scenario, demand_matrix_list):
         with self._temp_attribute_manager(scenario) as time_attribute_list:
