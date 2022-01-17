@@ -101,9 +101,9 @@ namespace TMG.Emme.Assign
                 Index = 5)]
             public IFunction<string> VolumeAttribute;
 
-            [Parameter(Name = "Toll Attribute ID", DefaultValue = " @toll", Description = "The attribute containing the road tolls for this class of vehicle.",
+            [Parameter(Name = "Toll Attribute", DefaultValue = " @toll", Description = "The attribute containing the road tolls for this class of vehicle.",
                 Index = 6)]
-            public IFunction<string> LinkTollAttributeID;
+            public IFunction<string> LinkTollAttribute;
 
             [Parameter(Name = "Toll Weight", DefaultValue = "0", Description = "The toll weight",
                 Index = 7)]
@@ -134,7 +134,7 @@ namespace TMG.Emme.Assign
                 writer.WriteString("toll_matrix", TollMatrix.Invoke());
                 writer.WriteNumber("peak_hour_factor", PeakHourFactor.Invoke());
                 writer.WriteString("volume_attribute", VolumeAttribute.Invoke());
-                writer.WriteString("link_toll_attribute_id", LinkTollAttributeID.Invoke());
+                writer.WriteString("link_toll_attribute", LinkTollAttribute.Invoke());
                 writer.WriteNumber("toll_weight", TollWeight.Invoke());
                 writer.WriteNumber("link_cost", LinkCost.Invoke());
                 writer.WriteStartArray("path_analyses");

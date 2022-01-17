@@ -57,7 +57,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("toll_matrix", "mf0");
                     writer.WriteNumber("peak_hour_factor", 1);
                     writer.WriteString("volume_attribute", "@auto_volume1");
-                    writer.WriteString("link_toll_attribute_id", " @toll");
+                    writer.WriteString("link_toll_attribute", " @toll");
                     writer.WriteNumber("toll_weight", 0.0);
                     writer.WriteNumber("link_cost", 0.0);
                     writer.WriteStartArray("path_analyses");
@@ -116,7 +116,7 @@ namespace TMG.Emme.Test.Assign
                     TollMatrix = Helper.CreateParameter("mf0"),
                     PeakHourFactor = Helper.CreateParameter(1f),
                     VolumeAttribute = Helper.CreateParameter("@auto_volume1"),
-                    LinkTollAttributeID = Helper.CreateParameter("@toll"),
+                    LinkTollAttribute = Helper.CreateParameter("@toll"),
                     TollWeight = Helper.CreateParameter(0.0f),
                     LinkCost = Helper.CreateParameter(0.0f),
                     PathAnalyses = Helper.CreateParameters(pathAnalyses),

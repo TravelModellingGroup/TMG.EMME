@@ -75,14 +75,6 @@ traffic_assignment_tool = _MODELLER.tool(
 delete_matrix = _MODELLER.tool("inro.emme.data.matrix.delete_matrix")
 
 
-@contextmanager
-def blankManager(obj):
-    try:
-        yield obj
-    finally:
-        pass
-
-
 class AssignTraffic(_m.Tool()):
     version = "2.0.2"
     tool_run_msg = ""
@@ -170,7 +162,43 @@ class AssignTraffic(_m.Tool()):
                 self._tracker.complete_subtask()
 
                 with self._temp_attribute_manager(scenario) as temp_attribute_list:
-                    ...
+                    time_attribute_list = self._create_time_attribute_list(
+                        scenario, demand_matrix_list, temp_attribute_list
+                    )
+                    cost_attribute_list = self._create_cost_attribute_list(
+                        scenario,
+                        demand_matrix_list,
+                    )
+                    transit_attribute_list = self.create_transit_traffic_attribute_list(
+                        scenario, demand_matrix_list, temp_attribute_list
+                    )
+                    # Create volume attributes
+                    for tc in parameters["traffic_classes"]:
+                        self._create_volume_attribute(scenario, tc["volume_attribute"])
+                    # Calculate transit background traffic
+                    self._calculate_transit_background_traffic(scenario, parameters)
+                    # Calculate applied toll factor
+                    applied_toll_factor_list = self._calculate_applied_toll_factor(
+                        parameters
+                    )
+                    # Calculate link costs
+                    self._calculate_link_cost(
+                        scenario,
+                        parameters,
+                        demand_matrix_list,
+                        applied_toll_factor_list,
+                        cost_attribute_list,
+                    )
+                    # Calculate peak hour matrix
+                    self._calculate_peak_hour_matrices(
+                        scenario,
+                        parameters,
+                        demand_matrix_list,
+                        peak_hour_matrix_list,
+                    )
+                    self._tracker.complete_subtask()
+
+                    # TODO: # Assign traffic to road network
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -195,47 +223,6 @@ class AssignTraffic(_m.Tool()):
             "self": self.__MODELLER_NAMESPACE__,
         }
         return atts
-
-    def _load_attribute_list(self, parameters, demand_matrix_list):
-        attribute_list = []
-        volume_attribute_list = [
-            self.load_attribute_name(volume_attribute["volume_attribute"])
-            for volume_attribute in parameters["traffic_classes"]
-        ]
-        for i in range(len(demand_matrix_list)):
-            attribute_list.append(None)
-        return attribute_list, volume_attribute_list
-
-    def _load_mode_list(self, parameters):
-        mode_list = [mode["mode"] for mode in parameters["traffic_classes"]]
-        return mode_list
-
-    def load_attribute_name(self, at):
-        if at.startswith("@"):
-            return at
-        else:
-            return "@" + at
-
-    def _load_stopping_criteria(self, report):
-        stopping_criteron = report["stopping_criterion"]
-        iterations = report["iterations"]
-        if len(iterations) > 0:
-            final_iteration = iterations[-1]
-        else:
-            final_iteration = {"number": 0}
-            stopping_criteron == "MAX_ITERATIONS"
-        number = final_iteration["number"]
-        if stopping_criteron == "MAX_ITERATIONS":
-            value = final_iteration["number"]
-        elif stopping_criteron == "RELATIVE_GAP":
-            value = final_iteration["gaps"]["relative"]
-        elif stopping_criteron == "NORMALIZED_GAP":
-            value = final_iteration["gaps"]["normalized"]
-        elif stopping_criteron == "BEST_RELATIVE_GAP":
-            value = final_iteration["gaps"]["best_relative"]
-        else:
-            value = "undefined"
-        return number, stopping_criteron, value
 
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_traffic_class_names(self, parameters):
@@ -322,33 +309,37 @@ class AssignTraffic(_m.Tool()):
     def _create_time_attribute_list(
         self, scenario, demand_matrix_list, time_attribute_list
     ):
-        for i in range(len(demand_matrix_list)):
-            time_attribute = self._create_temp_attribute(
-                scenario, "ltime", "LINK", default_value=0.0
-            )
+        time_attribute = self._create_temp_attribute(
+            scenario, "ltime", "LINK", default_value=0.0
+        )
+        count = 0
+        while count < len(demand_matrix_list):
             time_attribute_list.append(time_attribute)
+            count += 1
         return time_attribute_list
 
-    def _create_cost_attribute_list(
-        self,
-        scenario,
-        demand_matrix_list,
-    ):
+    def _create_cost_attribute_list(self, scenario, demand_matrix_list):
         cost_attribute_list = []
-        for i in range(len(demand_matrix_list)):
+        count = 0
+        while count < len(demand_matrix_list):
             cost_attribute = self._create_temp_attribute(
-                scenario, "lkcst", "LINK", default_value=0.0
+                scenario,
+                "lkcst",
+                "LINK",
+                default_value=0.0,
             )
             cost_attribute_list.append(cost_attribute)
         return cost_attribute_list
 
     def create_transit_traffic_attribute_list(self, scenario, demand_matrix_list):
         transit_traffic_attribute_list = []
-        for i in range(len(demand_matrix_list)):
-            t_traffic_attribute = self._create_temp_attribute(
-                scenario, "tvph", "LINK", default_value=0.0
-            )
+        t_traffic_attribute = self._create_temp_attribute(
+            scenario, "tvph", "LINK", default_value=0.0
+        )
+        count = 0
+        while count < len(demand_matrix_list):
             transit_traffic_attribute_list.append(t_traffic_attribute)
+            count += 1
         return transit_traffic_attribute_list
 
     def _create_volume_attribute(self, scenario, volume_attribute):
@@ -362,7 +353,7 @@ class AssignTraffic(_m.Tool()):
                 "Volume Attribute '%s' is not a link type attribute" % volume_attribute
             )
         elif volume_attribute is not None:
-            _m.logbook_write("Deleting Previous Extra Attributes.")
+            _write("Deleting Previous Extra Attributes.")
             scenario.delete_extra_attribute(volume_attribute_at)
             scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
         else:
@@ -380,42 +371,49 @@ class AssignTraffic(_m.Tool()):
         Creates a temporary extra attribute in a given scenario
         """
         ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
+
         attribute_type = str(attribute_type).upper()
         # check if the type provided is correct
         if attribute_type not in ATTRIBUTE_TYPES:
             raise TypeError(
-                "Attribute type '%s' provided is not recognized." % attribute_type
+                "Attribute type '%s' provided is recognized." % attribute_type
             )
+
         if len(attribute_id) > 18:
             raise ValueError(
-                "Attribute id '%s' can only be 19 characters long with no spaces plus no '@'."
+                "Attribute id '%s' can only be 19 characters long with no spaces plus  no '@'."
                 % attribute_id
             )
         prefix = str(attribute_id)
         attrib_id = ""
-        while True:
+        if prefix != "@tvph" and prefix != "tvph":
+            while True:
+                suffix = random.randint(1, 99999)
+                if prefix.startswith("@"):
+                    attrib_id = "%s%s" % (prefix, suffix)
+                else:
+                    attrib_id = "@%s%s" % (prefix, suffix)
+
+                if scenario.extra_attribute(attrib_id) is None:
+                    temp_extra_attribute = scenario.create_extra_attribute(
+                        attribute_type, attrib_id, default_value
+                    )
+                    break
+        else:
+            attrib_id = prefix
             if prefix.startswith("@"):
                 attrib_id = "%s" % (prefix)
             else:
                 attrib_id = "@%s" % (prefix)
-            checked_extra_attribute = scenario.extra_attribute(attrib_id)
-            if checked_extra_attribute == None:
+
+            if scenario.extra_attribute(attrib_id) is None:
                 temp_extra_attribute = scenario.create_extra_attribute(
                     attribute_type, attrib_id, default_value
                 )
-                break
-            elif (
-                checked_extra_attribute != None
-                and checked_extra_attribute.extra_attribute_type == attribute_type
-            ):
-                raise Exception(
-                    "Attribute %s already exist or has some issues!" % attrib_id
-                )
+                _write("Created extra attribute '@tvph'")
             else:
-                temp_extra_attribute = scenario.extra_attribute(attrib_id).initialize(
-                    default_value
-                )
-                break
+                temp_extra_attribute = scenario.extra_attribute(attrib_id).initialize(0)
+
         msg = "Created temporary extra attribute %s in scenario %s" % (
             attrib_id,
             scenario.id,
@@ -424,6 +422,7 @@ class AssignTraffic(_m.Tool()):
             temp_extra_attribute.description = description
             msg += ": %s" % description
         _write(msg)
+
         return temp_extra_attribute
 
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -520,117 +519,7 @@ class AssignTraffic(_m.Tool()):
             "type": "MATRIX_CALCULATION",
         }
 
-    def _get_primary_SOLA_spec(
-        self,
-        demand_matrix_list,
-        peak_hour_matrix_list,
-        applied_toll_factor_list,
-        mode_list,
-        volume_attribute_list,
-        cost_attribute_list,
-        time_matrix_list,
-        attribute_list,
-        matrix_list,
-        operator_list,
-        lower_bound_list,
-        upper_bound_list,
-        selector_list,
-        multiply_path_demand,
-        multiply_path_value,
-        parameters,
-    ):
-        if parameters["performance_flag"] == "true":
-            number_of_processors = multiprocessing.cpu_count()
-        else:
-            number_of_processors = max(multiprocessing.cpu_count() - 1, 1)
-        # Generic Spec for SOLA
-        SOLA_spec = {
-            "type": "SOLA_TRAFFIC_ASSIGNMENT",
-            "classes": [],
-            "path_analysis": None,
-            "cutoff_analysis": None,
-            "traversal_analysis": None,
-            "performance_settings": {"number_of_processors": number_of_processors},
-            "background_traffic": None,
-            "stopping_criteria": {
-                "max_iterations": parameters["iterations"],
-                "relative_gap": parameters["r_gap"],
-                "best_relative_gap": parameters["br_gap"],
-                "normalized_gap": parameters["norm_gap"],
-            },
-        }
-        SOLA_path_analysis = []
-        for i in range(0, len(demand_matrix_list)):
-            if attribute_list[i] is None:
-                SOLA_path_analysis.append([])
-            else:
-                SOLA_path_analysis.append([])
-                all_none = True
-                for j in range(len(attribute_list[i])):
-                    if attribute_list[i][j] is None:
-                        continue
-                    all_none = False
-                    path = {
-                        "link_component": attribute_list[i][j],
-                        "turn_component": None,
-                        "operator": operator_list[i][j],
-                        "selection_threshold": {
-                            "lower": lower_bound_list[i][j],
-                            "upper": upper_bound_list[i][j],
-                        },
-                        "path_to_od_composition": {
-                            "considered_paths": selector_list[i][j],
-                            "multiply_path_proportions_by": {
-                                "analyzed_demand": multiply_path_demand[i][j],
-                                "path_value": multiply_path_value[i][j],
-                            },
-                        },
-                        "results": {"od_values": matrix_list[i][j]},
-                        "analyzed_demand": None,
-                    }
-                    SOLA_path_analysis[i].append(path)
-                if all_none is True:
-                    SOLA_path_analysis[i] = []
-        SOLA_class_generator = [
-            {
-                "mode": mode_list[i],
-                "demand": peak_hour_matrix_list[i].id,
-                "generalized_cost": {
-                    "link_costs": cost_attribute_list[i].id,
-                    "perception_factor": 1,
-                },
-                "results": {
-                    "link_volumes": volume_attribute_list[i],
-                    "turn_volumes": None,
-                    "od_travel_times": {"shortest_paths": time_matrix_list[i]},
-                },
-                "path_analyses": SOLA_path_analysis[i],
-            }
-            for i in range(len(mode_list))
-        ]
-
-        SOLA_spec["classes"] = SOLA_class_generator
-
-        return SOLA_spec
-
     # ---CONTEXT MANAGERS---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    @contextmanager
-    def _load_temp_attributes(self, scenario, demand_matrix_list):
-        with self._temp_attribute_manager(scenario) as time_attribute_list:
-            self._create_time_attribute_list(
-                scenario, demand_matrix_list, time_attribute_list
-            )
-
-            with self._temp_attribute_manager(scenario) as cost_attribute_list:
-                self._create_cost_attribute_list(
-                    scenario, demand_matrix_list, cost_attribute_list
-                )
-
-                with self._temp_attribute_manager(scenario) as transit_attribute_list:
-                    self.create_transit_traffic_attribute_list(
-                        scenario, demand_matrix_list, transit_attribute_list
-                    )
-                    yield time_attribute_list, cost_attribute_list, transit_attribute_list
 
     @contextmanager
     def _temp_matrix_manager(self):
