@@ -291,18 +291,19 @@ class AssignTraffic(_m.Tool()):
     ):
         output_matrix_list = []
         desc = "AUTO %s FOR CLASS" % (matrix_name.upper())
-        for mtx_name, mtxs in load_output_matrix_dict.items():
-            for mtx in mtxs:
-                if mtx_name == matrix_name:
-                    if mtx == None:
-                        matrix = _util.initialize_matrix(
-                            name=matrix_name,
-                            description=description if description != "" else desc,
-                        )
-                        output_matrix_list.append(matrix)
-                        temp_matrix_list.append(matrix)
-                    else:
-                        output_matrix_list.append(mtx)
+        if matrix_name in load_output_matrix_dict.keys():
+            for mtx in load_output_matrix_dict[matrix_name]:
+                if mtx == None:
+                    matrix = _util.initialize_matrix(
+                        name=matrix_name,
+                        description=description if description != "" else desc,
+                    )
+                    output_matrix_list.append(matrix)
+                    temp_matrix_list.append(matrix)
+                else:
+                    output_matrix_list.append(mtx)
+        else:
+            raise Exception('Output matrix name "%s" provided does not exist')
         return output_matrix_list
 
     def _init_temp_peak_hour_matrix(self, parameters, temp_matrix_list):
