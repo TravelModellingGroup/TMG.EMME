@@ -166,8 +166,7 @@ class AssignTraffic(_m.Tool()):
                         scenario, demand_matrix_list, temp_attribute_list
                     )
                     cost_attribute_list = self._create_cost_attribute_list(
-                        scenario,
-                        demand_matrix_list,
+                        scenario, demand_matrix_list, temp_attribute_list
                     )
                     transit_attribute_list = self.create_transit_traffic_attribute_list(
                         scenario, demand_matrix_list, temp_attribute_list
@@ -307,18 +306,20 @@ class AssignTraffic(_m.Tool()):
     # ---CREATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     def _create_time_attribute_list(
-        self, scenario, demand_matrix_list, time_attribute_list
+        self, scenario, demand_matrix_list, temp_attribute_list
     ):
+        time_attribute_list = []
         time_attribute = self._create_temp_attribute(
             scenario, "ltime", "LINK", default_value=0.0
         )
-        count = 0
-        while count < len(demand_matrix_list):
-            time_attribute_list.append(time_attribute)
-            count += 1
+        time_attribute_list = len(demand_matrix_list) * [time_attribute]
+        for att in time_attribute_list:
+            temp_attribute_list.append(att)
         return time_attribute_list
 
-    def _create_cost_attribute_list(self, scenario, demand_matrix_list):
+    def _create_cost_attribute_list(
+        self, scenario, demand_matrix_list, temp_attribute_list
+    ):
         cost_attribute_list = []
         count = 0
         while count < len(demand_matrix_list):
@@ -329,23 +330,23 @@ class AssignTraffic(_m.Tool()):
                 default_value=0.0,
             )
             cost_attribute_list.append(cost_attribute)
+            temp_attribute_list.append(cost_attribute)
+            count += 1
         return cost_attribute_list
 
-    def create_transit_traffic_attribute_list(self, scenario, demand_matrix_list):
-        transit_traffic_attribute_list = []
+    def create_transit_traffic_attribute_list(
+        self, scenario, demand_matrix_list, temp_attribute_list
+    ):
         t_traffic_attribute = self._create_temp_attribute(
             scenario, "tvph", "LINK", default_value=0.0
         )
-        count = 0
-        while count < len(demand_matrix_list):
-            transit_traffic_attribute_list.append(t_traffic_attribute)
-            count += 1
+        transit_traffic_attribute_list = len(demand_matrix_list) * [t_traffic_attribute]
+        for att in transit_traffic_attribute_list:
+            temp_attribute_list.append(att)
         return transit_traffic_attribute_list
 
     def _create_volume_attribute(self, scenario, volume_attribute):
-
         volume_attribute_at = scenario.extra_attribute(volume_attribute)
-
         if volume_attribute_at is None:
             scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
         elif volume_attribute_at.type != "LINK":
@@ -388,7 +389,7 @@ class AssignTraffic(_m.Tool()):
         attrib_id = ""
         if prefix != "@tvph" and prefix != "tvph":
             while True:
-                suffix = random.randint(1, 99999)
+                suffix = random.randint(1, 999999)
                 if prefix.startswith("@"):
                     attrib_id = "%s%s" % (prefix, suffix)
                 else:
@@ -422,7 +423,6 @@ class AssignTraffic(_m.Tool()):
             temp_extra_attribute.description = description
             msg += ": %s" % description
         _write(msg)
-
         return temp_extra_attribute
 
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -440,7 +440,7 @@ class AssignTraffic(_m.Tool()):
                     self._get_link_cost_calc_spec(
                         cost_attribute_list[i].id,
                         parameters["traffic_classes"][i]["link_cost"],
-                        parameters["traffic_classes"][i]["link_toll_attribute_id"],
+                        parameters["traffic_classes"][i]["link_toll_attribute"],
                         applied_toll_factor_list[i],
                     ),
                     scenario=scenario,
@@ -497,12 +497,12 @@ class AssignTraffic(_m.Tool()):
         }
 
     def _get_link_cost_calc_spec(
-        self, cost_attribute_id, link_cost, link_toll_attribute_id, perception
+        self, cost_attribute_id, link_cost, link_toll_attribute, perception
     ):
         return {
             "result": cost_attribute_id,
             "expression": "(length * %f + %s)*%f"
-            % (link_cost, link_toll_attribute_id, perception),
+            % (link_cost, link_toll_attribute, perception),
             "aggregation": None,
             "selections": {"link": "all"},
             "type": "NETWORK_CALCULATION",
