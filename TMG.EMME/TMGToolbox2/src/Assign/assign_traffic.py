@@ -309,7 +309,6 @@ class AssignTraffic(_m.Tool()):
     def _init_temp_peak_hour_matrix(self, parameters, temp_matrix_list):
         peak_hour_matrix_list = []
         for traffic_class in parameters["traffic_classes"]:
-
             peak_hour_matrix = _util.initialize_matrix(
                 default=traffic_class["peak_hour_factor"],
                 description="Peak hour matrix",
@@ -449,7 +448,7 @@ class AssignTraffic(_m.Tool()):
                 )
             self._tracker.complete_subtask()
 
-    def _calculate_peak_hour_matrix(
+    def _calculate_peak_hour_matrices(
         self, scenario, parameters, demand_matrix_list, peak_hour_matrix_list
     ):
         with _m.logbook_trace("Calculting peak hour matrix"):
