@@ -122,6 +122,9 @@ class AssignTraffic(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def _execute(self, scenario, parameters):
+        """
+        TODO: define common names
+        """
         load_input_matrix_list = self._load_input_matrices(parameters, "demand_matrix")
         load_output_matrix_dict = self._load_output_matrices(
             parameters,
@@ -231,7 +234,7 @@ class AssignTraffic(_m.Tool()):
 
     def _load_output_matrices(self, parameters, matrix_name=list):
         """
-        This loads all output matrices by matrix_name list provided but
+        This loads all (into a dictionary) output matrices by matrix_name list provided but
         assigns None to all zero matrices for later initialization
         """
         mtx_dict = {}
@@ -244,6 +247,8 @@ class AssignTraffic(_m.Tool()):
         return mtx_dict
 
     def _load_input_matrices(self, parameters, matrix_name):
+        """ """
+
         def exception(mtx_id):
             raise Exception("Matrix %s was not found!" % mtx_id)
 
@@ -289,7 +294,9 @@ class AssignTraffic(_m.Tool()):
                 else:
                     output_matrix_list.append(mtx)
         else:
-            raise Exception('Output matrix name "%s" provided does not exist')
+            raise Exception(
+                'Output matrix name "%s" provided does not exist', matrix_name
+            )
         return output_matrix_list
 
     def _init_temp_peak_hour_matrix(self, parameters, temp_matrix_list):
@@ -434,7 +441,7 @@ class AssignTraffic(_m.Tool()):
         applied_toll_factor_list,
         cost_attribute_list,
     ):
-        with _m.logbook_trace("Calculating link costs"):
+        with _trace("Calculating link costs"):
             for i in range(len(demand_matrix_list)):
                 network_calculation_tool(
                     self._get_link_cost_calc_spec(
@@ -450,7 +457,7 @@ class AssignTraffic(_m.Tool()):
     def _calculate_peak_hour_matrices(
         self, scenario, parameters, demand_matrix_list, peak_hour_matrix_list
     ):
-        with _m.logbook_trace("Calculting peak hour matrix"):
+        with _trace("Calculting peak hour matrix"):
             for i in range(len(demand_matrix_list)):
                 matrix_calc_tool(
                     self._get_peak_hour_spec(
@@ -466,7 +473,7 @@ class AssignTraffic(_m.Tool()):
     def _calculate_transit_background_traffic(self, scenario, parameters):
         if parameters["background_transit"].lower() == "true":
             if int(scenario.element_totals["transit_lines"]) > 0:
-                with _m.logbook_trace("Calculating transit background traffic"):
+                with _trace("Calculating transit background traffic"):
                     network_calculation_tool(
                         self._get_transit_bg_spec(),
                         scenario=scenario,
@@ -532,7 +539,7 @@ class AssignTraffic(_m.Tool()):
         finally:
             for matrix in temp_matrix_list:
                 if matrix is not None:
-                    _m.logbook_write("Deleting temporary matrix '%s': " % matrix.id)
+                    _write("Deleting temporary matrix '%s': " % matrix.id)
                     _bank.delete_matrix(matrix.id)
 
     @contextmanager
@@ -544,9 +551,7 @@ class AssignTraffic(_m.Tool()):
             for temp_attribute in temp_attribute_list:
                 if temp_attribute is not None:
                     scenario.delete_extra_attribute(temp_attribute.id)
-                    _m.logbook_write(
-                        "Deleted temporary '%s' link attribute" % temp_attribute.id
-                    )
+                    _write("Deleted temporary '%s' link attribute" % temp_attribute.id)
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
