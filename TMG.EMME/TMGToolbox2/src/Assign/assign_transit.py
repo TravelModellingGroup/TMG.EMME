@@ -269,6 +269,9 @@ class AssignTransit(_m.Tool()):
         return input_matrix_list
 
     def _get_impedance_matrices(self, parameters, temp_matrix_list):
+        """
+        Creates temporary matrix for matrices with id = "mf0"
+        """
         impedance_matrix_list = []
         transit_classes = parameters["transit_classes"]
         for tc_parameter in transit_classes:
@@ -302,8 +305,7 @@ class AssignTransit(_m.Tool()):
         description="",
     ):
         """
-        Initiializes all output matrices provided. However, only creates temporary matrix for
-        impedance matrices when matrix id is mf0 or none
+        Initializes all output matrices provided.
         """
         output_matrix_list = []
         desc = "TRANSIT %s FOR CLASS" % (matrix_name.upper())
