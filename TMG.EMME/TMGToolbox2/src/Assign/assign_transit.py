@@ -148,7 +148,6 @@ class AssignTransit(_m.Tool()):
                 "wait_time_matrix",
                 "fare_matrix",
                 "board_penalty_matrix",
-                "impedance_matrix",
             ],
         )
 
@@ -202,11 +201,8 @@ class AssignTransit(_m.Tool()):
                     matrix_name="board_penalty_matrix",
                     description="Transit total boarding penalties",
                 )
-                impedance_matrix_list = self._init_output_matrices(
-                    load_output_matrix_dict,
-                    temp_matrix_list,
-                    matrix_name="impedance_matrix",
-                    description="Transit Perceived Travel times",
+                impedance_matrix_list = self._get_impedance_matrices(
+                    parameters, temp_matrix_list
                 )
             self._change_walk_speed(scenario, parameters["walk_speed"])
 
@@ -271,6 +267,32 @@ class AssignTransit(_m.Tool()):
             else:
                 input_matrix_list.append(mtx)
         return input_matrix_list
+
+    def _get_impedance_matrices(self, parameters, temp_matrix_list):
+        impedance_matrix_list = []
+        transit_classes = parameters["transit_classes"]
+        for tc_parameter in transit_classes:
+            matrix_id = tc_parameter["impedance_matrix"]
+            if matrix_id != "mf0":
+                _util.initialize_matrix(
+                    id=matrix_id,
+                    description="Transit Perceived Travel times for %s"
+                    % tc_parameter["name"],
+                )
+                impedance_matrix_list.append(matrix)
+            else:
+                _write(
+                    "Creating temporary Impendence Matrix for class %s"
+                    % tc_parameter["name"]
+                )
+                matrix = _util.initialize_matrix(
+                    default=0.0,
+                    description="Temporary Impedence for class %s"
+                    % tc_parameter["name"],
+                    matrix_type="FULL",
+                )
+                impedance_matrix_list.append(matrix)
+                temp_matrix_list.append(matrix)
 
     def _init_output_matrices(
         self,
