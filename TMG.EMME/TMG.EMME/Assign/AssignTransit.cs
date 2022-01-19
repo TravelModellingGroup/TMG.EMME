@@ -204,13 +204,13 @@ namespace TMG.Emme.Assign
 				writer.WriteNumber("fare_perception", FarePerception.Invoke());
 				writer.WriteString("in_vehicle_time_matrix", InVehicleTimeMatrix.Invoke());
 				writer.WriteString("impedance_matrix", ImpedanceMatrix.Invoke());
-				writer.WriteString("link_fare_attribute_id", LinkFareAttributeId.Invoke());
+				writer.WriteString("link_fare_attribute", LinkFareAttributeId.Invoke());
 				writer.WriteString("mode", Mode.Invoke());
 				writer.WriteString("perceived_travel_time_matrix", PerceivedTravelTimeMatrix.Invoke());
-				writer.WriteString("segment_fare_attribute_id", SegmentFareAttributeId.Invoke());
+				writer.WriteString("segment_fare_attribute", SegmentFareAttributeId.Invoke());
 				writer.WriteNumber("wait_time_perception", WaitTimePerception.Invoke());
 				writer.WriteString("wait_time_matrix", WaitTimeMatrix.Invoke());
-				writer.WriteString("walk_time_perception_attribute_id", WalkTimePerceptionAttributeId.Invoke());
+				writer.WriteString("walk_time_perception_attribute", WalkTimePerceptionAttributeId.Invoke());
 				writer.WriteString("walk_time_matrix", WalkTimeMatrix.Invoke());
 				writer.WriteStartArray("walk_perceptions");
 				foreach (var walkPerceptions in WalkPerceptions)
@@ -254,9 +254,9 @@ namespace TMG.Emme.Assign
             {
 				writer.WriteBoolean("calculate_congested_ivtt_flag", CalculateCongestedIvttFlag.Invoke());
 				writer.WriteBoolean("node_logit_scale", NodeLogitScale.Invoke());
-				writer.WriteString("effective_headway_attribute_id", EffectiveHeadwayAttributeId.Invoke());
+				writer.WriteString("effective_headway_attribute", EffectiveHeadwayAttributeId.Invoke());
 				writer.WriteNumber("effective_headway_slope", EffectiveHeadwaySlope.Invoke());
-				writer.WriteString("headway_fraction_attribute_id", HeadwayFractionAttributeId.Invoke());
+				writer.WriteString("headway_fraction_attribute", HeadwayFractionAttributeId.Invoke());
 				writer.WriteNumber("iterations", Iterations.Invoke());
 				writer.WriteNumber("norm_gap", NormalizedGap.Invoke());
 				writer.WriteNumber("rel_gap", RelativeGap.Invoke());

@@ -40,9 +40,9 @@ namespace TMG.Emme.Test.Assign
                 {
                     writer.WriteBoolean("calculate_congested_ivtt_flag", true);
                     writer.WriteBoolean("node_logit_scale", true);
-                    writer.WriteString("effective_headway_attribute_id", "@ehdw1");
+                    writer.WriteString("effective_headway_attribute", "@ehdw1");
                     writer.WriteNumber("effective_headway_slope", 0.165f);
-                    writer.WriteString("headway_fraction_attribute_id", "@frac1");
+                    writer.WriteString("headway_fraction_attribute", "@frac1");
                     writer.WriteNumber("iterations", 100);
                     writer.WriteNumber("norm_gap", 0.0f);
                     writer.WriteNumber("rel_gap", 0.0f);
@@ -62,10 +62,10 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("link_fare_attribute_id", "@lfare1");
                     writer.WriteString("mode", "*");
                     writer.WriteString("perceived_travel_time_matrix", "mf0");
-                    writer.WriteString("segment_fare_attribute_id", "@sfare1");
+                    writer.WriteString("segment_fare_attribute", "@sfare1");
                     writer.WriteNumber("wait_time_perception", 0.0f);
                     writer.WriteString("wait_time_matrix", "mf0");
-                    writer.WriteString("walk_time_perception_attribute_id", "@walkp1");
+                    writer.WriteString("walk_time_perception_attribute", "@walkp1");
                     writer.WriteString("walk_time_matrix", "mf0");
                     writer.WriteStartArray("walk_perceptions");
                     writer.WriteStartObject();
