@@ -89,14 +89,6 @@ null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
 
 
-@contextmanager
-def blankManager(obj):
-    try:
-        yield obj
-    finally:
-        pass
-
-
 class AssignTransit(_m.Tool()):
     version = "2.0.0"
     tool_run_msg = ""
@@ -126,7 +118,6 @@ class AssignTransit(_m.Tool()):
             runnable=False,
             branding_text="- TMG Toolbox",
         )
-
         return pb.render()
 
     def run(self):
@@ -134,7 +125,6 @@ class AssignTransit(_m.Tool()):
 
     def __call__(self, parameters):
         scenario = self._load_scenario(parameters["scenario_number"])
-
         try:
             self._execute(scenario, parameters)
         except Exception as e:
@@ -142,15 +132,25 @@ class AssignTransit(_m.Tool()):
 
     def run_xtmf(self, parameters):
         scenario = self._load_scenario(parameters["scenario_number"])
-
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
     def _execute(self, scenario, parameters):
-        # Initialize demand matrices (input matrices)
-        demand_matrix_list = self._init_demand_matrices(parameters)
+        load_input_matrix_list = self._load_input_matrices(parameters, "demand_matrix")
+        load_output_matrix_dict = self._load_output_matrices(
+            parameters,
+            matrix_name=[
+                "in_vehicle_time_matrix",
+                "congestion_matrix",
+                "walk_time_matrix",
+                "wait_time_matrix",
+                "fare_matrix",
+                "board_penalty_matrix",
+                "impedance_matrix",
+            ],
+        )
 
         with _trace(
             name="(%s v%s)" % (self.__class__.__name__, self.version),
@@ -161,37 +161,54 @@ class AssignTransit(_m.Tool()):
                 changes = self._heal_travel_time_functions()
                 if changes == 0:
                     _write("No problems were found")
-            self._initialize_matrices(parameters)
+            with self._temp_matrix_manager() as temp_matrix_list:
+                # Initialize matrices with matrix ID = "mf0" not loaded in load_input_matrix_list
+                demand_matrix_list = self._init_input_matrices(
+                    load_input_matrix_list, temp_matrix_list
+                )
+                in_vehicle_time_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="in_vehicle_time_matrix",
+                    description="Transit in-vehicle travel times.",
+                )
+                congestion_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="congestion_matrix",
+                    description="Transit in-vehicle congestion.",
+                )
+                walk_time_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="walk_time_matrix",
+                    description="Transit total walk times.",
+                )
+                wait_time_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="wait_time_matrix",
+                    description="Transit total wait times.",
+                )
+                fare_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="fare_matrix",
+                    description="Transit total fares",
+                )
+                board_penalty_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="board_penalty_matrix",
+                    description="Transit total boarding penalties",
+                )
+                impedance_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="impedance_matrix",
+                    description="Transit Perceived Travel times",
+                )
             self._change_walk_speed(scenario, parameters["walk_speed"])
-            with self._temp_matrix_manager() as impedance_matrix_list:
-                self._get_impedance_matrices(parameters, impedance_matrix_list)
-                with self._temp_attribute_manager(
-                    scenario
-                ) as effective_headway_attribute_list:
-                    self._create_effective_headway_attribute_list(
-                        scenario, parameters, effective_headway_attribute_list
-                    )
-                    with self._temp_attribute_manager(
-                        scenario
-                    ) as headway_fraction_attribute_list:
-                        self._create_headway_fraction_attribute_list(
-                            scenario, parameters, headway_fraction_attribute_list
-                        )
-                        with self._temp_attribute_manager(
-                            scenario
-                        ) as walk_time_peception_attribute_list:
-                            self._create_walk_time_peception_attribute_list(
-                                scenario, parameters, walk_time_peception_attribute_list
-                            )
-                            self._tracker.start_process(5)
-                            self._assign_effective_headway(
-                                scenario,
-                                parameters,
-                                effective_headway_attribute_list[0].id,
-                            )
-                            self._tracker.complete_subtask()
-                            self._assign_walk_perception(scenario, parameters)
-                            self._tracker.complete_subtask()
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -206,58 +223,93 @@ class AssignTransit(_m.Tool()):
         return atts
 
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    def _initialize_matrices(self, parameters):
+    def _load_traffic_class_names(self, parameters):
         transit_classes = parameters["transit_classes"]
-        for tc_parameter in transit_classes:
-            self._matrix_to_initialize(tc_parameter, "in_vehicle_time_matrix")
-            self._matrix_to_initialize(tc_parameter, "congestion_matrix")
-            self._matrix_to_initialize(tc_parameter, "walk_time_matrix")
-            self._matrix_to_initialize(tc_parameter, "wait_time_matrix")
-            self._matrix_to_initialize(tc_parameter, "fare_matrix")
-            self._matrix_to_initialize(tc_parameter, "board_penalty_matrix")
+        class_list = [class_name["name"] for class_name in transit_classes]
+        return class_list
 
-    def _matrix_to_initialize(self, tc_parameter, matrix_type_name_string):
-        matrix_name = tc_parameter[str(matrix_type_name_string)]
-        if matrix_name != "mf0":
-            _util.initialize_matrix(
-                id=matrix_name,
-                description="Transit %s for %s"
-                % (
-                    " ".join(str(matrix_type_name_string).split("_")),
-                    tc_parameter["name"],
-                ),
-            )
+    def _load_output_matrices(self, parameters, matrix_name=list):
+        """
+        This loads all (into a dictionary) output matrices by matrix_name list provided but
+        assigns None to all zero matrices for later initialization
+        """
+        mtx_dict = {}
+        transit_classes = parameters["transit_classes"]
+        for i in range(0, len(matrix_name)):
+            mtx_dict[matrix_name[i]] = [tc[matrix_name[i]] for tc in transit_classes]
+        for mtx_name, mtx_ids in mtx_dict.items():
+            mtx = [None if id == "mf0" else _bank.matrix(id) for id in mtx_ids]
+            mtx_dict[mtx_name] = mtx
+        return mtx_dict
+
+    def _load_input_matrices(self, parameters, matrix_name):
+        """
+        Load input matrices creates and loads all (input) matrix into a list based on
+        matrix_name supplied. E.g of matrix_name: "demand_matrix" and matrix_id: "mf2"
+        """
+
+        def exception(mtx_id):
+            raise Exception("Matrix %s was not found!" % mtx_id)
+
+        transit_classes = parameters["transit_classes"]
+        mtx_name = matrix_name
+        mtx_list = [
+            _bank.matrix(tc[mtx_name])
+            if tc[mtx_name] == "mf0" or _bank.matrix(tc[mtx_name]).id == tc[mtx_name]
+            else exception(tc[mtx_name])
+            for tc in transit_classes
+        ]
+        return mtx_list
+
+    def _init_input_matrices(self, load_input_matrix_list, temp_matrix_list):
+        input_matrix_list = []
+        for mtx in load_input_matrix_list:
+            if mtx == None:
+                mtx = _util.initialize_matrix(matrix_type="FULL")
+                input_matrix_list.append(_bank.matrix(mtx.id))
+                temp_matrix_list.append(mtx)
+            else:
+                input_matrix_list.append(mtx)
+        return input_matrix_list
+
+    def _init_output_matrices(
+        self,
+        load_output_matrix_dict,
+        temp_matrix_list,
+        matrix_name="",
+        description="",
+    ):
+        """
+        Initiializes all output matrices provided. However, only creates temporary matrix for
+        impedance matrices when matrix id is mf0 or none
+        """
+        output_matrix_list = []
+        desc = "TRANSIT %s FOR CLASS" % (matrix_name.upper())
+        if matrix_name in load_output_matrix_dict.keys():
+            for mtx in load_output_matrix_dict[matrix_name]:
+                if mtx != None:
+                    matrix = _util.initialize_matrix(
+                        name=matrix_name,
+                        description=description if description != "" else desc,
+                    )
+                    output_matrix_list.append(matrix)
+                else:
+                    if matrix_name == "impedance_matrix":
+                        _write('Creating Temporary Impedance Matrix "%s"', matrix_name)
+                        matrix = _util.initialize_matrix(
+                            default=0.0,
+                            description=description if description != "" else desc,
+                            matrix_type="FULL",
+                        )
+                        output_matrix_list.append(matrix)
+                        temp_matrix_list.append(matrix)
+                    else:
+                        output_matrix_list.append(mtx)
         else:
-            matrix_name = None
-
-    def _init_demand_matrices(self, parameters):
-        checked_matrix_list = self._check_non_zero_matrix(parameters)
-        demand_matrix_list = []
-        # Initializing all non-specified matrices and returning all
-        for dm in checked_matrix_list:
-            if dm == "mf0":
-                demand_matrix = _util.initialize_matrix(matrix_type="FULL")
-                demand_matrix_list.append(_bank.matrix(demand_matrix.id))
-            else:
-                demand_matrix_list.append(_bank.matrix(dm))
-
-        return demand_matrix_list
-
-    def _check_non_zero_matrix(self, parameters):
-        checked_matrix_list = []
-        # Check all non-mf0 matrix
-        for tc in parameters["transit_classes"]:
-            matrix_string = str(tc["demand_matrix"]).lower()
-            if matrix_string == "mf0":
-                checked_matrix_list.append(matrix_string)
-            elif _bank.matrix(matrix_string) is None:
-                raise Exception("Matrix %s was not found!" % matrix_string)
-            elif str(_bank.matrix(matrix_string).id) == matrix_string:
-                checked_matrix_list.append(matrix_string)
-            else:
-                raise Exception("Matrix %s was not found!" % matrix_string)
-
-        return checked_matrix_list
+            raise Exception(
+                'Output matrix name "%s" provided does not exist', matrix_name
+            )
+        return output_matrix_list
 
     def _heal_travel_time_functions(self):
         changes = 0
@@ -289,7 +341,6 @@ class AssignTransit(_m.Tool()):
                         + " segment congestion values. Please modify the expression "
                         + "to use different attributes."
                     )
-
         return changes
 
     def _change_walk_speed(self, scenario, walk_speed):
@@ -315,176 +366,6 @@ class AssignTransit(_m.Tool()):
             _write("Changed mode %s" % mode.id)
         baton = partial_network.get_attribute_values("MODE", ["speed"])
         scenario.set_attribute_values("MODE", ["speed"], baton)
-
-    def _get_impedance_matrices(self, parameters, impedance_matrix_list):
-        transit_classes = parameters["transit_classes"]
-        for tc_parameter in transit_classes:
-            matrix_id = tc_parameter["impedance_matrix"]
-            if matrix_id != "mf0":
-                _util.initialize_matrix(
-                    id=matrix_id,
-                    description="Transit Perceived Travel times for %s"
-                    % tc_parameter["name"],
-                )
-                impedance_matrix_list.append(matrix)
-            else:
-                _write(
-                    "Creating temporary Impendence Matrix for class %s"
-                    % tc_parameter["name"]
-                )
-                matrix = _util.initialize_matrix(
-                    default=0.0,
-                    description="Temporary Impedence for class %s"
-                    % tc_parameter["name"],
-                    matrix_type="FULL",
-                )
-                impedance_matrix_list.append(matrix)
-
-    def _assign_effective_headway(
-        self, scenario, parameters, effective_headway_attribute_id
-    ):
-        small_headway_spec = {
-            "result": effective_headway_attribute_id,
-            "expression": "hdw",
-            "aggregation": None,
-            "selections": {"transit_line": "hdw=0,15"},
-            "type": "NETWORK_CALCULATION",
-        }
-        large_headway_spec = {
-            "result": effective_headway_attribute_id,
-            "expression": "15+2*"
-            + str(parameters["effective_headway_slope"])
-            + "*(hdw-15)",
-            "aggregation": None,
-            "selections": {"transit_line": "hdw=15,999"},
-            "type": "NETWORK_CALCULATION",
-        }
-        network_calc_tool(small_headway_spec, scenario)
-        network_calc_tool(large_headway_spec, scenario)
-
-    def _assign_walk_perception(self, scenario, parameters):
-        def apply_selection(perception, selection, walk_time_peception_attribute_id):
-            spec = {
-                "result": walk_time_peception_attribute_id,
-                "expression": str(perception),
-                "aggregation": None,
-                "selections": {"link": selection},
-                "type": "NETWORK_CALCULATION",
-            }
-            network_calc_tool(spec, scenario)
-
-        for tc_parameters in parameters["transit_classes"]:
-            for perception in tc_parameters["walk_perceptions"]:
-                apply_selection(
-                    perception["walk_perception_value"],
-                    perception["filter"],
-                    tc_parameters["walk_time_perception_attribute_id"],
-                )
-
-    def _create_walk_time_peception_attribute_list(
-        self, scenario, parameters, walk_time_peception_attribute_list
-    ):
-        for tc_parameter in parameters["transit_classes"]:
-            walk_time_peception_attribute = self._create_temp_attribute(
-                scenario,
-                str(tc_parameter["walk_time_perception_attribute_id"]),
-                "LINK",
-                default_value=1.0,
-            )
-            walk_time_peception_attribute_list.append(walk_time_peception_attribute)
-
-        return walk_time_peception_attribute_list
-
-    def _create_headway_fraction_attribute_list(
-        self, scenario, parameters, headway_fraction_attribute_list
-    ):
-        headway_fraction_attribute = self._create_temp_attribute(
-            scenario,
-            str(parameters["headway_fraction_attribute_id"]),
-            "NODE",
-            default_value=0.5,
-        )
-        headway_fraction_attribute_list.append(headway_fraction_attribute)
-
-        return headway_fraction_attribute_list
-
-    def _create_effective_headway_attribute_list(
-        self, scenario, parameters, effective_headway_attribute_list
-    ):
-        effective_headway_attribute = self._create_temp_attribute(
-            scenario,
-            str(parameters["effective_headway_attribute_id"]),
-            "TRANSIT_LINE",
-            default_value=0.0,
-        )
-        effective_headway_attribute_list.append(effective_headway_attribute)
-
-        return effective_headway_attribute_list
-
-    def _create_temp_attribute(
-        self,
-        scenario,
-        attribute_id,
-        attribute_type,
-        description=None,
-        default_value=0.0,
-    ):
-        """
-        Creates a temporary extra attribute in a given scenario
-        """
-        ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
-
-        attribute_type = str(attribute_type).upper()
-        # check if the type provided is correct
-        if attribute_type not in ATTRIBUTE_TYPES:
-            raise TypeError(
-                "Attribute type '%s' provided is not recognized." % attribute_type
-            )
-
-        if len(attribute_id) > 18:
-            raise ValueError(
-                "Attribute id '%s' can only be 19 characters long with no spaces plus no '@'."
-                % attribute_id
-            )
-        prefix = str(attribute_id)
-        attrib_id = ""
-        while True:
-            if prefix.startswith("@"):
-                attrib_id = "%s" % (prefix)
-            else:
-                attrib_id = "@%s" % (prefix)
-            checked_extra_attribute = scenario.extra_attribute(attrib_id)
-            if checked_extra_attribute == None:
-                temp_extra_attribute = scenario.create_extra_attribute(
-                    attribute_type, attrib_id, default_value
-                )
-                break
-            elif (
-                checked_extra_attribute != None
-                and checked_extra_attribute.extra_attribute_type == attribute_type
-            ):
-                raise Exception(
-                    "Attribute %s already exist or has some issues!" % attrib_id
-                )
-            else:
-                temp_extra_attribute = scenario.extra_attribute(attrib_id).initialize(
-                    default_value
-                )
-                break
-
-        msg = "Created temporary extra attribute %s in scenario %s" % (
-            attrib_id,
-            scenario.id,
-        )
-        if description:
-            temp_extra_attribute.description = description
-            msg += ": %s" % description
-        _write(msg)
-
-        return temp_extra_attribute
-
-    def _parse_exponent_string(self):
-        ...
 
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     @contextmanager
@@ -512,17 +393,6 @@ class AssignTransit(_m.Tool()):
                     scenario.delete_extra_attribute(temp_attribute.id)
                     _write("Deleted temporary '%s' link attribute" % temp_attribute.id)
 
-    @contextmanager
-    def _temp_STFU_ttfs_manager(self, scenario, parameters):
-        # TODO: check if ttfs changed
-        temp_stfu_ttf_dict = {}
-        try:
-            yield temp_stfu_ttf_dict
-        finally:
-            for ttf in temp_stfu_ttf_dict:
-                if ttf is not None:
-                    scenario.emmebank.delete_function(ttf)
-
     @_m.method(return_type=str)
     def get_scenario_node_attributes(self, scenario):
         options = ["<option value='-1'>None</option>"]
@@ -532,7 +402,6 @@ class AssignTransit(_m.Tool()):
                     '<option value="%s">%s - %s</option>'
                     % (exatt.id, exatt.id, exatt.description)
                 )
-
         return "\n".join(options)
 
     @_m.method(return_type=str)
@@ -546,7 +415,6 @@ class AssignTransit(_m.Tool()):
                     '<option value="%s">%s - %s</option>'
                     % (exatt.id, exatt.id, exatt.description)
                 )
-
         return "\n".join(options)
 
     @_m.method(return_type=str)
@@ -558,7 +426,6 @@ class AssignTransit(_m.Tool()):
                     '<option value="%s">%s - %s</option>'
                     % (exatt.id, exatt.id, exatt.description)
                 )
-
         return "\n".join(options)
 
     @_m.method(return_type=_m.TupleType)
