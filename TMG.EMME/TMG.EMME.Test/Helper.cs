@@ -31,6 +31,7 @@ namespace TMG.Emme.Test
     internal static class Helper
     {
         private const string ProjectFileProperty = "ProjectFile";
+        private const string EmmePathProperty = "EmmePath";
 
         internal static void InitializeEMME()
         {
@@ -40,6 +41,7 @@ namespace TMG.Emme.Test
                 {
                     if (Modeller == null)
                     {
+                        string emmePath = null;
                         //Load the configuration
                         var configFile = new FileInfo("TMG.EMME.Test.Configuration.json");
                         if (!configFile.Exists)
@@ -58,17 +60,22 @@ namespace TMG.Emme.Test
                                         reader.Read();
                                         ProjectFile = reader.GetString();
                                     }
+                                    else if (reader.ValueTextEquals(EmmePathProperty))
+                                    {
+                                        reader.Read();
+                                        emmePath = reader.GetString();
+                                    }
                                 }
                             }
                         }
                         // in this case we are debugging the unit test
                         if (Debugger.IsAttached)
                         {
-                            Modeller = new ModellerController(null, ProjectFile, "DEBUG_EMME", launchInNewProcess: false);
+                            Modeller = new ModellerController(null, ProjectFile, "DEBUG_EMME", launchInNewProcess: false, emmePath: emmePath);
                         }
                         else
                         {
-                            Modeller = new ModellerController(null, ProjectFile);
+                            Modeller = new ModellerController(null, ProjectFile, emmePath: emmePath);
                         }
                     }
                 }
