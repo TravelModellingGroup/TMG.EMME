@@ -201,6 +201,50 @@ class AssignTraffic(_m.Tool()):
                     self._tracker.complete_subtask()
 
                     # TODO: # Assign traffic to road network
+                    with _m.logbook_trace("Running Road Assignments."):
+                        path_analysis_is_complete = False
+                        if path_analysis_is_complete is False:
+                            attributes = self._load_attribute_list(
+                                parameters, demand_matrix_list
+                            )
+                            attribute_list = attributes[0]
+                            volume_attribute_list = attributes[1]
+                            mode_list = self._load_mode_list(parameters)
+
+                            spec = self._get_primary_SOLA_spec(
+                                demand_matrix_list,
+                                peak_hour_matrix_list,
+                                applied_toll_factor_list,
+                                mode_list,
+                                volume_attribute_list,
+                                cost_attribute_list,
+                                time_matrix_list,
+                                attribute_list,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                parameters,
+                            )
+
+                            report = self._tracker.run_tool(
+                                traffic_assignment_tool, spec, scenario=scenario
+                            )
+                            # #traffic_assignment_tool(spec, scenario=scenario)
+
+                        checked = self._load_stopping_criteria(report)
+                        number = checked[0]
+                        stopping_criteron = checked[1]
+                        value = checked[2]
+
+                        print("Primary assignment complete at %s iterations." % number)
+                        print(
+                            "Stopping criterion was %s with a value of %s."
+                            % (stopping_criteron, value)
+                        )
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -226,6 +270,49 @@ class AssignTraffic(_m.Tool()):
         }
         return atts
 
+    def _load_attribute_list(self, parameters, demand_matrix_list):
+        attribute_list = []
+        volume_attribute_list = [
+            self.load_attribute_name(volume_attribute["volume_attribute"])
+            for volume_attribute in parameters["traffic_classes"]
+        ]
+        for i in range(len(demand_matrix_list)):
+            attribute_list.append(None)
+        return attribute_list, volume_attribute_list
+
+    def _load_mode_list(self, parameters):
+        mode_list = [mode["mode"] for mode in parameters["traffic_classes"]]
+        return mode_list
+
+    def load_attribute_name(self, at):
+        if at.startswith("@"):
+            return at
+        else:
+            return "@" + at
+
+    def _load_stopping_criteria(self, report):
+        stopping_criteron = report["stopping_criterion"]
+        iterations = report["iterations"]
+        if len(iterations) > 0:
+            final_iteration = iterations[-1]
+        else:
+            final_iteration = {"number": 0}
+            stopping_criteron == "MAX_ITERATIONS"
+        number = final_iteration["number"]
+
+        if stopping_criteron == "MAX_ITERATIONS":
+            value = final_iteration["number"]
+        elif stopping_criteron == "RELATIVE_GAP":
+            value = final_iteration["gaps"]["relative"]
+        elif stopping_criteron == "NORMALIZED_GAP":
+            value = final_iteration["gaps"]["normalized"]
+        elif stopping_criteron == "BEST_RELATIVE_GAP":
+            value = final_iteration["gaps"]["best_relative"]
+        else:
+            value = "undefined"
+
+        return number, stopping_criteron, value
+
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_traffic_class_names(self, parameters):
         traffic_classes = parameters["traffic_classes"]
@@ -234,8 +321,8 @@ class AssignTraffic(_m.Tool()):
 
     def _load_output_matrices(self, parameters, matrix_name=list):
         """
-        This loads all (into a dictionary) output matrices by matrix_name list provided but
-        assigns None to all zero matrices for later initialization
+        Load input matrices creates and loads all (input) matrix into a list based on
+        matrix_name supplied. E.g of matrix_name: "demand_matrix" and matrix_id: "mf2"
         """
         mtx_dict = {}
         traffic_classes = parameters["traffic_classes"]
@@ -247,7 +334,10 @@ class AssignTraffic(_m.Tool()):
         return mtx_dict
 
     def _load_input_matrices(self, parameters, matrix_name):
-        """ """
+        """
+        Load input matrices creates and returns a list of (input) matrices based on matrix_name supplied.
+        E.g of matrix_name: "demand_matrix", matrix_id: "mf2"
+        """
 
         def exception(mtx_id):
             raise Exception("Matrix %s was not found!" % mtx_id)
@@ -265,7 +355,7 @@ class AssignTraffic(_m.Tool()):
     def _init_input_matrices(self, load_input_matrix_list, temp_matrix_list):
         input_matrix_list = []
         for mtx in load_input_matrix_list:
-            if mtx.id == "mf0":
+            if mtx == None:
                 mtx = _util.initialize_matrix(matrix_type="FULL")
                 input_matrix_list.append(_bank.matrix(mtx.id))
                 temp_matrix_list.append(mtx)
@@ -478,6 +568,10 @@ class AssignTraffic(_m.Tool()):
                         self._get_transit_bg_spec(),
                         scenario=scenario,
                     )
+                    extra_parameter_tool = _MODELLER.tool(
+                        "inro.emme.traffic_assignment.set_extra_function_parameters"
+                    )
+                    extra_parameter_tool(el1="@tvph")
                     self._tracker.complete_subtask()
 
     def _calculate_applied_toll_factor(self, parameters):
@@ -494,6 +588,121 @@ class AssignTraffic(_m.Tool()):
         return applied_toll_factor
 
     # ---SPECIFICATION - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    def _get_primary_SOLA_spec(
+        self,
+        demand_matrix_list,
+        peak_hour_matrix_list,
+        applied_toll_factor_list,
+        mode_list,
+        volume_attribute_list,
+        cost_attribute_list,
+        time_matrix_list,
+        attribute_list,
+        matrix_list,
+        operator_list,
+        lower_bound_list,
+        upper_bound_list,
+        selector_list,
+        multiply_path_demand,
+        multiply_path_value,
+        parameters,
+    ):
+        if parameters["performance_flag"] == "true":
+            number_of_processors = multiprocessing.cpu_count()
+        else:
+            number_of_processors = max(multiprocessing.cpu_count() - 1, 1)
+        # Generic Spec for SOLA
+        SOLA_spec = {
+            "type": "SOLA_TRAFFIC_ASSIGNMENT",
+            "classes": [],
+            "path_analysis": None,
+            "cutoff_analysis": None,
+            "traversal_analysis": None,
+            "performance_settings": {"number_of_processors": number_of_processors},
+            "background_traffic": None,
+            "stopping_criteria": {
+                "max_iterations": parameters["iterations"],
+                "relative_gap": parameters["r_gap"],
+                "best_relative_gap": parameters["br_gap"],
+                "normalized_gap": parameters["norm_gap"],
+            },
+        }
+        # SOLA_spec = {
+        #     "type": "SOLA_TRAFFIC_ASSIGNMENT",
+        #     "background_traffic": {
+        #         "turn_component": None,
+        #         "link_component": None,
+        #         "add_transit_vehicles": True,
+        #     },
+        #     "classes": [
+        #         {
+        #             "mode": "c",
+        #             "demand": "mf1",
+        #             "results": {"od_travel_times": {"shortest_paths": "mf13"}},
+        #             "path_analyses": [],
+        #         }
+        #     ],
+        #     "performance_settings": {"number_of_processors": "max"},
+        #     "stopping_criteria": {
+        #         "max_iterations": 1000,
+        #         "relative_gap": 0.0001,
+        #         "best_relative_gap": 0.01,
+        #         "normalized_gap": 0.001,
+        #     },
+        # }
+        SOLA_path_analysis = []
+        for i in range(0, len(demand_matrix_list)):
+            if attribute_list[i] is None:
+                SOLA_path_analysis.append([])
+            else:
+                SOLA_path_analysis.append([])
+                all_none = True
+                for j in range(len(attribute_list[i])):
+                    if attribute_list[i][j] is None:
+                        continue
+                    all_none = False
+                    path = {
+                        "link_component": attribute_list[i][j],
+                        "turn_component": None,
+                        "operator": operator_list[i][j],
+                        "selection_threshold": {
+                            "lower": lower_bound_list[i][j],
+                            "upper": upper_bound_list[i][j],
+                        },
+                        "path_to_od_composition": {
+                            "considered_paths": selector_list[i][j],
+                            "multiply_path_proportions_by": {
+                                "analyzed_demand": multiply_path_demand[i][j],
+                                "path_value": multiply_path_value[i][j],
+                            },
+                        },
+                        "results": {"od_values": matrix_list[i][j]},
+                        "analyzed_demand": None,
+                    }
+                    SOLA_path_analysis[i].append(path)
+                if all_none is True:
+                    SOLA_path_analysis[i] = []
+        SOLA_class_generator = [
+            {
+                "mode": mode_list[i],
+                "demand": peak_hour_matrix_list[i].id,
+                "generalized_cost": {
+                    "link_costs": cost_attribute_list[i].id,
+                    "perception_factor": 1,
+                },
+                "results": {
+                    "link_volumes": volume_attribute_list[i],
+                    "turn_volumes": None,
+                    "od_travel_times": {"shortest_paths": time_matrix_list[i].id},
+                },
+                "path_analyses": SOLA_path_analysis[i],
+            }
+            for i in range(len(mode_list))
+        ]
+        SOLA_spec["classes"] = SOLA_class_generator
+
+        return SOLA_spec
+
     def _get_transit_bg_spec(self):
         return {
             "result": "@tvph",
