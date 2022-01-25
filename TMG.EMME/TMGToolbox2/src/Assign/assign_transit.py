@@ -244,11 +244,6 @@ class AssignTransit(_m.Tool()):
         return atts
 
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    def _load_traffic_class_names(self, parameters):
-        transit_classes = parameters["transit_classes"]
-        class_list = [class_name["name"] for class_name in transit_classes]
-        return class_list
-
     def _load_output_matrices(self, parameters, matrix_name=list):
         """
         This loads all (into a dictionary) output matrices by matrix_name list provided but
