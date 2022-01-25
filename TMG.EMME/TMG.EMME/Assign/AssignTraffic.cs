@@ -32,7 +32,7 @@ namespace TMG.Emme.Assign
     {
         [Parameter(Name = "Background Transit", DefaultValue = "true", Description = "Set this to false to not assign transit vehicles on the roads",
             Index = 0)]
-        public IFunction<string> BackgroundTransit;
+        public IFunction<bool> BackgroundTransit;
 
         [Parameter(Name = "br Gap", DefaultValue = "0", Description = "The minimum gap required to terminate the algorithm.",
             Index = 1)]
@@ -226,7 +226,7 @@ namespace TMG.Emme.Assign
                 writer.WriteNumber("norm_gap", normGap.Invoke());
                 writer.WriteBoolean("performance_flag", PerformanceFlag.Invoke());
                 writer.WriteBoolean("sola_flag", SOLAFlag.Invoke());
-                writer.WriteString("background_transit", BackgroundTransit.Invoke());
+                writer.WriteBoolean("background_transit", BackgroundTransit.Invoke());
                 writer.WriteString("run_title", RunTitle.Invoke());
                 writer.WriteStartArray("traffic_classes");
                 foreach (var trafficClass in TrafficClasses)
