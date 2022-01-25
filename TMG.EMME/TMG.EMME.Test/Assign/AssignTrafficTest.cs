@@ -33,12 +33,12 @@ namespace TMG.Emme.Test.Assign
         public void AssignTraffic()
         {
             Helper.ImportFrabitztownNetwork(1);
-            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_traffic",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
-                    writer.WriteString("background_transit", "true");
+                    writer.WriteBoolean("background_transit", true);
                     writer.WriteNumber("br_gap", 0);
                     writer.WriteNumber("iterations", 100);
                     writer.WriteNumber("norm_gap", 0);
@@ -51,14 +51,14 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteStartObject();
                     writer.WriteString("name", "traffic class 1");
                     writer.WriteString("mode", "c");
-                    writer.WriteString("demand_matrix", "mf1");
+                    writer.WriteString("demand_matrix", "mf10");
                     writer.WriteString("time_matrix", "mf0");
                     writer.WriteString("cost_matrix", "mf4");
                     writer.WriteString("toll_matrix", "mf0");
                     writer.WriteNumber("peak_hour_factor", 1);
                     writer.WriteString("volume_attribute", "@auto_volume1");
                     writer.WriteString("link_toll_attribute", " @toll");
-                    writer.WriteNumber("toll_weight", 0.0);
+                    writer.WriteNumber("toll_weight", 1.0);
                     writer.WriteNumber("link_cost", 0.0);
                     writer.WriteStartArray("path_analyses");
                     writer.WriteStartObject();
@@ -84,7 +84,7 @@ namespace TMG.Emme.Test.Assign
         public void AssignTrafficModule()
         {
             Helper.ImportFrabitztownNetwork(1);
-            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
 
             var pathAnalyses = new[]
             {
@@ -110,14 +110,14 @@ namespace TMG.Emme.Test.Assign
                 {
                     Name = "TrafficClass1",
                     Mode = Helper.CreateParameter('c'),
-                    DemandMatrixNumber = Helper.CreateParameter("mf1"),
+                    DemandMatrixNumber = Helper.CreateParameter("mf10"),
                     TimeMatrix = Helper.CreateParameter("mf0"),
                     CostMatrix = Helper.CreateParameter("mf4"),
                     TollMatrix = Helper.CreateParameter("mf0"),
                     PeakHourFactor = Helper.CreateParameter(1f),
                     VolumeAttribute = Helper.CreateParameter("@auto_volume1"),
                     LinkTollAttribute = Helper.CreateParameter("@toll"),
-                    TollWeight = Helper.CreateParameter(0.0f),
+                    TollWeight = Helper.CreateParameter(1.0f),
                     LinkCost = Helper.CreateParameter(0.0f),
                     PathAnalyses = Helper.CreateParameters(pathAnalyses),
                 }
@@ -125,7 +125,7 @@ namespace TMG.Emme.Test.Assign
             var module = new Emme.Assign.AssignTraffic()
             {
                 Name = "AssignTraffic",
-                BackgroundTransit = Helper.CreateParameter("true"),
+                BackgroundTransit = Helper.CreateParameter(true),
                 brGap = Helper.CreateParameter(0f),
                 Iterations = Helper.CreateParameter(100),
                 normGap = Helper.CreateParameter(0f),

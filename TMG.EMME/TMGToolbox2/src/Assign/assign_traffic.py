@@ -568,7 +568,7 @@ class AssignTraffic(_m.Tool()):
             self._tracker.complete_subtask()
 
     def _calculate_transit_background_traffic(self, scenario, parameters):
-        if parameters["background_transit"].lower() == True:
+        if parameters["background_transit"] == True:
             if int(scenario.element_totals["transit_lines"]) > 0:
                 with _trace("Calculating transit background traffic"):
                     network_calculation_tool(
@@ -583,13 +583,13 @@ class AssignTraffic(_m.Tool()):
 
     def _calculate_applied_toll_factor(self, parameters):
         applied_toll_factor = []
-        for toll_weight in parameters["traffic_classes"]:
-            if toll_weight["toll_weight"] is not None:
+        for tc in parameters["traffic_classes"]:
+            if tc["toll_weight"] is not None:
                 try:
-                    toll_weight = 60 / toll_weight["toll_weight"]
+                    toll_weight = 60 / tc["toll_weight"]
                     applied_toll_factor.append(toll_weight)
                 except ZeroDivisionError:
-                    toll_weight = toll_weight["toll_weight"]
+                    toll_weight = 0
                     applied_toll_factor.append(toll_weight)
         return applied_toll_factor
 
