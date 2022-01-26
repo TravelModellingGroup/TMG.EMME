@@ -423,6 +423,38 @@ def temp_matrix_manager(
 
 # -------------------------------------------------------------------------------------------
 
+
+@contextmanager
+def temporary_matrix_manager():
+    """
+    Matrix objects created & added to this matrix list are deleted when this manager exits.
+    """
+    temp_matrix_list = []
+    try:
+        yield temp_matrix_list
+    finally:
+        for matrix in temp_matrix_list:
+            if matrix is not None:
+                _m.logbook_write("Deleting temporary matrix '%s': " % matrix.id)
+                _MODELLER.emmebank.delete_matrix(matrix.id)
+
+
+@contextmanager
+def temporary_attribute_manager(scenario):
+    temp_attribute_list = []
+    try:
+        yield temp_attribute_list
+    finally:
+        for temp_attribute in temp_attribute_list:
+            if temp_attribute is not None:
+                scenario.delete_extra_attribute(temp_attribute.id)
+                _m.logbook_write(
+                    "Deleted temporary '%s' link attribute" % temp_attribute.id
+                )
+
+
+# -------------------------------------------------------------------------------------------
+
 # @deprecated: In Emme 4.1.2 the indices have been changed
 def fastLoadTransitSegmentAttributes(scenario, list_of_attribtues):
     """

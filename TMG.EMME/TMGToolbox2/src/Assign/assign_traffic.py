@@ -144,7 +144,7 @@ class AssignTraffic(_m.Tool()):
             attributes=self._load_atts(scenario, parameters),
         ):
             self._tracker.reset()
-            with self._temp_matrix_manager() as temp_matrix_list:
+            with _util.temporary_matrix_manager() as temp_matrix_list:
                 demand_matrix_list = self._init_input_matrices(
                     load_input_matrix_list, temp_matrix_list
                 )
@@ -171,7 +171,7 @@ class AssignTraffic(_m.Tool()):
                 )
                 self._tracker.complete_subtask()
 
-                with self._temp_attribute_manager(scenario) as temp_attribute_list:
+                with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
                     time_attribute_list = self._create_time_attribute_list(
                         scenario, demand_matrix_list, temp_attribute_list
                     )
@@ -717,33 +717,6 @@ class AssignTraffic(_m.Tool()):
             "aggregation": {"origins": None, "destinations": None},
             "type": "MATRIX_CALCULATION",
         }
-
-    # ---CONTEXT MANAGERS---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    @contextmanager
-    def _temp_matrix_manager(self):
-        """
-        Matrix objects created & added to this matrix list are deleted when this manager exits.
-        """
-        temp_matrix_list = []
-        try:
-            yield temp_matrix_list
-        finally:
-            for matrix in temp_matrix_list:
-                if matrix is not None:
-                    _write("Deleting temporary matrix '%s': " % matrix.id)
-                    _bank.delete_matrix(matrix.id)
-
-    @contextmanager
-    def _temp_attribute_manager(self, scenario):
-        temp_attribute_list = []
-        try:
-            yield temp_attribute_list
-        finally:
-            for temp_attribute in temp_attribute_list:
-                if temp_attribute is not None:
-                    scenario.delete_extra_attribute(temp_attribute.id)
-                    _write("Deleted temporary '%s' link attribute" % temp_attribute.id)
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
