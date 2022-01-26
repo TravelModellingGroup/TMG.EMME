@@ -259,5 +259,5 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
-/TMG.EMME/TMGToolbox2/TMG_Toolbox.mtbx
 /TMG.EMME/TMGToolbox2/FrabtiztownStopShp
+*.mtbx

@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2019 University of Toronto
+    Copyright 2017-2022 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -107,7 +107,8 @@ namespace TMG.Emme
         #endregion
 
         public ModellerController(IModule caller, string projectFile, string pipeName,
-            bool performanceAnalysis = false, string userInitials = "XTMF", bool launchInNewProcess = true)
+            bool performanceAnalysis = false, string userInitials = "XTMF", bool launchInNewProcess = true, 
+            string databank = null, string emmePath = null)
         {
             if (!projectFile.EndsWith(".emp") | !File.Exists(projectFile))
             {
@@ -122,7 +123,7 @@ namespace TMG.Emme
             //[FullPath...python.exe] -u [FullPath...ModellerBridge.py] [FullPath...EmmeProject.emp] [User initials] [[Performance (optional)]] 
 
             // Get the path of the Python executable
-            string emmePath = Environment.GetEnvironmentVariable("EMMEPATH");
+            emmePath = emmePath ?? Environment.GetEnvironmentVariable("EMMEPATH");
             if (String.IsNullOrWhiteSpace(emmePath))
             {
                 throw new XTMFRuntimeException(caller, "Please make sure that EMMEPATH is on the system environment variables!");
@@ -151,6 +152,10 @@ namespace TMG.Emme
                {
                    //The first argument that gets passed into the Bridge is the name of the Emme project file
                    argumentString += " " + AddQuotes(projectFile) + " " + userInitials + " " + (performanceAnalysis ? 1 : 0) + " \"" + pipeName + "\"";
+                   if (!String.IsNullOrWhiteSpace(databank))
+                   {
+                       argumentString += " " + AddQuotes(databank);
+                   }
                    if (launchInNewProcess)
                    {
                        //Setup up the new process
@@ -187,8 +192,8 @@ namespace TMG.Emme
         /// <param name="projectFile"></param>
         /// <param name="performanceAnalysis"></param>
         /// <param name="userInitials"></param>
-        public ModellerController(IModule caller, string projectFile, bool performanceAnalysis = false, string userInitials = "XTMF")
-            : this(caller, projectFile, Guid.NewGuid().ToString(), performanceAnalysis, userInitials)
+        public ModellerController(IModule caller, string projectFile, bool performanceAnalysis = false, string userInitials = "XTMF", string emmePath = null)
+            : this(caller, projectFile, Guid.NewGuid().ToString(), performanceAnalysis, userInitials, emmePath:emmePath)
         {
 
         }

@@ -47,7 +47,7 @@ Assign V4 Boarding Penalties
 
     1.2.1 Added ability to set Transfer boarding penalties.
 
-    2.0.0 Refacted to work with XTMF2/TMGToolbox2 on 2021-10-12 by williamsDiogu
+    2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2021-10-12 by williamsDiogu
 
     2.0.1 Updated to process scenario numbers as an array instead of parcing strings
 
@@ -60,7 +60,7 @@ from re import split as _regex_split
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
-NullPointerException = _util.NullPointerException
+null_pointer_exception = _util.null_pointer_exception
 
 _m.TupleType = object
 _m.ListType = list
@@ -89,9 +89,9 @@ class AssignVBoardingPenalties(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         """
@@ -162,7 +162,7 @@ class AssignVBoardingPenalties(_m.Tool()):
             if len(self.Scenarios) == 0:
                 raise Exception("No scenarios selected.")
             if self.penalty_filter_string is None:
-                raise NullPointerException("Penalties not specified")
+                raise null_pointer_exception("Penalties not specified")
 
             self._Execute()
         except Exception as e:
@@ -233,27 +233,27 @@ class AssignVBoardingPenalties(_m.Tool()):
     def _ProcessScenario(self, scenario, penaltyFilterList):
         tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 
-        self.TRACKER.startProcess(2 * len(penaltyFilterList) + 2)
+        self.TRACKER.start_process(2 * len(penaltyFilterList) + 2)
 
         with _m.logbook_trace("Resetting UT2 and UT3 to 0"):
             tool(specification=self._GetClearLineSpec("ut2", "0"), scenario=scenario)
             tool(specification=self._GetClearLineSpec("ut3", "0"), scenario=scenario)
-            self.TRACKER.completeSubtask()
+            self.TRACKER.complete_subtask()
 
         for group in penaltyFilterList:
             with _m.logbook_trace("Applying " + group["label"] + " BP"):
                 tool(specification=self._GetGroupSpecInitial(group), scenario=scenario)
                 tool(specification=self._GetGroupSpecTransfer(group), scenario=scenario)
-                self.TRACKER.completeSubtask()
+                self.TRACKER.complete_subtask()
 
         with _m.logbook_trace("Resetting US2 to 1"):
             tool(specification=self._GetClearSegmentSpec("us2", "1"), scenario=scenario)
-            self.TRACKER.completeSubtask()
+            self.TRACKER.complete_subtask()
 
         for group in penaltyFilterList:
             with _m.logbook_trace("Applying " + group["label"] + " IVTT Perception"):
                 tool(specification=self._IVTTPerceptionSpec(group), scenario=scenario)
-                self.TRACKER.completeSubtask()
+                self.TRACKER.complete_subtask()
 
     def _GetClearLineSpec(self, variable, expression):
         return {
@@ -302,7 +302,7 @@ class AssignVBoardingPenalties(_m.Tool()):
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        return self.TRACKER.getProgress()
+        return self.TRACKER.get_progress()
 
     @_m.method(return_type=str)
     def tool_run_msg_status(self):

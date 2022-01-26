@@ -27,26 +27,19 @@ namespace TMG.Emme.Test.Import
         [TestMethod]
         public void ImportBinaryMatrix()
         {
-            Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Import.import_binary_matrix",
-                 JSONParameterBuilder.BuildParameters(writer =>
-                    {
-                        writer.WriteNumber("matrix_type", 4);
-                        writer.WriteNumber("matrix_number", 1);
-                        writer.WriteString("binary_matrix_file", Path.GetFullPath("TestFiles/test.mtx"));
-                        writer.WriteNumber("scenario_number", 1);
-                        writer.WriteString("matrix_description", "Test Matrix");
-                    }), LogbookLevel.Standard));
+            Helper.ImportFrabitztownNetwork(1);
+            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
         }
 
         [TestMethod]
         public void ImportBinaryMatrixModule()
         {
+            Helper.ImportFrabitztownNetwork(1);
             var importModule = new Emme.Import.ImportBinaryMatrix()
             {
                 Name = "Importer",
                 ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
-                MatrixNumber = Helper.CreateParameter(1, "Matrix Number"),
+                MatrixNumber = Helper.CreateParameter(10, "Matrix Number"),
                 FileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.mtx"), "Matrix File Name"),
                 Description = Helper.CreateParameter("Module Loaded", "Description")
             };

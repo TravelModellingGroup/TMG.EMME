@@ -81,9 +81,9 @@ class ImportBinaryMatrix(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.Scenario = _MODELLER.scenario  # Default is primary scenario
@@ -187,7 +187,7 @@ class ImportBinaryMatrix(_m.Tool()):
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        return self.TRACKER.getProgress()
+        return self.TRACKER.get_progress()
 
     @_m.method(return_type=str)
     def tool_run_msg_status(self):
@@ -260,14 +260,14 @@ class ImportBinaryMatrix(_m.Tool()):
             attributes=self._GetAtts(),
         ):
             if self.MatrixId is None:
-                matrix = _util.initializeMatrix(
+                matrix = _util.initialize_matrix(
                     id=self.NewMatrixID,
                     name=self.NewMatrixName,
                     description=self.NewMatrixDescription,
                     matrix_type=self.NewMatrixType,
                 )
             else:
-                matrix = _util.initializeMatrix(self.MatrixId)
+                matrix = _util.initialize_matrix(self.MatrixId)
                 if self.MatrixDescription:
                     matrix.description = self.MatrixDescription
 

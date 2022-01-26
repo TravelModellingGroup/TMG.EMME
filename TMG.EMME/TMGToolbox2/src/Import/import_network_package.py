@@ -104,9 +104,9 @@ class ImportNetworkPackage(_m.Tool()):
     def __init__(self):
 
         # ---Init internal variables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.scenario_description = ""
@@ -616,12 +616,14 @@ class ImportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Reading modes")
     def _batchin_modes(self, scenario, temp_folder, zf):
         fileName = zf.extract(self._components.mode_file, temp_folder)
-        self.TRACKER.runTool(import_modes, transaction_file=fileName, scenario=scenario)
+        self.TRACKER.run_tool(
+            import_modes, transaction_file=fileName, scenario=scenario
+        )
 
     @_m.logbook_trace("Reading vehicles")
     def _batchin_vehicles(self, scenario, temp_folder, zf):
         zf.extract(self._components.vehicles_file, temp_folder)
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             import_vehicles,
             transaction_file=_path.join(temp_folder, self._components.vehicles_file),
             scenario=scenario,
@@ -630,7 +632,7 @@ class ImportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Reading base network")
     def _batchin_base(self, scenario, temp_folder, zf):
         zf.extract(self._components.base_file, temp_folder)
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             import_base,
             transaction_file=_path.join(temp_folder, self._components.base_file),
             scenario=scenario,
@@ -639,7 +641,7 @@ class ImportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Reading link shapes")
     def _batchin_link_shapes(self, scenario, temp_folder, zf):
         zf.extract(self._components.shape_file, temp_folder)
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             import_link_shape,
             transaction_file=_path.join(temp_folder, self._components.shape_file),
             scenario=scenario,
@@ -650,7 +652,7 @@ class ImportNetworkPackage(_m.Tool()):
         zf.extract(self._components.lines_file, temp_folder)
         if self.transit_file_change is True:
             self._transit_line_file_update(temp_folder)
-        self.TRACKER.runTool(
+        self.TRACKER.run_tool(
             import_lines,
             transaction_file=_path.join(temp_folder, self._components.lines_file),
             scenario=scenario,
@@ -662,7 +664,7 @@ class ImportNetworkPackage(_m.Tool()):
             self._components.turns_file in zf.namelist()
         ):
             zf.extract(self._components.turns_file, temp_folder)
-            self.TRACKER.runTool(
+            self.TRACKER.run_tool(
                 import_turns,
                 transaction_file=_path.join(temp_folder, self._components.turns_file),
                 scenario=scenario,
@@ -673,7 +675,7 @@ class ImportNetworkPackage(_m.Tool()):
         types = self._load_extra_attributes(zf, temp_folder, scenario)
         contents = zf.namelist()
         processed = [self._getZipFileName(x) for x in contents]
-        self.TRACKER.startProcess(len(types))
+        self.TRACKER.start_process(len(types))
         for t in types:
             if t == "TRANSIT_SEGMENT":
                 filename = "exatt_segments.241"
@@ -697,7 +699,7 @@ class ImportNetworkPackage(_m.Tool()):
                         field_separator=" ",
                         scenario=scenario,
                     )
-                self.TRACKER.completeSubtask()
+                self.TRACKER.complete_subtask()
 
     @_m.logbook_trace("Reading functions")
     def _batchin_functions(self, temp_folder, zf):
@@ -800,7 +802,7 @@ class ImportNetworkPackage(_m.Tool()):
 
         index, _ = scenario.get_attribute_values("LINK", ["data1"])
         tables = []
-        with _util.tempExtraAttributeMANAGER(
+        with _util.temp_extra_attribute_manager(
             scenario, "LINK", returnId=True
         ) as temp_attribute:
             column_labels = {0: "i_node", 1: "j_node"}
@@ -815,7 +817,7 @@ class ImportNetworkPackage(_m.Tool()):
 
         index, _ = scenario.get_attribute_values("TURN", ["data1"])
         tables = []
-        with _util.tempExtraAttributeMANAGER(
+        with _util.temp_extra_attribute_manager(
             scenario, "TURN", returnId=True
         ) as temp_attribute:
             column_labels = {0: "i_node", 1: "j_node", 2: "k_node"}
@@ -839,7 +841,7 @@ class ImportNetworkPackage(_m.Tool()):
         attribute_names = ["transit_boardings", "transit_time", "transit_volume"]
         index, _ = scenario.get_attribute_values("TRANSIT_SEGMENT", ["data1"])
         tables = []
-        with _util.tempExtraAttributeMANAGER(
+        with _util.temp_extra_attribute_manager(
             scenario, "TRANSIT_SEGMENT", returnId=True
         ) as temp_attribute:
             column_labels = {0: "line", 1: "i_node", 2: "j_node", 3: "loop_idx"}
@@ -870,7 +872,7 @@ class ImportNetworkPackage(_m.Tool()):
             index, _ = scenario.get_attribute_values("LINK", ["data1"])
 
             tables = []
-            with _util.tempExtraAttributeMANAGER(
+            with _util.temp_extra_attribute_manager(
                 scenario, "LINK", returnId=True
             ) as temp_attribute:
                 column_labels = {0: "i_node", 1: "j_node"}
@@ -1061,7 +1063,7 @@ class ImportNetworkPackage(_m.Tool()):
 
     # @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        return self.TRACKER.getProgress()
+        return self.TRACKER.get_progress()
 
     @_m.method(return_type=str)
     def tool_run_msg_status(self):
