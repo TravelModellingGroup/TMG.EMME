@@ -52,9 +52,9 @@ class RotateNetwork(_m.Tool()):
 
     def __init__(self):
         # -- Init internal varaiables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
         # --Set the defaults of parameters used by Modeller
         self.scenario = _MODELLER.scenario  # Default is primary scenario
@@ -187,17 +187,17 @@ class RotateNetwork(_m.Tool()):
             cosTheta = math.cos(angle)
             sinTheta = math.sin(angle)
 
-            self.TRACKER.startProcess(
+            self.TRACKER.start_process(
                 network.element_totals["centroids"]
                 + network.element_totals["regular_nodes"]
             )
             for node in network.nodes():
                 self._RotateNode(node, cosTheta, sinTheta)
-                self.TRACKER.completeSubtask()
+                self.TRACKER.complete_subtask()
             self.TRACKER.completeTask()
             _m.logbook_write("Finished rotating nodes.")
 
-            self.TRACKER.startProcess(network.element_totals["links"])
+            self.TRACKER.start_process(network.element_totals["links"])
             count = 0
             for link in network.links():
                 if len(link.vertices) > 0:
@@ -211,17 +211,17 @@ class RotateNetwork(_m.Tool()):
             delta = self._GetTranslation(referenceVector, anchorVector)
             _m.logbook_write("Translation: %s" % str(delta))
 
-            self.TRACKER.startProcess(
+            self.TRACKER.start_process(
                 network.element_totals["centroids"]
                 + network.element_totals["regular_nodes"]
             )
             for node in network.nodes():
                 self._TranslateNode(node, delta)
-                self.TRACKER.completeSubtask()
+                self.TRACKER.complete_subtask()
             self.TRACKER.completeTask()
             _m.logbook_write("Finished translating nodes.")
 
-            self.TRACKER.startProcess(network.element_totals["links"])
+            self.TRACKER.start_process(network.element_totals["links"])
             count = 0
             for link in network.links():
                 if len(link.vertices) > 0:
@@ -309,7 +309,7 @@ class RotateNetwork(_m.Tool()):
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        return self.TRACKER.getProgress()
+        return self.TRACKER.get_progress()
 
     @_m.method(return_type=str)
     def tool_run_msg_status(self):

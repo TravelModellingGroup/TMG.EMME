@@ -24,12 +24,14 @@ using System.IO;
 using System.Text.Json;
 using XTMF2;
 using XTMF2.RuntimeModules;
+using System.Linq;
 
 namespace TMG.Emme.Test
 {
     internal static class Helper
     {
         private const string ProjectFileProperty = "ProjectFile";
+        private const string EmmePathProperty = "EmmePath";
 
         internal static void InitializeEMME()
         {
@@ -39,6 +41,7 @@ namespace TMG.Emme.Test
                 {
                     if (Modeller == null)
                     {
+                        string emmePath = null;
                         //Load the configuration
                         var configFile = new FileInfo("TMG.EMME.Test.Configuration.json");
                         if (!configFile.Exists)
@@ -52,10 +55,15 @@ namespace TMG.Emme.Test
                             {
                                 if (reader.TokenType == JsonTokenType.PropertyName)
                                 {
-                                    if(reader.ValueTextEquals(ProjectFileProperty))
+                                    if (reader.ValueTextEquals(ProjectFileProperty))
                                     {
                                         reader.Read();
                                         ProjectFile = reader.GetString();
+                                    }
+                                    else if (reader.ValueTextEquals(EmmePathProperty))
+                                    {
+                                        reader.Read();
+                                        emmePath = reader.GetString();
                                     }
                                 }
                             }
@@ -63,11 +71,11 @@ namespace TMG.Emme.Test
                         // in this case we are debugging the unit test
                         if (Debugger.IsAttached)
                         {
-                            Modeller = new ModellerController(null, ProjectFile, "DEBUG_EMME", launchInNewProcess: false);
+                            Modeller = new ModellerController(null, ProjectFile, "DEBUG_EMME", launchInNewProcess: false, emmePath: emmePath);
                         }
                         else
                         {
-                            Modeller = new ModellerController(null, ProjectFile);
+                            Modeller = new ModellerController(null, ProjectFile, emmePath: emmePath);
                         }
                     }
                 }
@@ -84,6 +92,62 @@ namespace TMG.Emme.Test
                 Name = moduleName,
                 Value = value
             };
+        }
+
+        internal static void ImportFrabitztownNetwork(int scenarioNumber)
+        {
+            Helper.ImportNetwork(scenarioNumber, Path.GetFullPath("TestFiles/test.nwp"));
+        }
+
+        internal static void ImportNetwork(int scenarioNumber, string filePath)
+        {
+            Assert.IsTrue(
+               Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
+                JSONParameterBuilder.BuildParameters(writer =>
+                {
+                    writer.WriteString("network_package_file", filePath);
+                    writer.WriteString("scenario_description", "Test Network");
+                    writer.WriteNumber("scenario_number", scenarioNumber);
+                    writer.WriteString("conflict_option", "PRESERVE");
+                }), LogbookLevel.Standard));
+        }
+
+        internal static void ImportBinaryMatrix(int scenarioNumber, int matrixNumber, string filePath)
+        {
+            Assert.IsTrue(
+                Helper.Modeller.Run(null, "tmg2.Import.import_binary_matrix",
+                 JSONParameterBuilder.BuildParameters(writer =>
+                 {
+                     writer.WriteNumber("matrix_type", 4);
+                     writer.WriteNumber("matrix_number", matrixNumber);
+                     writer.WriteString("binary_matrix_file", filePath);
+                     writer.WriteNumber("scenario_number", scenarioNumber);
+                     writer.WriteString("matrix_description", "Test Matrix");
+                 }), LogbookLevel.Standard));
+
+        }
+
+        /// <summary>
+        /// Creates an array of basic parameters with the given values.
+        /// </summary>
+        /// <typeparam name="T">The type of parameter.</typeparam>
+        /// <param name="values">The values to provide</param>
+        /// <param name="moduleNames">Optional the names for all of the parameters</param>
+        /// <returns>An array of basic parameters containing the values.</returns>
+        internal static IFunction<T>[] CreateParameters<T>(T[] values, string[] moduleNames = null)
+        {
+            if (moduleNames != null && moduleNames.Length != values.Length)
+            {
+                throw new ArgumentException("The size of the values and modules names must be the same!", nameof(moduleNames));
+            }
+            return values.Select
+                (
+                (v, i) => new BasicParameter<T>()
+                {
+                    Name = moduleNames?[i] ?? null,
+                    Value = v
+                }
+                ).ToArray();
         }
     }
 }

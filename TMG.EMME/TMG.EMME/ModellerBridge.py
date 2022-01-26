@@ -1,5 +1,5 @@
 ﻿'''
-    Copyright 2014-2019 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2014-2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of XTMF.
 
@@ -125,17 +125,31 @@ class XTMFBridge:
     SignalIncompatibleTool = 15
         
     """Initialize the bridge so that the tools that we run will not accidentally access the standard I/O"""
-    def __init__(self):
+    def __init__(self, databank, TheEmmeEnvironmentXMTF):
         self.CachedLogbookWrite = _m.logbook_write
         self.CachedLogbookTrace = _m.logbook_trace
         
         # Redirect sys.stdout
         sys.stdin.close()
+        terminate = False
+        # Load up Modeller before continuing on
+        try:
+            self.emmeApplication = TheEmmeEnvironmentXMTF
+            if databank is not None:
+                self.SwitchToDatabank(TheEmmeEnvironmentXMTF, databank)
+            self.Modeller = inro.modeller.Modeller(TheEmmeEnvironmentXMTF)
+            _m.logbook_write("Activated modeller from ModellerBridge for XTMF")
+        except:
+            #Terminate the bridge if we are unable to
+            terminate = True
+
         self.XTMFPipe = open('\\\\.\\pipe\\' + pipeName, 'w+b', 0)
         #sys.stdout = NullStream()
         self.IOLock = threading.Lock()
         sys.stdin = None
         sys.stdout = RedirectToXTMFConsole(self)
+        if terminate:
+            exit(-1)
         return
           
     def ReadString(self):
@@ -339,10 +353,16 @@ class XTMFBridge:
             self.SendRuntimeError(msg)
             print (msg)
         return
+
+    def SwitchToDatabank(self, emmeApplication, databankName):
+        databankName = databankName.lower()
+        for db in emmeApplication.data_explorer().databases():
+            if db.name().lower() == databankName:
+                db.open()
+                return
+        self.SendRuntimeError("The databank " + databankName + " does not exist!")
     
-    def Run(self, emmeApplication, performanceMode):
-        self.emmeApplication = emmeApplication
-        self.Modeller = inro.modeller.Modeller(emmeApplication)
+    def Run(self, performanceMode):
         _m.logbook_write("Activated modeller from ModellerBridge for XTMF")
         if performanceMode:
             _m.logbook_write("Performance Testing Activated")
@@ -396,12 +416,15 @@ projectFile = args[1]
 userInitials = args[2]
 performanceFlag = bool(int(args[3]))
 pipeName = args[4]
+databank = None
+if len(args) > 5:
+    databank = args[5]
 #sys.stderr.write(args)
 print (userInitials)
 print (projectFile)
 try:
     TheEmmeEnvironmentXMTF = _app.start_dedicated(visible=False, user_initials=userInitials, project=projectFile)
-    XTMFBridge().Run(TheEmmeEnvironmentXMTF, performanceFlag)
+    XTMFBridge(databank, TheEmmeEnvironmentXMTF).Run(performanceFlag)
     TheEmmeEnvironmentXMTF.close()
 except Exception as e:
     pass

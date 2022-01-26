@@ -65,9 +65,9 @@ class ReverseTransitLines(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.ProgressTracker(
+        self.TRACKER = _util.progress_tracker(
             self.number_of_tasks
-        )  # init the ProgressTracker
+        )  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.scenario = _MODELLER.scenario  # Default is primary scenario
@@ -140,7 +140,7 @@ class ReverseTransitLines(_m.Tool()):
             attributes=self._GetAtts(),
         ):
 
-            with _util.tempExtraAttributeMANAGER(
+            with _util.temp_extra_attribute_manager(
                 self.scenario, "TRANSIT_LINE"
             ) as lineFlagAttribute:
                 self._FlagLines(lineFlagAttribute.id)
@@ -195,7 +195,7 @@ class ReverseTransitLines(_m.Tool()):
         errorLines = []
         reversedLines = []
 
-        self.TRACKER.startProcess(len(linesToReverse))
+        self.TRACKER.start_process(len(linesToReverse))
         for line in linesToReverse:
             try:
                 newId = self._ReverseLine(line, network, attNames)
@@ -203,7 +203,7 @@ class ReverseTransitLines(_m.Tool()):
             except Exception as e:
                 t = line.id, e.__class__.__name__, str(e)
                 errorLines.append(t)
-            self.TRACKER.completeSubtask()
+            self.TRACKER.complete_subtask()
         self.TRACKER.completeTask()
 
         self._WriteMainReport(reversedLines)
@@ -324,7 +324,7 @@ class ReverseTransitLines(_m.Tool()):
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        return self.TRACKER.getProgress()
+        return self.TRACKER.get_progress()
 
     @_m.method(return_type=str)
     def tool_run_msg_status(self):
