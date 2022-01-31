@@ -268,10 +268,10 @@ class AssignTransit(_m.Tool()):
 
         transit_classes = parameters["transit_classes"]
         mtx_name = matrix_name
-        mtx_list = [
-            _bank.matrix(tc[mtx_name])
-            if tc[mtx_name] == "mf0" or _bank.matrix(tc[mtx_name]).id == tc[mtx_name]
-            else exception(tc[mtx_name])
+         mtx_list = [
+            _bank.matrix(tc[matrix_name])
+            if tc[matrix_name] == "mf0" or _bank.matrix(tc[matrix_name]) is not None
+            else exception(tc[matrix_name])
             for tc in transit_classes
         ]
         return mtx_list
