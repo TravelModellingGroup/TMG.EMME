@@ -228,7 +228,6 @@ class AssignTransit(_m.Tool()):
                         effective_headway_attribute_list[0].id,
                     )
                     self._tracker.complete_subtask()
-                    self._assign_walk_perception(scenario, parameters)
                     self._tracker.complete_subtask()
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
