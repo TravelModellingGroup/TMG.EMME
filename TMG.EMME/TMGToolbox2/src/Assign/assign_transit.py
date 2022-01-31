@@ -267,8 +267,7 @@ class AssignTransit(_m.Tool()):
             raise Exception("Matrix %s was not found!" % mtx_id)
 
         transit_classes = parameters["transit_classes"]
-        mtx_name = matrix_name
-         mtx_list = [
+        mtx_list = [
             _bank.matrix(tc[matrix_name])
             if tc[matrix_name] == "mf0" or _bank.matrix(tc[matrix_name]) is not None
             else exception(tc[matrix_name])
