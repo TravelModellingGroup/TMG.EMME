@@ -45,47 +45,24 @@ TMG Transit Assignment Tool
 
     V 2.0.2 Updated to receive JSON file parameters from Python API call
 """
-
 import traceback as _traceback
 import time as _time
 import multiprocessing
 from typing import DefaultDict
 import inro.modeller as _m
 from contextlib import contextmanager
-import random
-import json
-import csv
-
 
 _m.TupleType = object
 _m.ListType = list
 _m.InstanceType = object
-
 _trace = _m.logbook_trace
 _write = _m.logbook_write
 _MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
-_net_edit = _MODELLER.module("tmg2.utilities.network_editing")
-# congestedAssignmentTool = _MODELLER.tool('inro.emme.transit_assignment.congested_transit_assignment')
-_db_utils = _MODELLER.module("inro.emme.utility.database_utilities")
-extended_assignment_tool = _MODELLER.tool(
-    "inro.emme.transit_assignment.extended_transit_assignment"
-)
 network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
-network_results_tool = _MODELLER.tool(
-    "inro.emme.transit_assignment.extended.network_results"
-)
-matrix_results_tool = _MODELLER.tool(
-    "inro.emme.transit_assignment.extended.matrix_results"
-)
-strategy_analysis_tool = _MODELLER.tool(
-    "inro.emme.transit_assignment.extended.strategy_based_analysis"
-)
-matrix_calc_tool = _MODELLER.tool("inro.emme.matrix_calculation.matrix_calculator")
 null_pointer_exception = _util.null_pointer_exception
-
 EMME_VERSION = _util.get_emme_version(tuple)
 
 
@@ -119,9 +96,6 @@ class AssignTransit(_m.Tool()):
             branding_text="- TMG Toolbox",
         )
         return pb.render()
-
-    def run(self):
-        ...
 
     def __call__(self, parameters):
         scenario = self._load_scenario(parameters["scenario_number"])
@@ -245,7 +219,7 @@ class AssignTransit(_m.Tool()):
         return scenario
 
     def _load_atts(self, scenario, parameters):
-        # TODO: Load atts
+        # TODO
         atts = {}
         return atts
 
