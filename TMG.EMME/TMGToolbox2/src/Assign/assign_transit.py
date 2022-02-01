@@ -207,13 +207,21 @@ class AssignTransit(_m.Tool()):
                 self._change_walk_speed(scenario, parameters["walk_speed"])
                 with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
                     effective_headway_attribute_list = (
-                        self._create_effective_headway_attribute_list(
-                            scenario, parameters, temp_attribute_list
+                        self._create_headway_attribute_list(
+                            scenario,
+                            "TRANSIT_LINE",
+                            temp_attribute_list,
+                            default_value=0.0,
+                            hdw_att_name=parameters["effective_headway_attribute"],
                         )
                     )
                     headway_fraction_attribute_list = (
-                        self._create_headway_fraction_attribute_list(
-                            scenario, parameters, temp_attribute_list
+                        self._create_headway_attribute_list(
+                            scenario,
+                            "NODE",
+                            temp_attribute_list,
+                            default_value=0.5,
+                            hdw_att_name=parameters["headway_fraction_attribute"],
                         )
                     )
                     walk_time_peception_attribute_list = (
@@ -410,33 +418,52 @@ class AssignTransit(_m.Tool()):
             temp_matrix_list.append(walk_time_peception_attribute)
         return walk_time_peception_attribute_list
 
-    def _create_headway_fraction_attribute_list(
-        self, scenario, parameters, temp_matrix_list
+    def _create_headway_attribute_list(
+        self,
+        scenario,
+        attribute_type,
+        temp_matrix_list,
+        default_value=0.0,
+        hdw_att_name="",
     ):
-        headway_fraction_attribute_list = []
-        headway_fraction_attribute = self._create_temp_attribute(
+        headway_attribute_list = []
+        headway_attribute = self._create_temp_attribute(
             scenario,
-            str(parameters["headway_fraction_attribute"]),
-            "NODE",
-            default_value=0.5,
+            str(hdw_att_name),
+            str(attribute_type),
+            default_value=default_value,
         )
-        headway_fraction_attribute_list.append(headway_fraction_attribute)
-        temp_matrix_list.append(headway_fraction_attribute)
-        return headway_fraction_attribute_list
+        headway_attribute_list.append(headway_attribute)
+        temp_matrix_list.append(headway_attribute)
+        return headway_attribute_list
 
-    def _create_effective_headway_attribute_list(
-        self, scenario, parameters, temp_matrix_list
-    ):
-        effective_headway_attribute_list = []
-        effective_headway_attribute = self._create_temp_attribute(
-            scenario,
-            str(parameters["effective_headway_attribute"]),
-            "TRANSIT_LINE",
-            default_value=0.0,
-        )
-        effective_headway_attribute_list.append(effective_headway_attribute)
-        temp_matrix_list.append(effective_headway_attribute)
-        return effective_headway_attribute_list
+    # def _create_headway_fraction_attribute_list(
+    #     self, scenario, parameters, temp_matrix_list
+    # ):
+    #     headway_fraction_attribute_list = []
+    #     headway_fraction_attribute = self._create_temp_attribute(
+    #         scenario,
+    #         str(parameters["headway_fraction_attribute"]),
+    #         "NODE",
+    #         default_value=0.5,
+    #     )
+    #     headway_fraction_attribute_list.append(headway_fraction_attribute)
+    #     temp_matrix_list.append(headway_fraction_attribute)
+    #     return headway_fraction_attribute_list
+
+    # def _create_effective_headway_attribute_list(
+    #     self, scenario, parameters, temp_matrix_list
+    # ):
+    #     effective_headway_attribute_list = []
+    #     effective_headway_attribute = self._create_temp_attribute(
+    #         scenario,
+    #         str(parameters["effective_headway_attribute"]),
+    #         "TRANSIT_LINE",
+    #         default_value=0.0,
+    #     )
+    #     effective_headway_attribute_list.append(effective_headway_attribute)
+    #     temp_matrix_list.append(effective_headway_attribute)
+    #     return effective_headway_attribute_list
 
     def _create_temp_attribute(
         self,
@@ -450,14 +477,12 @@ class AssignTransit(_m.Tool()):
         Creates a temporary extra attribute in a given scenario
         """
         ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
-
         attribute_type = str(attribute_type).upper()
         # check if the type provided is correct
         if attribute_type not in ATTRIBUTE_TYPES:
             raise TypeError(
                 "Attribute type '%s' provided is not recognized." % attribute_type
             )
-
         if len(attribute_id) > 18:
             raise ValueError(
                 "Attribute id '%s' can only be 19 characters long with no spaces plus no '@'."
@@ -488,7 +513,6 @@ class AssignTransit(_m.Tool()):
                     default_value
                 )
                 break
-
         msg = "Created temporary extra attribute %s in scenario %s" % (
             attrib_id,
             scenario.id,
@@ -497,7 +521,6 @@ class AssignTransit(_m.Tool()):
             temp_extra_attribute.description = description
             msg += ": %s" % description
         _write(msg)
-
         return temp_extra_attribute
 
     def _assign_effective_headway(
