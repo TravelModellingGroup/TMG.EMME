@@ -437,34 +437,6 @@ class AssignTransit(_m.Tool()):
         temp_matrix_list.append(headway_attribute)
         return headway_attribute_list
 
-    # def _create_headway_fraction_attribute_list(
-    #     self, scenario, parameters, temp_matrix_list
-    # ):
-    #     headway_fraction_attribute_list = []
-    #     headway_fraction_attribute = self._create_temp_attribute(
-    #         scenario,
-    #         str(parameters["headway_fraction_attribute"]),
-    #         "NODE",
-    #         default_value=0.5,
-    #     )
-    #     headway_fraction_attribute_list.append(headway_fraction_attribute)
-    #     temp_matrix_list.append(headway_fraction_attribute)
-    #     return headway_fraction_attribute_list
-
-    # def _create_effective_headway_attribute_list(
-    #     self, scenario, parameters, temp_matrix_list
-    # ):
-    #     effective_headway_attribute_list = []
-    #     effective_headway_attribute = self._create_temp_attribute(
-    #         scenario,
-    #         str(parameters["effective_headway_attribute"]),
-    #         "TRANSIT_LINE",
-    #         default_value=0.0,
-    #     )
-    #     effective_headway_attribute_list.append(effective_headway_attribute)
-    #     temp_matrix_list.append(effective_headway_attribute)
-    #     return effective_headway_attribute_list
-
     def _create_temp_attribute(
         self,
         scenario,
