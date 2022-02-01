@@ -386,17 +386,14 @@ class AssignTransit(_m.Tool()):
 
     def _change_walk_speed(self, scenario, walk_speed):
         with _trace("Setting walk speeds to %s" % walk_speed):
-            self._change_walk_speed_4p1(scenario, walk_speed)
-
-    def _change_walk_speed_4p1(self, scenario, walk_speed):
-        partial_network = scenario.get_partial_network(["MODE"], True)
-        for mode in partial_network.modes():
-            if mode.type != "AUX_TRANSIT":
-                continue
-            mode.speed = walk_speed
-            _write("Changed mode %s" % mode.id)
-        baton = partial_network.get_attribute_values("MODE", ["speed"])
-        scenario.set_attribute_values("MODE", ["speed"], baton)
+            partial_network = scenario.get_partial_network(["MODE"], True)
+            for mode in partial_network.modes():
+                if mode.type != "AUX_TRANSIT":
+                    continue
+                mode.speed = walk_speed
+                _write("Changed mode %s" % mode.id)
+            baton = partial_network.get_attribute_values("MODE", ["speed"])
+            scenario.set_attribute_values("MODE", ["speed"], baton)
 
     def _create_walk_time_peception_attribute_list(
         self, scenario, parameters, temp_matrix_list
