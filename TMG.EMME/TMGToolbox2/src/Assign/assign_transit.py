@@ -160,7 +160,7 @@ class AssignTransit(_m.Tool()):
                 changes = self._heal_travel_time_functions()
                 if changes == 0:
                     _write("No problems were found")
-            with self._temp_matrix_manager() as temp_matrix_list:
+            with _util.temporary_matrix_manager() as temp_matrix_list:
                 # Initialize matrices with matrix ID = "mf0" not loaded in load_input_matrix_list
                 demand_matrix_list = self._init_input_matrices(
                     load_input_matrix_list, temp_matrix_list
@@ -205,7 +205,7 @@ class AssignTransit(_m.Tool()):
                     parameters, temp_matrix_list
                 )
                 self._change_walk_speed(scenario, parameters["walk_speed"])
-                with self._temp_attribute_manager(scenario) as temp_attribute_list:
+                with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
                     effective_headway_attribute_list = (
                         self._create_effective_headway_attribute_list(
                             scenario, parameters, temp_attribute_list
@@ -387,17 +387,16 @@ class AssignTransit(_m.Tool()):
 
     def _change_walk_speed(self, scenario, walk_speed):
         with _trace("Setting walk speeds to %s" % walk_speed):
-            if EMME_VERSION >= (4, 1):
-                self._change_walk_speed_4p1(scenario, walk_speed)
-            else:
-                self._change_walk_speed_4p0(scenario, walk_speed)
+            self._change_walk_speed_4p1(scenario, walk_speed)
+            # else:
+            #     self._change_walk_speed_4p0(scenario, walk_speed)
 
-    def _change_walk_speed_4p0(self, scenario, walk_speed):
-        change_mode_tool = _MODELLER.tool("inro.emme.data.network.mode.change_mode")
-        for mode in scenario.modes():
-            if mode.type != "AUX_TRANSIT":
-                continue
-            change_mode_tool(mode, mode_speed=walk_speed, scenario=scenario)
+    # def _change_walk_speed_4p0(self, scenario, walk_speed):
+    #     change_mode_tool = _MODELLER.tool("inro.emme.data.network.mode.change_mode")
+    #     for mode in scenario.modes():
+    #         if mode.type != "AUX_TRANSIT":
+    #             continue
+    #         change_mode_tool(mode, mode_speed=walk_speed, scenario=scenario)
 
     def _change_walk_speed_4p1(self, scenario, walk_speed):
         partial_network = scenario.get_partial_network(["MODE"], True)
@@ -537,30 +536,30 @@ class AssignTransit(_m.Tool()):
         network_calc_tool(large_headway_spec, scenario)
 
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    @contextmanager
-    def _temp_matrix_manager(self):
-        """
-        Matrix objects created & added to this matrix list are deleted when this manager exits.
-        """
-        temp_matrix_list = []
-        try:
-            yield temp_matrix_list
-        finally:
-            for matrix in temp_matrix_list:
-                if matrix is not None:
-                    _write("Deleting temporary matrix '%s': " % matrix.id)
-                    _bank.delete_matrix(matrix.id)
+    # @contextmanager
+    # def _temp_matrix_manager(self):
+    #     """
+    #     Matrix objects created & added to this matrix list are deleted when this manager exits.
+    #     """
+    #     temp_matrix_list = []
+    #     try:
+    #         yield temp_matrix_list
+    #     finally:
+    #         for matrix in temp_matrix_list:
+    #             if matrix is not None:
+    #                 _write("Deleting temporary matrix '%s': " % matrix.id)
+    #                 _bank.delete_matrix(matrix.id)
 
-    @contextmanager
-    def _temp_attribute_manager(self, scenario):
-        temp_attribute_list = []
-        try:
-            yield temp_attribute_list
-        finally:
-            for temp_attribute in temp_attribute_list:
-                if temp_attribute is not None:
-                    scenario.delete_extra_attribute(temp_attribute.id)
-                    _write("Deleted temporary '%s' link attribute" % temp_attribute.id)
+    # @contextmanager
+    # def _temp_attribute_manager(self, scenario):
+    #     temp_attribute_list = []
+    #     try:
+    #         yield temp_attribute_list
+    #     finally:
+    #         for temp_attribute in temp_attribute_list:
+    #             if temp_attribute is not None:
+    #                 scenario.delete_extra_attribute(temp_attribute.id)
+    #                 _write("Deleted temporary '%s' link attribute" % temp_attribute.id)
 
     @_m.method(return_type=str)
     def get_scenario_node_attributes(self, scenario):
