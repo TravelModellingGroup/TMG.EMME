@@ -228,7 +228,6 @@ class AssignTransit(_m.Tool()):
                         effective_headway_attribute_list[0].id,
                     )
                     self._tracker.complete_subtask()
-                    self._tracker.complete_subtask()
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -388,15 +387,6 @@ class AssignTransit(_m.Tool()):
     def _change_walk_speed(self, scenario, walk_speed):
         with _trace("Setting walk speeds to %s" % walk_speed):
             self._change_walk_speed_4p1(scenario, walk_speed)
-            # else:
-            #     self._change_walk_speed_4p0(scenario, walk_speed)
-
-    # def _change_walk_speed_4p0(self, scenario, walk_speed):
-    #     change_mode_tool = _MODELLER.tool("inro.emme.data.network.mode.change_mode")
-    #     for mode in scenario.modes():
-    #         if mode.type != "AUX_TRANSIT":
-    #             continue
-    #         change_mode_tool(mode, mode_speed=walk_speed, scenario=scenario)
 
     def _change_walk_speed_4p1(self, scenario, walk_speed):
         partial_network = scenario.get_partial_network(["MODE"], True)
@@ -534,67 +524,6 @@ class AssignTransit(_m.Tool()):
         }
         network_calc_tool(small_headway_spec, scenario)
         network_calc_tool(large_headway_spec, scenario)
-
-    # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # @contextmanager
-    # def _temp_matrix_manager(self):
-    #     """
-    #     Matrix objects created & added to this matrix list are deleted when this manager exits.
-    #     """
-    #     temp_matrix_list = []
-    #     try:
-    #         yield temp_matrix_list
-    #     finally:
-    #         for matrix in temp_matrix_list:
-    #             if matrix is not None:
-    #                 _write("Deleting temporary matrix '%s': " % matrix.id)
-    #                 _bank.delete_matrix(matrix.id)
-
-    # @contextmanager
-    # def _temp_attribute_manager(self, scenario):
-    #     temp_attribute_list = []
-    #     try:
-    #         yield temp_attribute_list
-    #     finally:
-    #         for temp_attribute in temp_attribute_list:
-    #             if temp_attribute is not None:
-    #                 scenario.delete_extra_attribute(temp_attribute.id)
-    #                 _write("Deleted temporary '%s' link attribute" % temp_attribute.id)
-
-    @_m.method(return_type=str)
-    def get_scenario_node_attributes(self, scenario):
-        options = ["<option value='-1'>None</option>"]
-        for exatt in scenario.extra_attributes():
-            if exatt.type == "NODE":
-                options.append(
-                    '<option value="%s">%s - %s</option>'
-                    % (exatt.id, exatt.id, exatt.description)
-                )
-        return "\n".join(options)
-
-    @_m.method(return_type=str)
-    def get_scenario_link_attributes(self, scenario, include_none=True):
-        options = []
-        if include_none:
-            options.append("<option value='-1'>None</option>")
-        for exatt in scenario.extra_attributes():
-            if exatt.type == "LINK":
-                options.append(
-                    '<option value="%s">%s - %s</option>'
-                    % (exatt.id, exatt.id, exatt.description)
-                )
-        return "\n".join(options)
-
-    @_m.method(return_type=str)
-    def get_scenario_segment_attribtues(self, scenario):
-        options = []
-        for exatt in scenario.extra_attributes():
-            if exatt.type == "TRANSIT_SEGMENT":
-                options.append(
-                    '<option value="%s">%s - %s</option>'
-                    % (exatt.id, exatt.id, exatt.description)
-                )
-        return "\n".join(options)
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
