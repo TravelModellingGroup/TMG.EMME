@@ -382,11 +382,12 @@ class AssignTransit(_m.Tool()):
     ):
         walk_time_peception_attribute_list = []
         for tc_parameter in parameters["transit_classes"]:
-            walk_time_peception_attribute = self._create_temp_attribute(
+            walk_time_peception_attribute = _util.create_temp_attribute(
                 scenario,
                 str(tc_parameter["walk_time_perception_attribute"]),
                 "LINK",
                 default_value=1.0,
+                assignment_type="transit",
             )
             walk_time_peception_attribute_list.append(walk_time_peception_attribute)
             temp_matrix_list.append(walk_time_peception_attribute)
@@ -401,73 +402,16 @@ class AssignTransit(_m.Tool()):
         hdw_att_name="",
     ):
         headway_attribute_list = []
-        headway_attribute = self._create_temp_attribute(
+        headway_attribute = _util.create_temp_attribute(
             scenario,
             str(hdw_att_name),
             str(attribute_type),
             default_value=default_value,
+            assignment_type="transit",
         )
         headway_attribute_list.append(headway_attribute)
         temp_matrix_list.append(headway_attribute)
         return headway_attribute_list
-
-    def _create_temp_attribute(
-        self,
-        scenario,
-        attribute_id,
-        attribute_type,
-        description=None,
-        default_value=0.0,
-    ):
-        """
-        Creates a temporary extra attribute in a given scenario
-        """
-        ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
-        attribute_type = str(attribute_type).upper()
-        # check if the type provided is correct
-        if attribute_type not in ATTRIBUTE_TYPES:
-            raise TypeError(
-                "Attribute type '%s' provided is not recognized." % attribute_type
-            )
-        if len(attribute_id) > 18:
-            raise ValueError(
-                "Attribute id '%s' can only be 19 characters long with no spaces plus no '@'."
-                % attribute_id
-            )
-        prefix = str(attribute_id)
-        attrib_id = ""
-        while True:
-            if prefix.startswith("@"):
-                attrib_id = "%s" % (prefix)
-            else:
-                attrib_id = "@%s" % (prefix)
-            checked_extra_attribute = scenario.extra_attribute(attrib_id)
-            if checked_extra_attribute == None:
-                temp_extra_attribute = scenario.create_extra_attribute(
-                    attribute_type, attrib_id, default_value
-                )
-                break
-            elif (
-                checked_extra_attribute != None
-                and checked_extra_attribute.extra_attribute_type == attribute_type
-            ):
-                raise Exception(
-                    "Attribute %s already exist or has some issues!" % attrib_id
-                )
-            else:
-                temp_extra_attribute = scenario.extra_attribute(attrib_id).initialize(
-                    default_value
-                )
-                break
-        msg = "Created temporary extra attribute %s in scenario %s" % (
-            attrib_id,
-            scenario.id,
-        )
-        if description:
-            temp_extra_attribute.description = description
-            msg += ": %s" % description
-        _write(msg)
-        return temp_extra_attribute
 
     def _assign_effective_headway(
         self, scenario, parameters, effective_headway_attribute_id

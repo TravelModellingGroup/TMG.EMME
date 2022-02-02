@@ -423,7 +423,7 @@ def temp_matrix_manager(
 
 
 # -------------------------------------------------------------------------------------------
-def _create_temp_attribute(
+def create_temp_attribute(
     scenario,
     attribute_id,
     attribute_type,
@@ -525,7 +525,7 @@ def process_traffic_attribute(scenario, prefix, attribute_type, default_value):
             temp_traffic_attrib = scenario.create_extra_attribute(
                 attribute_type, traffic_attrib_id, default_value
             )
-            _write("Created extra attribute '@tvph'")
+            _m.logbook_write("Created extra attribute '@tvph'")
         else:
             temp_traffic_attrib = scenario.extra_attribute(
                 traffic_attrib_id
