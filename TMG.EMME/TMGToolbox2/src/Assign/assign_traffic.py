@@ -413,8 +413,8 @@ class AssignTraffic(_m.Tool()):
         self, scenario, demand_matrix_list, temp_attribute_list
     ):
         time_attribute_list = []
-        time_attribute = self._create_temp_attribute(
-            scenario, "ltime", "LINK", default_value=0.0
+        time_attribute = _util.create_temp_attribute(
+            scenario, "ltime", "LINK", default_value=0.0, assignment_type="traffic"
         )
         time_attribute_list = len(demand_matrix_list) * [time_attribute]
         for att in time_attribute_list:
@@ -427,11 +427,8 @@ class AssignTraffic(_m.Tool()):
         cost_attribute_list = []
         count = 0
         while count < len(demand_matrix_list):
-            cost_attribute = self._create_temp_attribute(
-                scenario,
-                "lkcst",
-                "LINK",
-                default_value=0.0,
+            cost_attribute = _util.create_temp_attribute(
+                scenario, "lkcst", "LINK", default_value=0.0, assignment_type="traffic"
             )
             cost_attribute_list.append(cost_attribute)
             temp_attribute_list.append(cost_attribute)
@@ -441,8 +438,8 @@ class AssignTraffic(_m.Tool()):
     def create_transit_traffic_attribute_list(
         self, scenario, demand_matrix_list, temp_attribute_list
     ):
-        t_traffic_attribute = self._create_temp_attribute(
-            scenario, "tvph", "LINK", default_value=0.0
+        t_traffic_attribute = _util.create_temp_attribute(
+            scenario, "tvph", "LINK", default_value=0.0, assignment_type="traffic"
         )
         transit_traffic_attribute_list = len(demand_matrix_list) * [t_traffic_attribute]
         for att in transit_traffic_attribute_list:
@@ -463,71 +460,6 @@ class AssignTraffic(_m.Tool()):
             scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
         else:
             scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
-
-    def _create_temp_attribute(
-        self,
-        scenario,
-        attribute_id,
-        attribute_type,
-        description=None,
-        default_value=0.0,
-    ):
-        """
-        Creates a temporary extra attribute in a given scenario
-        """
-        ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
-
-        attribute_type = str(attribute_type).upper()
-        # check if the type provided is correct
-        if attribute_type not in ATTRIBUTE_TYPES:
-            raise TypeError(
-                "Attribute type '%s' provided is recognized." % attribute_type
-            )
-
-        if len(attribute_id) > 18:
-            raise ValueError(
-                "Attribute id '%s' can only be 19 characters long with no spaces plus  no '@'."
-                % attribute_id
-            )
-        prefix = str(attribute_id)
-        attrib_id = ""
-        if prefix != "@tvph" and prefix != "tvph":
-            while True:
-                suffix = random.randint(1, 999999)
-                if prefix.startswith("@"):
-                    attrib_id = "%s%s" % (prefix, suffix)
-                else:
-                    attrib_id = "@%s%s" % (prefix, suffix)
-
-                if scenario.extra_attribute(attrib_id) is None:
-                    temp_extra_attribute = scenario.create_extra_attribute(
-                        attribute_type, attrib_id, default_value
-                    )
-                    break
-        else:
-            attrib_id = prefix
-            if prefix.startswith("@"):
-                attrib_id = "%s" % (prefix)
-            else:
-                attrib_id = "@%s" % (prefix)
-
-            if scenario.extra_attribute(attrib_id) is None:
-                temp_extra_attribute = scenario.create_extra_attribute(
-                    attribute_type, attrib_id, default_value
-                )
-                _write("Created extra attribute '@tvph'")
-            else:
-                temp_extra_attribute = scenario.extra_attribute(attrib_id).initialize(0)
-
-        msg = "Created temporary extra attribute %s in scenario %s" % (
-            attrib_id,
-            scenario.id,
-        )
-        if description:
-            temp_extra_attribute.description = description
-            msg += ": %s" % description
-        _write(msg)
-        return temp_extra_attribute
 
     # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _calculate_link_cost(
