@@ -210,6 +210,9 @@ class AssignTransit(_m.Tool()):
                         effective_headway_attribute_list[0].id,
                     )
                     self._tracker.complete_subtask()
+                    self._assign_walk_perception(scenario, parameters)
+                    if parameters["node_logit_scale"] is not False:
+                        self._publish_network(scenario)
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -434,6 +437,56 @@ class AssignTransit(_m.Tool()):
         }
         network_calc_tool(small_headway_spec, scenario)
         network_calc_tool(large_headway_spec, scenario)
+
+    def _assign_walk_perception(self, scenario, parameters):
+        transit_classes = parameters["transit_classes"]
+        for tc in transit_classes:
+            walk_time_perception_attribute = tc["walk_time_perception_attribute"]
+            exatt = scenario.extra_attribute(walk_time_perception_attribute)
+            exatt.initialize(1.0)
+
+        def apply_selection(val, selection):
+            spec = {
+                "result": walk_time_perception_attribute,
+                "expression": str(val),
+                "aggregation": None,
+                "selections": {"link": selection},
+                "type": "NETWORK_CALCULATION",
+            }
+            network_calc_tool(spec, scenario)
+
+        with _trace("Assigning perception factors"):
+            for tc in transit_classes:
+                for wp in tc["walk_perceptions"]:
+                    selection = str(wp["filter"])
+                    value = str(wp["walk_perception_value"])
+                    apply_selection(value, selection)
+
+    def _publish_network(self, scenario):
+        network = scenario.get_network()
+        for node in network.regular_nodes():
+            node.data1 = 0
+            agency_counter = 0
+            agencies = set()
+            if node.number > 99999:
+                continue
+            for link in node.incoming_links():
+                if link.i_node.is_centroid is True:
+                    node.data1 = -1
+                if link.i_node.number > 99999:
+                    agency_counter += 1
+            for link in node.outgoing_links():
+                if link.j_node.is_centroid is True:
+                    node.data1 = -1
+            if agency_counter > 1:
+                node.data1 = -1
+                for link in node.incoming_links():
+                    if link.i_node.number > 99999:
+                        link.i_node.data1 = -1
+                for link in node.outgoing_links():
+                    if link.j_node.number > 99999:
+                        link.j_node.data1 = -1
+        scenario.publish_network(network)
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
