@@ -39,7 +39,7 @@ TMG Transit Assignment Tool
     
     V 1.0.0 
 
-    V 2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2021-12-15 by williamsDiogu      
+    V 2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2021-12-15 by williamsDiogu   
 
     V 2.0.1 Updated to receive JSON object parameters from XTMX2
 
@@ -198,8 +198,8 @@ class AssignTransit(_m.Tool()):
                             hdw_att_name=parameters["headway_fraction_attribute"],
                         )
                     )
-                    walk_time_peception_attribute_list = (
-                        self._create_walk_time_peception_attribute_list(
+                    walk_time_perception_attribute_list = (
+                        self._create_walk_time_perception_attribute_list(
                             scenario, parameters, temp_attribute_list
                         )
                     )
@@ -287,12 +287,12 @@ class AssignTransit(_m.Tool()):
                 impedance_matrix_list.append(matrix)
             else:
                 _write(
-                    "Creating temporary Impendence Matrix for class %s"
+                    "Creating temporary Impedance Matrix for class %s"
                     % tc_parameter["name"]
                 )
                 matrix = _util.initialize_matrix(
                     default=0.0,
-                    description="Temporary Impedence for class %s"
+                    description="Temporary Impedance for class %s"
                     % tc_parameter["name"],
                     matrix_type="FULL",
                 )
@@ -380,21 +380,21 @@ class AssignTransit(_m.Tool()):
             baton = partial_network.get_attribute_values("MODE", ["speed"])
             scenario.set_attribute_values("MODE", ["speed"], baton)
 
-    def _create_walk_time_peception_attribute_list(
+    def _create_walk_time_perception_attribute_list(
         self, scenario, parameters, temp_matrix_list
     ):
-        walk_time_peception_attribute_list = []
+        walk_time_perception_attribute_list = []
         for tc_parameter in parameters["transit_classes"]:
-            walk_time_peception_attribute = _util.create_temp_attribute(
+            walk_time_perception_attribute = _util.create_temp_attribute(
                 scenario,
                 str(tc_parameter["walk_time_perception_attribute"]),
                 "LINK",
                 default_value=1.0,
                 assignment_type="transit",
             )
-            walk_time_peception_attribute_list.append(walk_time_peception_attribute)
-            temp_matrix_list.append(walk_time_peception_attribute)
-        return walk_time_peception_attribute_list
+            walk_time_perception_attribute_list.append(walk_time_perception_attribute)
+            temp_matrix_list.append(walk_time_perception_attribute)
+        return walk_time_perception_attribute_list
 
     def _create_headway_attribute_list(
         self,
@@ -442,8 +442,8 @@ class AssignTransit(_m.Tool()):
         transit_classes = parameters["transit_classes"]
         for tc in transit_classes:
             walk_time_perception_attribute = tc["walk_time_perception_attribute"]
-            exatt = scenario.extra_attribute(walk_time_perception_attribute)
-            exatt.initialize(1.0)
+            ex_att = scenario.extra_attribute(walk_time_perception_attribute)
+            ex_att.initialize(1.0)
 
         def apply_selection(val, selection):
             spec = {
@@ -469,7 +469,7 @@ class AssignTransit(_m.Tool()):
 
         Run:
             - set "node_logit_scale" parameter = TRUE, to run Logit Discrete Choice Model
-            - set "node_logit_scale" parameter = FALSE, to run Optimal Strategy
+            - set "node_logit_scale" parameter = FALSE, to run Optimal Strategy Transit Assignment
 
             ** This method only runs when node logit scale is not FALSE
 
@@ -479,20 +479,17 @@ class AssignTransit(_m.Tool()):
         Implementation Notes:
             - Regular nodes that are centroids are used as choice points:
 
-                ** Node attributes are set to -1 to apply logit disctribution to efficient connectors
+                ** Node attributes are set to -1 to apply logit distribution to efficient connectors
                    (connectors that bring travellers closer to destination) only. Setting node attributes
                    to 1 apply same to all connectors.
 
-                    *** Outgoing link connector attributes must be set to -1 to override flo connectors with fixed proportions.
+                    *** Outgoing link connector attributes must be set to -1 to override flow connectors with fixed proportions.
 
-        NOTE:
-        Optimal Strategy Transit Assigntment makes it difficult to :
-            * keep track of and maintain choice model structure, alternatives, and utilities
-            * compute the resulting choice probabilities and demand shares
         """
         network = scenario.get_network()
         for node in network.regular_nodes():
             node.data1 = 0
+        for node in network.regular_nodes():
             agency_counter = 0
             if node.number > 99999:
                 continue
@@ -504,6 +501,7 @@ class AssignTransit(_m.Tool()):
             for link in node.outgoing_links():
                 if link.j_node.is_centroid is True:
                     node.data1 = -1
+            # Overring flow connectors with fixed proportion
             if agency_counter > 1:
                 node.data1 = -1
                 for link in node.incoming_links():
