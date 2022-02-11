@@ -39,7 +39,7 @@ TMG Transit Assignment Tool
     
     V 1.0.0 
 
-    V 2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2021-12-15 by williamsDiogu      
+    V 2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2021-12-15 by williamsDiogu   
 
     V 2.0.1 Updated to receive JSON object parameters from XTMX2
 
@@ -198,8 +198,8 @@ class AssignTransit(_m.Tool()):
                             hdw_att_name=parameters["headway_fraction_attribute"],
                         )
                     )
-                    walk_time_peception_attribute_list = (
-                        self._create_walk_time_peception_attribute_list(
+                    walk_time_perception_attribute_list = (
+                        self._create_walk_time_perception_attribute_list(
                             scenario, parameters, temp_attribute_list
                         )
                     )
@@ -210,6 +210,9 @@ class AssignTransit(_m.Tool()):
                         effective_headway_attribute_list[0].id,
                     )
                     self._tracker.complete_subtask()
+                    self._assign_walk_perception(scenario, parameters)
+                    if parameters["node_logit_scale"] is not False:
+                        self._publish_efficient_connector_network(scenario)
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -284,12 +287,12 @@ class AssignTransit(_m.Tool()):
                 impedance_matrix_list.append(matrix)
             else:
                 _write(
-                    "Creating temporary Impendence Matrix for class %s"
+                    "Creating temporary Impedance Matrix for class %s"
                     % tc_parameter["name"]
                 )
                 matrix = _util.initialize_matrix(
                     default=0.0,
-                    description="Temporary Impedence for class %s"
+                    description="Temporary Impedance for class %s"
                     % tc_parameter["name"],
                     matrix_type="FULL",
                 )
@@ -377,21 +380,21 @@ class AssignTransit(_m.Tool()):
             baton = partial_network.get_attribute_values("MODE", ["speed"])
             scenario.set_attribute_values("MODE", ["speed"], baton)
 
-    def _create_walk_time_peception_attribute_list(
+    def _create_walk_time_perception_attribute_list(
         self, scenario, parameters, temp_matrix_list
     ):
-        walk_time_peception_attribute_list = []
+        walk_time_perception_attribute_list = []
         for tc_parameter in parameters["transit_classes"]:
-            walk_time_peception_attribute = _util.create_temp_attribute(
+            walk_time_perception_attribute = _util.create_temp_attribute(
                 scenario,
                 str(tc_parameter["walk_time_perception_attribute"]),
                 "LINK",
                 default_value=1.0,
                 assignment_type="transit",
             )
-            walk_time_peception_attribute_list.append(walk_time_peception_attribute)
-            temp_matrix_list.append(walk_time_peception_attribute)
-        return walk_time_peception_attribute_list
+            walk_time_perception_attribute_list.append(walk_time_perception_attribute)
+            temp_matrix_list.append(walk_time_perception_attribute)
+        return walk_time_perception_attribute_list
 
     def _create_headway_attribute_list(
         self,
@@ -434,6 +437,79 @@ class AssignTransit(_m.Tool()):
         }
         network_calc_tool(small_headway_spec, scenario)
         network_calc_tool(large_headway_spec, scenario)
+
+    def _assign_walk_perception(self, scenario, parameters):
+        transit_classes = parameters["transit_classes"]
+        for tc in transit_classes:
+            walk_time_perception_attribute = tc["walk_time_perception_attribute"]
+            ex_att = scenario.extra_attribute(walk_time_perception_attribute)
+            ex_att.initialize(1.0)
+
+        def apply_selection(val, selection):
+            spec = {
+                "result": walk_time_perception_attribute,
+                "expression": str(val),
+                "aggregation": None,
+                "selections": {"link": selection},
+                "type": "NETWORK_CALCULATION",
+            }
+            network_calc_tool(spec, scenario)
+
+        with _trace("Assigning perception factors"):
+            for tc in transit_classes:
+                for wp in tc["walk_perceptions"]:
+                    selection = str(wp["filter"])
+                    value = str(wp["walk_perception_value"])
+                    apply_selection(value, selection)
+
+    def _publish_efficient_connector_network(self, scenario):
+        """
+        Creates a network that completely replaces the scenario network in memory/disk, with
+        one that allows for the use of a logit distribution at specified choice points.
+
+        Run:
+            - set "node_logit_scale" parameter = TRUE, to run Logit Discrete Choice Model
+            - set "node_logit_scale" parameter = FALSE, to run Optimal Strategy Transit Assignment
+
+            ** This method only runs when node logit scale is not FALSE
+
+        Args:
+            - scenario: The Emme Scenario object to load network from and to
+
+        Implementation Notes:
+            - Regular nodes that are centroids are used as choice points:
+
+                ** Node attributes are set to -1 to apply logit distribution to efficient connectors
+                   (connectors that bring travellers closer to destination) only. Setting node attributes
+                   to 1 apply same to all connectors.
+
+                    *** Outgoing link connector attributes must be set to -1 to override flow connectors with fixed proportions.
+
+        """
+        network = scenario.get_network()
+        for node in network.regular_nodes():
+            node.data1 = 0
+        for node in network.regular_nodes():
+            agency_counter = 0
+            if node.number > 99999:
+                continue
+            for link in node.incoming_links():
+                if link.i_node.is_centroid is True:
+                    node.data1 = -1
+                if link.i_node.number > 99999:
+                    agency_counter += 1
+            for link in node.outgoing_links():
+                if link.j_node.is_centroid is True:
+                    node.data1 = -1
+            if agency_counter > 1:
+                node.data1 = -1
+                for link in node.incoming_links():
+                    if link.i_node.number > 99999:
+                        link.i_node.data1 = -1
+                for link in node.outgoing_links():
+                    if link.j_node.number > 99999:
+                        link.j_node.data1 = -1
+        scenario.publish_network(network)
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
