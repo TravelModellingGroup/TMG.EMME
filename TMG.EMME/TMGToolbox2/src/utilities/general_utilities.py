@@ -487,7 +487,7 @@ def process_transit_attribute(scenario, prefix, attribute_type, default_value):
             break
         elif (
             checked_extra_attribute != None
-            and checked_extra_attribute.extra_attribute_type == attribute_type
+            and checked_extra_attribute.type == attribute_type
         ):
             raise Exception(
                 "Attribute %s already exist or has some issues!" % transit_attrib_id
