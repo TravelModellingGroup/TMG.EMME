@@ -477,7 +477,7 @@ class AssignTransit(_m.Tool()):
             - scenario: The Emme Scenario object to load network from and to
 
         Implementation Notes:
-            - Regular nodes thaa are centroids are used as choice points:
+            - Regular nodes that are centroids are used as choice points:
 
                 ** Node attributes are set to -1 to apply logit disctribution to efficient connectors
                    (connectors that bring travellers closer to destination) only. Setting node attributes
