@@ -212,7 +212,7 @@ class AssignTransit(_m.Tool()):
                     self._tracker.complete_subtask()
                     self._assign_walk_perception(scenario, parameters)
                     if parameters["node_logit_scale"] is not False:
-                        self._publish_network(scenario)
+                        self._publish_efficient_connector_network(scenario)
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_scenario(self, scenario_number):
@@ -462,12 +462,38 @@ class AssignTransit(_m.Tool()):
                     value = str(wp["walk_perception_value"])
                     apply_selection(value, selection)
 
-    def _publish_network(self, scenario):
+    def _publish_efficient_connector_network(self, scenario):
+        """
+        Creates a network that completely replaces the scenario network in memory/disk, with
+        one that allows for the use of a logit distribution at specified choice points.
+
+        Run:
+            - set "node_logit_scale" parameter = TRUE, to run Logit Discrete Choice Model
+            - set "node_logit_scale" parameter = FALSE, to run Optimal Strategy
+
+            ** This method only runs when node logit scale is not FALSE
+
+        Args:
+            - scenario: The Emme Scenario object to load network from and to
+
+        Implementation Notes:
+            - Regular nodes thaa are centroids are used as choice points:
+
+                ** Node attributes are set to -1 to apply logit disctribution to efficient connectors
+                   (connectors that bring travellers closer to destination) only. Setting node attributes
+                   to 1 apply same to all connectors.
+
+                    *** Outgoing link connector attributes must be set to -1 to override flo connectors with fixed proportions.
+
+        NOTE:
+        Optimal Strategy Transit Assigntment makes it difficult to :
+            * keep track of and maintain choice model structure, alternatives, and utilities
+            * compute the resulting choice probabilities and demand shares
+        """
         network = scenario.get_network()
         for node in network.regular_nodes():
             node.data1 = 0
             agency_counter = 0
-            agencies = set()
             if node.number > 99999:
                 continue
             for link in node.incoming_links():
