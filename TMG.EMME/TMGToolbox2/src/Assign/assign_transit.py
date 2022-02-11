@@ -501,7 +501,6 @@ class AssignTransit(_m.Tool()):
             for link in node.outgoing_links():
                 if link.j_node.is_centroid is True:
                     node.data1 = -1
-            # Overring flow connectors with fixed proportion
             if agency_counter > 1:
                 node.data1 = -1
                 for link in node.incoming_links():
