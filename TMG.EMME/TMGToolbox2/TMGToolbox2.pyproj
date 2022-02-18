@@ -45,7 +45,7 @@
     <Compile Include="src\Export\export_matching_emme_nodes_for_gtfs_stops.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="src\Export\extract_boarding_and_alighting.py" />
+    <Compile Include="src\Export\export_boarding_and_alighting.py" />
     <Compile Include="src\Filter\filter_gtfs_for_service_id_and_routes.py" />
     <Compile Include="src\Import\import_binary_matrix.py" />
     <Compile Include="src\Import\import_network_package.py">

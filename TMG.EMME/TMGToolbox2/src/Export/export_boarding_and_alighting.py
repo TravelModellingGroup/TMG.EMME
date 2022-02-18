@@ -6,7 +6,7 @@ _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 _bank = _MODELLER.emmebank
 
 
-class ExportBoardingAndAlighting(_m.Tool()):
+class ExtractBoardingAndAlighting(_m.Tool()):
     version = "1.0.0"
     tool_run_msg = ""
     # For progress reporting, enter the integer number of tasks here

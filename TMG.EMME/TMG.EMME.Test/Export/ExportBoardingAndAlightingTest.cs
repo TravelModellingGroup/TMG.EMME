@@ -19,13 +19,13 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 
-namespace TMG.Emme.Test.Analyze
+namespace TMG.Emme.Test.Export
 {
     [TestClass]
-    public class ExtractBoardingAndAlightingTest : TestBase
+    public class ExportBoardingAndAlightingTest : TestBase
     {
         [TestMethod]
-        public void ExtractBoardingAndAlighting()
+        public void ExportBoardingAndAlighting()
         {
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Analyze.extract_boarding_and_alighting",
@@ -40,7 +40,7 @@ namespace TMG.Emme.Test.Analyze
         [TestMethod]
         public void ExtractBoardingAndAlightingModule()
         {
-            var module = new Emme.Analyze.ExtractBoardingAndAlighting()
+            var module = new Emme.Export.ExportBoardingAndAlighting()
             {
                 Name = "ExtractBoardingAndAlighting",
                 ScenarioNumber = Helper.CreateParameter(1),

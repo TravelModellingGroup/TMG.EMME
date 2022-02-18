@@ -23,11 +23,11 @@ using System.Text;
 using TMG.Emme;
 using XTMF2;
 
-namespace TMG.Emme.Analyze
+namespace TMG.Emme.Export
 {
-    [Module(Name = "Extract Boarding And Alighting", Description = "This tool extracts the total boarding and alighting for each transit stop of intrest in a given scenario..",
+    [Module(Name = "Export Boarding And Alighting", Description = "This tool extracts the total boarding and alighting for each transit stop of intrest in a given scenario..",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class ExtractBoardingAndAlighting : BaseAction<ModellerController>
+    public class ExportBoardingAndAlighting : BaseAction<ModellerController>
     {
         [Parameter(Name = "Scenario Number", Description = "The scenario number to extract transit information from.",
             Index = 0)]
@@ -43,7 +43,7 @@ namespace TMG.Emme.Analyze
 
         public override void Invoke(ModellerController context)
         {
-            context.Run(this, "tmg2.Analyze.extract_boarding_and_alighting", JSONParameterBuilder.BuildParameters(writer =>
+            context.Run(this, "tmg2.Export.export_boarding_and_alighting", JSONParameterBuilder.BuildParameters(writer =>
                     {
                         writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                         writer.WriteString("export_file", Path.GetFullPath(SaveTo.Invoke()));
