@@ -4,6 +4,26 @@ import csv
 
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 _bank = _MODELLER.emmebank
+_util = _MODELLER.module("tmg2.utilities.general_utilities")
+# ---LICENSE----------------------
+"""
+    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+
+    This file is part of the TMG Toolbox.
+
+    The TMG Toolbox is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    The TMG Toolbox is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
 
 class ExportBoardingAndAlighting(_m.Tool()):
@@ -14,7 +34,6 @@ class ExportBoardingAndAlighting(_m.Tool()):
     parameters = _m.Attribute(str)
 
     def __init__(self):
-        self._tracker = _util.progress_tracker(self.number_of_tasks)
         self.scenario = _MODELLER.scenario
 
     def page(self):
@@ -55,7 +74,7 @@ class ExportBoardingAndAlighting(_m.Tool()):
             csv_input_file = csv.reader(input_file)
             node_frm_file_dict = self._load_node_from_file(csv_input_file)
             scenario_board_alight_dict = self._get_boarding_alighting(regular_nodes)
-            with open("outputs.csv", "w", newline="") as output_file:
+            with open(parameters["export_file.csv"], "w", newline="") as output_file:
                 fields = ["node_id", "boardings", "alightings", "x", "y", "station"]
                 csv_file_writer = csv.writer(output_file)
                 csv_file_writer.writerow(fields)
