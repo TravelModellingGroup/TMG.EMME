@@ -1,4 +1,3 @@
-from platform import node
 import inro.modeller as _m
 import csv
 
@@ -74,7 +73,7 @@ class ExportBoardingAndAlighting(_m.Tool()):
             csv_input_file = csv.reader(input_file)
             node_frm_file_dict = self._load_node_from_file(csv_input_file)
             scenario_board_alight_dict = self._get_boarding_alighting(regular_nodes)
-            with open(parameters["export_file.csv"], "w", newline="") as output_file:
+            with open(parameters["export_file"], "w", newline="") as output_file:
                 fields = ["node_id", "boardings", "alightings", "x", "y", "station"]
                 csv_file_writer = csv.writer(output_file)
                 csv_file_writer.writerow(fields)
@@ -124,7 +123,7 @@ class ExportBoardingAndAlighting(_m.Tool()):
         )
         return boarding_alighting_dict
 
-    def _write_boarding_and_alighting_to_file(ba_dict, csv_file_writer):
+    def _write_boarding_and_alighting_to_file(self, ba_dict, csv_file_writer):
         for key in ba_dict:
             rows = [
                 key,
