@@ -46,7 +46,7 @@ class ExportBoardingAndAlighting(_m.Tool()):
         return pb.render()
 
     def __call__(self, parameters):
-        scenario = self._load_scenario(parameters["scenario_number"])
+        scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
@@ -54,7 +54,6 @@ class ExportBoardingAndAlighting(_m.Tool()):
 
     def run_xtmf(self, parameters):
         scenario = self._load_scenario(parameters["scenario_number"])
-
         try:
             self._execute(scenario, parameters)
         except Exception as e:
@@ -65,7 +64,6 @@ class ExportBoardingAndAlighting(_m.Tool()):
         network = scenario.get_network()
 
         # Load transit segments and regular nodes
-        transit_segments = network.transit_segments()
         regular_nodes = network.regular_nodes()
 
         # Open file and read containing desired node ids, descriptions(station names)
@@ -82,12 +80,6 @@ class ExportBoardingAndAlighting(_m.Tool()):
                     scenario_board_alight_dict, node_frm_file_dict
                 )
                 self._write_boarding_and_alighting_to_file(ba_dict, csv_file_writer)
-
-    def _load_scenario(self, scenario_number):
-        scenario = _bank.scenario(scenario_number)
-        if scenario is None:
-            raise Exception("Scenario %s was not found!" % scenario_number)
-        return scenario
 
     def _load_node_from_file(self, csv_file_to_read_from):
         node_dict = {}

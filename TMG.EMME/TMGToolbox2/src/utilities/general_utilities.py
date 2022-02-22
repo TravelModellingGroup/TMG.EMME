@@ -620,6 +620,14 @@ def fastLoadTransitSegmentAttributes(scenario, list_of_attribtues):
 
 
 # -------------------------------------------------------------------------------------------
+def load_scenario(self, scenario_number):
+    scenario = _MODELLER.emmebank.scenario(scenario_number)
+    if scenario is None:
+        raise Exception("Scenario %s was not found!" % scenario_number)
+    return scenario
+
+
+# -------------------------------------------------------------------------------------------
 
 
 def fastLoadSummedSegmentAttributes(scenario, list_of_attributes):
