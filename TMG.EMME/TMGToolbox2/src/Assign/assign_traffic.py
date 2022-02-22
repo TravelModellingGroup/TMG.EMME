@@ -107,14 +107,14 @@ class AssignTraffic(_m.Tool()):
         return pb.render()
 
     def __call__(self, parameters):
-        scenario = self._load_scenario(parameters["scenario_number"])
+        scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
     def run_xtmf(self, parameters):
-        scenario = self._load_scenario(parameters["scenario_number"])
+        scenario = _util.load_scenario(parameters["scenario_number"])
 
         try:
             self._execute(scenario, parameters)
@@ -241,22 +241,16 @@ class AssignTraffic(_m.Tool()):
                             )
                         checked = self._load_stopping_criteria(report)
                         number = checked[0]
-                        stopping_criteron = checked[1]
+                        stopping_criterion = checked[1]
                         value = checked[2]
 
                         print("Primary assignment complete at %s iterations." % number)
                         print(
                             "Stopping criterion was %s with a value of %s."
-                            % (stopping_criteron, value)
+                            % (stopping_criterion, value)
                         )
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    def _load_scenario(self, scenario_number):
-        scenario = _m.Modeller().emmebank.scenario(scenario_number)
-        if scenario is None:
-            raise Exception("Scenario %s was not found!" % scenario_number)
-        return scenario
-
     def _load_atts(self, scenario, parameters):
         traffic_classes = parameters["traffic_classes"]
         time_matrix_ids = [mtx["time_matrix"] for mtx in traffic_classes]
@@ -326,25 +320,25 @@ class AssignTraffic(_m.Tool()):
         return mode_list
 
     def _load_stopping_criteria(self, report):
-        stopping_criteron = report["stopping_criterion"]
+        stopping_criterion = report["stopping_criterion"]
         iterations = report["iterations"]
         if len(iterations) > 0:
             final_iteration = iterations[-1]
         else:
             final_iteration = {"number": 0}
-            stopping_criteron == "MAX_ITERATIONS"
+            stopping_criterion == "MAX_ITERATIONS"
         number = final_iteration["number"]
-        if stopping_criteron == "MAX_ITERATIONS":
+        if stopping_criterion == "MAX_ITERATIONS":
             value = final_iteration["number"]
-        elif stopping_criteron == "RELATIVE_GAP":
+        elif stopping_criterion == "RELATIVE_GAP":
             value = final_iteration["gaps"]["relative"]
-        elif stopping_criteron == "NORMALIZED_GAP":
+        elif stopping_criterion == "NORMALIZED_GAP":
             value = final_iteration["gaps"]["normalized"]
-        elif stopping_criteron == "BEST_RELATIVE_GAP":
+        elif stopping_criterion == "BEST_RELATIVE_GAP":
             value = final_iteration["gaps"]["best_relative"]
         else:
             value = "undefined"
-        return number, stopping_criteron, value
+        return number, stopping_criterion, value
 
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

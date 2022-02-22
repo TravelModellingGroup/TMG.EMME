@@ -1,9 +1,3 @@
-import inro.modeller as _m
-import csv
-
-_MODELLER = _m.Modeller()  # Instantiate Modeller once.
-_bank = _MODELLER.emmebank
-_util = _MODELLER.module("tmg2.utilities.general_utilities")
 # ---LICENSE----------------------
 """
     Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
@@ -23,6 +17,11 @@ _util = _MODELLER.module("tmg2.utilities.general_utilities")
     You should have received a copy of the GNU General Public License
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 """
+import inro.modeller as _m
+import csv
+
+_MODELLER = _m.Modeller()  # Instantiate Modeller once.
+_util = _MODELLER.module("tmg2.utilities.general_utilities")
 
 
 class ExportBoardingAndAlighting(_m.Tool()):
@@ -52,8 +51,15 @@ class ExportBoardingAndAlighting(_m.Tool()):
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
+    def run(self, parameters):
+        scenario = _util.load_scenario(parameters["scenario_number"])
+        try:
+            self._execute(scenario, parameters)
+        except Exception as e:
+            raise Exception(_util.format_reverse_stack())
+
     def run_xtmf(self, parameters):
-        scenario = self._load_scenario(parameters["scenario_number"])
+        scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
