@@ -41,6 +41,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="src\Export\export_binary_matrix.py" />
+    <Compile Include="src\Export\export_boarding_and_alighting.py" />
     <Compile Include="src\Export\export_network_package.py" />
     <Compile Include="src\Export\export_matching_emme_nodes_for_gtfs_stops.py">
       <SubType>Code</SubType>
