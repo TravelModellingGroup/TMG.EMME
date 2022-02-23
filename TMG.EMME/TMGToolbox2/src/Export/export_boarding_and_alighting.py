@@ -68,26 +68,25 @@ class ExportBoardingAndAlighting(_m.Tool()):
     def _execute(self, scenario, parameters):
         # Get network from scenario
         network = scenario.get_network()
-
         # Load transit segments and regular nodes
         regular_nodes = network.regular_nodes()
-
         # Open file and read containing desired node ids, descriptions(station names)
         with open(parameters["input_file"], "r") as input_file:
             csv_input_file = csv.reader(input_file)
             node_frm_file_dict = self._load_node_from_file(csv_input_file)
             scenario_board_alight_dict = self._get_boarding_alighting(regular_nodes)
+            # Write output file with fields ["node_id", "boardings", "alightings", "x", "y", "station"]
             with open(parameters["export_file"], "w", newline="") as output_file:
                 fields = ["node_id", "boardings", "alightings", "x", "y", "station"]
                 csv_file_writer = csv.writer(output_file)
                 csv_file_writer.writerow(fields)
-
                 ba_dict = self._find_boarding_alighting(
                     scenario_board_alight_dict, node_frm_file_dict
                 )
                 self._write_boarding_and_alighting_to_file(ba_dict, csv_file_writer)
 
     def _load_node_from_file(self, csv_file_to_read_from):
+        # Reads the list of nodes and description (e.g. station names) provided in input file
         node_dict = {}
         for lines in csv_file_to_read_from:
             node_id = lines[0]
@@ -98,6 +97,7 @@ class ExportBoardingAndAlighting(_m.Tool()):
         return node_dict
 
     def _get_boarding_alighting(self, regular_nodes):
+        # Sums up all boardings and alightngs for each outgoing segments at a node
         board_alight_dict = {}
         for node in regular_nodes:
             if node["@stop"] >= 1:
@@ -113,6 +113,7 @@ class ExportBoardingAndAlighting(_m.Tool()):
         return board_alight_dict
 
     def _find_boarding_alighting(self, scenario_board_alight_dict, node_frm_file_dict):
+        # Returns only stops specified by the user
         boarding_alighting_dict = dict(
             [
                 (k, scenario_board_alight_dict[k] + node_frm_file_dict[k])
@@ -122,6 +123,7 @@ class ExportBoardingAndAlighting(_m.Tool()):
         return boarding_alighting_dict
 
     def _write_boarding_and_alighting_to_file(self, ba_dict, csv_file_writer):
+        # Writes summed up boardings, alightings, coordinates and id of each stop of interest to file
         for key in ba_dict:
             rows = [
                 key,
