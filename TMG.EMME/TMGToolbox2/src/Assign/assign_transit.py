@@ -98,14 +98,14 @@ class AssignTransit(_m.Tool()):
         return pb.render()
 
     def __call__(self, parameters):
-        scenario = self._load_scenario(parameters["scenario_number"])
+        scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
     def run_xtmf(self, parameters):
-        scenario = self._load_scenario(parameters["scenario_number"])
+        scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
@@ -215,12 +215,6 @@ class AssignTransit(_m.Tool()):
                         self._publish_efficient_connector_network(scenario)
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    def _load_scenario(self, scenario_number):
-        scenario = _m.Modeller().emmebank.scenario(scenario_number)
-        if scenario is None:
-            raise Exception("Scenario %s was not found!" % scenario_number)
-        return scenario
-
     def _load_atts(self, scenario, parameters):
         # TODO
         atts = {}
