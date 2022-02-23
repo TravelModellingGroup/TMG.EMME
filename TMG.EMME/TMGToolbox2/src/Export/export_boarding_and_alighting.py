@@ -108,8 +108,8 @@ class ExportBoardingAndAlighting(_m.Tool()):
                     trans_boarding = segment.transit_boardings
                     boardings += trans_boarding
                     alightings += segment["@alightings"]
-                rows = [boardings, alightings, node.x, node.y]
-                board_alight_dict[node.id] = rows
+                column = [boardings, alightings, node.x, node.y]
+                board_alight_dict[node.id] = column
         return board_alight_dict
 
     def _find_boarding_alighting(self, scenario_board_alight_dict, node_frm_file_dict):
@@ -125,7 +125,7 @@ class ExportBoardingAndAlighting(_m.Tool()):
     def _write_boarding_and_alighting_to_file(self, ba_dict, csv_file_writer):
         # Writes summed up boardings, alightings, coordinates and id of each stop of interest to file
         for key in ba_dict:
-            rows = [
+            row = [
                 key,
                 ba_dict[key][0],
                 ba_dict[key][1],
@@ -133,4 +133,4 @@ class ExportBoardingAndAlighting(_m.Tool()):
                 ba_dict[key][3],
                 ba_dict[key][4],
             ]
-            csv_file_writer.writerow(rows)
+            csv_file_writer.writerow(row)
