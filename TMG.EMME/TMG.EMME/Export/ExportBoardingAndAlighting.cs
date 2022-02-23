@@ -26,7 +26,7 @@ using XTMF2;
 namespace TMG.Emme.Export
 {
     [Module(Name = "Export Boarding And Alighting", Description = "This tool extracts the total boarding and alighting for each transit stop of intrest in a given scenario..",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+        DocumentationLink = "https://tmg.utoronto.ca/doc/2.0/tmgtoolbox2_emme/tools/Export/ExportBoardingAndAlighting.html")]
     public class ExportBoardingAndAlighting : BaseAction<ModellerController>
     {
         [Parameter(Name = "Scenario Number", Description = "The scenario number to extract transit information from.",
