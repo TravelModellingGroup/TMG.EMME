@@ -73,7 +73,7 @@ class ExportBoardingAndAlighting(_m.Tool()):
         # Check if scenario has transit results
         if scenario.has_transit_results:
             # check which input file to use
-            checked = parameters["use_input_file"]
+            checked = parameters["write_to_file"]
             if checked == False:
                 self.get_node_id_and_label(parameters, network)
         else:
@@ -146,10 +146,10 @@ class ExportBoardingAndAlighting(_m.Tool()):
             ]
             csv_file_writer.writerow(row)
 
-    def get_node_id_and_label(self, parameters, network):
+    def write_node_id_and_label(self, parameters, network):
         regular_nodes = network.regular_nodes()
         with open(parameters["input_file"], "w") as file:
             file.write("id, stations \n")
             for node in regular_nodes:
                 if node["@stop"] >= 1:
-                    file.write("%s, %s \n" % (node.id, ""))
+                    file.write("%s, %s \n" % (node.id, node.label if node.label != "" else ""))
