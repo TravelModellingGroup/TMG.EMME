@@ -70,6 +70,17 @@ class ExportBoardingAndAlighting(_m.Tool()):
         network = scenario.get_network()
         # Load transit segments and regular nodes
         regular_nodes = network.regular_nodes()
+        # Check if scenario has transit results
+        if scenario.has_transit_results:
+            # check which input file to use
+            checked = parameters["use_input_file"]
+            if checked == False:
+                self.get_node_id_and_label(parameters, network)
+        else:
+            raise Exception(
+                "Network in Scenario %s do not have transit results!"
+                % parameters["scenario_number"]
+            )
         # Open file and read containing desired node ids, descriptions(station names)
         with open(parameters["input_file"], "r") as input_file:
             csv_input_file = csv.reader(input_file)
@@ -134,3 +145,11 @@ class ExportBoardingAndAlighting(_m.Tool()):
                 ba_dict[key][4],
             ]
             csv_file_writer.writerow(row)
+
+    def get_node_id_and_label(self, parameters, network):
+        regular_nodes = network.regular_nodes()
+        with open(parameters["input_file"], "w") as file:
+            file.write("id, stations \n")
+            for node in regular_nodes:
+                if node["@stop"] >= 1:
+                    file.write("%s, %s \n" % (node.id, ""))
