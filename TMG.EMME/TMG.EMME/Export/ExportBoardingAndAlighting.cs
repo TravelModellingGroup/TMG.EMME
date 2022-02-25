@@ -41,6 +41,10 @@ namespace TMG.Emme.Export
             Index = 2)]
         public IFunction<string> SaveTo;
 
+        [Parameter(Name = "Use Input File", Description = "Tell the tool if you want your input file used or what to create yours",
+            Index = 3)]
+        public IFunction<bool> UseInputFile;
+
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Export.export_boarding_and_alighting", JSONParameterBuilder.BuildParameters(writer =>
@@ -48,6 +52,7 @@ namespace TMG.Emme.Export
                         writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                         writer.WriteString("export_file", Path.GetFullPath(SaveTo.Invoke()));
                         writer.WriteString("binary_matrix_file", Path.GetFullPath(FileLocation.Invoke()));
+                        writer.WriteBoolean("use_input_file", UseInputFile.Invoke());
                     }), LogbookLevel.Standard);
         }
     }
