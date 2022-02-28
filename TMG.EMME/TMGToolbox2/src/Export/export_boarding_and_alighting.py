@@ -75,28 +75,26 @@ class ExportBoardingAndAlighting(_m.Tool()):
             # check which input file to use
             checked = parameters["write_to_file"]
             if checked == False:
-                self.get_node_id_and_label(parameters, network)
-
+                self.write_node_id_and_label(parameters, network)
             # Open file and read containing desired node ids, descriptions(station names)
             with open(parameters["input_file"], "r") as input_file:
                 csv_input_file = csv.reader(input_file)
                 node_frm_file_dict = self._load_node_from_file(csv_input_file)
                 scenario_board_alight_dict = self._get_boarding_alighting(regular_nodes)
                 # Write output file with fields ["node_id", "boardings", "alightings", "x", "y", "station"]
-                with open(parameters["export_file"], "w", newline="") as output_file:
-                    fields = ["node_id", "boardings", "alightings", "x", "y", "station"]
-                    csv_file_writer = csv.writer(output_file)
-                    csv_file_writer.writerow(fields)
-                    ba_dict = self._find_boarding_alighting(
-                        scenario_board_alight_dict, node_frm_file_dict
-                    )
-                    self._write_boarding_and_alighting_to_file(ba_dict, csv_file_writer)
+            with open(parameters["export_file"], "w", newline="") as output_file:
+                fields = ["node_id", "boardings", "alightings", "x", "y", "station"]
+                csv_file_writer = csv.writer(output_file)
+                csv_file_writer.writerow(fields)
+                ba_dict = self._find_boarding_alighting(
+                    scenario_board_alight_dict, node_frm_file_dict
+                )
+                self._write_boarding_and_alighting_to_file(ba_dict, csv_file_writer)
         else:
             raise Exception(
                 "Network in Scenario %s do not have transit results!"
                 % parameters["scenario_number"]
             )
-        
 
     def _load_node_from_file(self, csv_file_to_read_from):
         # Reads the list of nodes and description (e.g. station names) provided in input file
@@ -154,6 +152,4 @@ class ExportBoardingAndAlighting(_m.Tool()):
             file.write("id, stations \n")
             for node in regular_nodes:
                 if node["@stop"] >= 1:
-                    file.write(
-                        "%s, %s \n" % (node.id, node.label if node.label != 0 else "")
-                    )
+                    file.write("%s, %s \n" % (node.id, node.label))

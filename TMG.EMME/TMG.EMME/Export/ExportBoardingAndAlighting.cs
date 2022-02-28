@@ -51,7 +51,7 @@ namespace TMG.Emme.Export
                     {
                         writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                         writer.WriteString("export_file", Path.GetFullPath(SaveTo.Invoke()));
-                        writer.WriteString("binary_matrix_file", Path.GetFullPath(FileLocation.Invoke()));
+                        writer.WriteString("input_file", Path.GetFullPath(FileLocation.Invoke()));
                         writer.WriteBoolean("write_to_file", WriteToFile.Invoke());
                     }), LogbookLevel.Standard);
         }
