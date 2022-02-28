@@ -152,4 +152,6 @@ class ExportBoardingAndAlighting(_m.Tool()):
             file.write("id, stations \n")
             for node in regular_nodes:
                 if node["@stop"] >= 1:
-                    file.write("%s, %s \n" % (node.id, node.label if node.label != 0 else ""))
+                    file.write(
+                        "%s, %s \n" % (node.id, node.label if node.label != 0 else "")
+                    )

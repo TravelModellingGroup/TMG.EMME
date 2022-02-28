@@ -34,7 +34,7 @@ namespace TMG.Emme.Test.Export
                      writer.WriteNumber("scenario_number", 1);
                      writer.WriteString("input_file", Path.GetFullPath("TestFiles/inputs.csv"));
                      writer.WriteString("export_file", Path.GetFullPath("OutputTestFiles/board_alight_at_stops.csv"));
-                     writer.WriteBoolean("file_to_write", false);
+                     writer.WriteBoolean("write_to_file", false);
                  }), LogbookLevel.Standard));
         }
 
@@ -47,7 +47,7 @@ namespace TMG.Emme.Test.Export
                 ScenarioNumber = Helper.CreateParameter(1),
                 FileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/inputs.csv"), "Transit Stop File Name"),
                 SaveTo = Helper.CreateParameter("OutputTestFiles/board_alight_at_stops.csv"),
-                FileToWrite = Helper.CreateParameter(false)
+                WriteToFile = Helper.CreateParameter(false)
             };
             module.Invoke(Helper.Modeller);
         }
