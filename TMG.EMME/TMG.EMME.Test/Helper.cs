@@ -127,6 +127,109 @@ namespace TMG.Emme.Test
 
         }
 
+        internal static void RunAssignTransit()
+        {
+            Assert.IsTrue(
+                Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
+                JSONParameterBuilder.BuildParameters(writer =>
+                {
+                    writer.WriteBoolean("calculate_congested_ivtt_flag", true);
+                    writer.WriteBoolean("node_logit_scale", true);
+                    writer.WriteString("effective_headway_attribute", "@ehdw1");
+                    writer.WriteNumber("effective_headway_slope", 0.165f);
+                    writer.WriteString("headway_fraction_attribute", "@frac1");
+                    writer.WriteNumber("iterations", 100);
+                    writer.WriteNumber("norm_gap", 0.0f);
+                    writer.WriteNumber("rel_gap", 0.0f);
+                    writer.WriteNumber("scenario_number", 1);
+                    writer.WriteNumber("walk_speed", 0.0f);
+                    writer.WriteStartArray("transit_classes");
+                    writer.WriteStartObject();
+                    writer.WriteString("name", "transit_class_1");
+                    writer.WriteString("board_penalty_matrix", "mf0");
+                    writer.WriteNumber("board_penalty_perception", 1.0f);
+                    writer.WriteString("congestion_matrix", "mf0");
+                    writer.WriteString("demand_matrix", "mf0");
+                    writer.WriteString("fare_matrix", "mf0");
+                    writer.WriteNumber("fare_perception", 0.0f);
+                    writer.WriteString("in_vehicle_time_matrix", "mf0");
+                    writer.WriteString("impedance_matrix", "mf0");
+                    writer.WriteString("link_fare_attribute_id", "@lfare1");
+                    writer.WriteString("mode", "*");
+                    writer.WriteString("perceived_travel_time_matrix", "mf0");
+                    writer.WriteString("segment_fare_attribute", "@sfare1");
+                    writer.WriteNumber("wait_time_perception", 0.0f);
+                    writer.WriteString("wait_time_matrix", "mf0");
+                    writer.WriteString("walk_time_perception_attribute", "@walkp1");
+                    writer.WriteString("walk_time_matrix", "mf0");
+                    writer.WriteStartArray("walk_perceptions");
+                    writer.WriteStartObject();
+                    writer.WriteString("filter", "i=10000,20000 or j=10000,20000 or i=97000,98000 or j=97000,98000");
+                    writer.WriteNumber("walk_perception_value", 1.8f);
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();
+                    writer.WriteString("congestion_exponent", "");
+                    writer.WriteNumber("assignment_period", 0.0f);
+                    writer.WriteString("name_string", "");
+                    writer.WriteString("congested_assignment", "");
+                    writer.WriteString("csvfile", "");
+                    writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
+                    writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
+                    writer.WriteString("surface_transit_speed", "");
+                    writer.WriteBoolean("walk_all_way_flag", false);
+                    writer.WriteString("xrow_ttf_range", "");
+                }), LogbookLevel.Standard));
+        }
+
+        internal static void RunAssignTraffic()
+        {
+            Assert.IsTrue(
+                Helper.Modeller.Run(null, "tmg2.Assign.assign_traffic",
+                JSONParameterBuilder.BuildParameters(writer =>
+                {
+                    writer.WriteBoolean("background_transit", true);
+                    writer.WriteNumber("br_gap", 0);
+                    writer.WriteNumber("iterations", 100);
+                    writer.WriteNumber("norm_gap", 0);
+                    writer.WriteBoolean("performance_flag", true);
+                    writer.WriteNumber("r_gap", 0);
+                    writer.WriteString("run_title", "road assignment");
+                    writer.WriteNumber("scenario_number", 1);
+                    writer.WriteBoolean("sola_flag", true);
+                    writer.WriteStartArray("traffic_classes");
+                    writer.WriteStartObject();
+                    writer.WriteString("name", "traffic class 1");
+                    writer.WriteString("mode", "c");
+                    writer.WriteString("demand_matrix", "mf10");
+                    writer.WriteString("time_matrix", "mf0");
+                    writer.WriteString("cost_matrix", "mf4");
+                    writer.WriteString("toll_matrix", "mf0");
+                    writer.WriteNumber("peak_hour_factor", 1);
+                    writer.WriteString("volume_attribute", "@auto_volume1");
+                    writer.WriteString("link_toll_attribute", " @toll");
+                    writer.WriteNumber("toll_weight", 1.0);
+                    writer.WriteNumber("link_cost", 0.0);
+                    writer.WriteStartArray("path_analyses");
+                    writer.WriteStartObject();
+                    writer.WriteString("attribute_id", "1");
+                    writer.WriteString("aggregation_matrix", "");
+                    writer.WriteString("aggregation_operator", "max");
+                    writer.WriteString("lower_bound", "7");
+                    writer.WriteString("upper_bound", "7");
+                    writer.WriteString("path_selection", "all");
+                    writer.WriteString("multiply_path_prop_by_demand", "7");
+                    writer.WriteString("multiply_path_prop_by_value", "7");
+                    writer.WriteString("analysis_attributes", "");
+                    writer.WriteString("analysis_attributes_matrix", "mf0");
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();
+                }), LogbookLevel.Standard));
+        }
+
         /// <summary>
         /// Creates an array of basic parameters with the given values.
         /// </summary>
