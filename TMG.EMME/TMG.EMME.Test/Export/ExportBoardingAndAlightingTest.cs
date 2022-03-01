@@ -27,6 +27,8 @@ namespace TMG.Emme.Test.Export
         [TestMethod]
         public void ExportBoardingAndAlighting()
         {
+            Helper.RunAssignTraffic(1, "mf9");
+            Helper.RunAssignTransit(1, "mf10");
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Export.export_boarding_and_alighting",
                  JSONParameterBuilder.BuildParameters(writer =>
@@ -34,20 +36,22 @@ namespace TMG.Emme.Test.Export
                      writer.WriteNumber("scenario_number", 1);
                      writer.WriteString("input_file", Path.GetFullPath("TestFiles/inputs.csv"));
                      writer.WriteString("export_file", Path.GetFullPath("OutputTestFiles/board_alight_at_stops.csv"));
-                     writer.WriteBoolean("file_to_write", false);
+                     writer.WriteBoolean("write_to_file", false);
                  }), LogbookLevel.Standard));
         }
 
         [TestMethod]
         public void ExportBoardingAndAlightingModule()
         {
+            Helper.RunAssignTraffic(1, "mf9");
+            Helper.RunAssignTransit(1, "mf10");
             var module = new Emme.Export.ExportBoardingAndAlighting()
             {
                 Name = "ExportBoardingAndAlighting",
                 ScenarioNumber = Helper.CreateParameter(1),
                 FileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/inputs.csv"), "Transit Stop File Name"),
                 SaveTo = Helper.CreateParameter("OutputTestFiles/board_alight_at_stops.csv"),
-                FileToWrite = Helper.CreateParameter(false)
+                WriteToFile = Helper.CreateParameter(false)
             };
             module.Invoke(Helper.Modeller);
         }

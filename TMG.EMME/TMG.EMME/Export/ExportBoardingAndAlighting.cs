@@ -41,9 +41,9 @@ namespace TMG.Emme.Export
             Index = 2)]
         public IFunction<string> SaveTo;
 
-        [Parameter(Name = "Use Input File", Description = "Tell the tool if you want your input file used or what to create yours",
+        [Parameter(Name = "Write to File", Description = "Tell the tool if you want your input file used or what to create yours",
             Index = 3)]
-        public IFunction<bool> FileToWrite;
+        public IFunction<bool> WriteToFile;
 
         public override void Invoke(ModellerController context)
         {
@@ -51,8 +51,8 @@ namespace TMG.Emme.Export
                     {
                         writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                         writer.WriteString("export_file", Path.GetFullPath(SaveTo.Invoke()));
-                        writer.WriteString("binary_matrix_file", Path.GetFullPath(FileLocation.Invoke()));
-                        writer.WriteBoolean("file_to_write", FileToWrite.Invoke());
+                        writer.WriteString("input_file", Path.GetFullPath(FileLocation.Invoke()));
+                        writer.WriteBoolean("write_to_file", WriteToFile.Invoke());
                     }), LogbookLevel.Standard);
         }
     }
