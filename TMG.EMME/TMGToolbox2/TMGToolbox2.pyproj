@@ -13,7 +13,7 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterId>Global|VisualStudio|Python37</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>"..\TMG.EMME.Test\bin\$(Configuration)\net6.0\JackAnalysis\JackAnalysis.emp" XTMF 0 DEBUG_EMME</CommandLineArguments>
+    <CommandLineArguments>"..\TMG.EMME.Test\bin\$(Configuration)\net6.0\DebugProject\DebugProject.emp" XTMF 0 DEBUG_EMME</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <Environment>Path="C:\Program Files\INRO\Emme\Emme 4\Emme-4.6.0\Python37";C:\Program Files\INRO\Emme\Emme 4\Emme-4.6.0\programs"</Environment>
   </PropertyGroup>
