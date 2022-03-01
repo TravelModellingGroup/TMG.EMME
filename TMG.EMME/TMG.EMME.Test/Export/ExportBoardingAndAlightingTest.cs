@@ -27,7 +27,7 @@ namespace TMG.Emme.Test.Export
         [TestMethod]
         public void ExportBoardingAndAlighting()
         {
-            Helper.RunAssignTransit();
+            Helper.RunAssignTransit(1, "mf10");
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Export.export_boarding_and_alighting",
                  JSONParameterBuilder.BuildParameters(writer =>
@@ -42,7 +42,7 @@ namespace TMG.Emme.Test.Export
         [TestMethod]
         public void ExportBoardingAndAlightingModule()
         {
-            Helper.RunAssignTransit();
+            Helper.RunAssignTransit(1, "mf9");
             var module = new Emme.Export.ExportBoardingAndAlighting()
             {
                 Name = "ExportBoardingAndAlighting",

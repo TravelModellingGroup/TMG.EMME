@@ -127,7 +127,7 @@ namespace TMG.Emme.Test
 
         }
 
-        internal static void RunAssignTransit()
+        internal static void RunAssignTransit(int scenarioNumber, string demandMatrixId)
         {
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
@@ -141,7 +141,7 @@ namespace TMG.Emme.Test
                     writer.WriteNumber("iterations", 100);
                     writer.WriteNumber("norm_gap", 0.0f);
                     writer.WriteNumber("rel_gap", 0.0f);
-                    writer.WriteNumber("scenario_number", 1);
+                    writer.WriteNumber("scenario_number", scenarioNumber);
                     writer.WriteNumber("walk_speed", 0.0f);
                     writer.WriteStartArray("transit_classes");
                     writer.WriteStartObject();
@@ -149,7 +149,7 @@ namespace TMG.Emme.Test
                     writer.WriteString("board_penalty_matrix", "mf0");
                     writer.WriteNumber("board_penalty_perception", 1.0f);
                     writer.WriteString("congestion_matrix", "mf0");
-                    writer.WriteString("demand_matrix", "mf0");
+                    writer.WriteString("demand_matrix", demandMatrixId);
                     writer.WriteString("fare_matrix", "mf0");
                     writer.WriteNumber("fare_perception", 0.0f);
                     writer.WriteString("in_vehicle_time_matrix", "mf0");
@@ -183,7 +183,7 @@ namespace TMG.Emme.Test
                 }), LogbookLevel.Standard));
         }
 
-        internal static void RunAssignTraffic()
+        internal static void RunAssignTraffic(int scenarioNumber, string demandMatrixId)
         {
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_traffic",
@@ -196,13 +196,13 @@ namespace TMG.Emme.Test
                     writer.WriteBoolean("performance_flag", true);
                     writer.WriteNumber("r_gap", 0);
                     writer.WriteString("run_title", "road assignment");
-                    writer.WriteNumber("scenario_number", 1);
+                    writer.WriteNumber("scenario_number", scenarioNumber);
                     writer.WriteBoolean("sola_flag", true);
                     writer.WriteStartArray("traffic_classes");
                     writer.WriteStartObject();
                     writer.WriteString("name", "traffic class 1");
                     writer.WriteString("mode", "c");
-                    writer.WriteString("demand_matrix", "mf10");
+                    writer.WriteString("demand_matrix", demandMatrixId);
                     writer.WriteString("time_matrix", "mf0");
                     writer.WriteString("cost_matrix", "mf4");
                     writer.WriteString("toll_matrix", "mf0");
