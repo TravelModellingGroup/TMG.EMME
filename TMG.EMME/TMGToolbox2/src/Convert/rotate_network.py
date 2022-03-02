@@ -166,7 +166,7 @@ class RotateNetwork(_m.Tool()):
             attributes=self._GetAtts(),
         ):
             network = self.scenario.get_network()
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
 
             anchorVector = (
                 (self.CorrespondingX0, self.CorrespondingY0),
@@ -194,7 +194,7 @@ class RotateNetwork(_m.Tool()):
             for node in network.nodes():
                 self._RotateNode(node, cosTheta, sinTheta)
                 self.TRACKER.complete_subtask()
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
             _m.logbook_write("Finished rotating nodes.")
 
             self.TRACKER.start_process(network.element_totals["links"])
@@ -203,8 +203,8 @@ class RotateNetwork(_m.Tool()):
                 if len(link.vertices) > 0:
                     self._RotateLinkVertices(link, cosTheta, sinTheta)
                     count += 1
-                self.TRACKER.completeTask()
-            self.TRACKER.completeTask()
+                self.TRACKER.complete_task()
+            self.TRACKER.complete_task()
             _m.logbook_write("Rotated %s links with vertices." % count)
 
             referenceVector = self._GetLinkVector(refLink)  # Reset the reference vector
@@ -218,7 +218,7 @@ class RotateNetwork(_m.Tool()):
             for node in network.nodes():
                 self._TranslateNode(node, delta)
                 self.TRACKER.complete_subtask()
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
             _m.logbook_write("Finished translating nodes.")
 
             self.TRACKER.start_process(network.element_totals["links"])
@@ -227,11 +227,11 @@ class RotateNetwork(_m.Tool()):
                 if len(link.vertices) > 0:
                     self._TranslateLink(link, delta)
                     count += 1
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
             _m.logbook_write("Translated %s links with vertices." % count)
 
             self.scenario.publish_network(network, resolve_attributes=True)
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
 
     # ---SUB FUNCTION------------------------------------------------
 

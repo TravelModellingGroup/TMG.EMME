@@ -45,6 +45,7 @@ TMG Transit Assignment Tool
 
     V 2.0.2 Updated to receive JSON file parameters from Python API call
 """
+import enum
 import traceback as _traceback
 import time as _time
 import multiprocessing
@@ -62,6 +63,9 @@ _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
+extended_assignment_tool = _MODELLER.tool(
+    "inro.emme.transit_assignment.extended_transit_assignment"
+)
 null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
 
@@ -124,7 +128,6 @@ class AssignTransit(_m.Tool()):
                 "board_penalty_matrix",
             ],
         )
-
         with _trace(
             name="(%s v%s)" % (self.__class__.__name__, self.version),
             attributes=self._load_atts(scenario, parameters),
@@ -213,6 +216,18 @@ class AssignTransit(_m.Tool()):
                     self._assign_walk_perception(scenario, parameters)
                     if parameters["node_logit_scale"] is not False:
                         self._publish_efficient_connector_network(scenario)
+                    with _util.temp_extra_attribute_manager(
+                        scenario, "TRANSIT_LINE"
+                    ) as stsu_att:
+                        with self._temp_stsu_ttfs(scenario) as ttf_map:
+                            if parameters["surface_transit_speed"] != False:
+                                pass
+                            if parameters["congested_assignment"] == True:
+                                pass
+                            else:
+                                self._run_uncongested_assignment(
+                                    scenario, parameters, stsu_att
+                                )
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_atts(self, scenario, parameters):
@@ -504,6 +519,68 @@ class AssignTransit(_m.Tool()):
                     if link.j_node.number > 99999:
                         link.j_node.data1 = -1
         scenario.publish_network(network)
+
+    def _run_uncongested_assignment(self, scenario, parameters, stsu_att):
+        if parameters["surface_transit_speed"] == False:
+            for i, tc in enumerate(parameters["transit_classes"]):
+                spec_uncongested = self._get_base_assignment_spec_uncongested(i)
+                self._tracker.run_tool(
+                    extended_assignment_tool,
+                    specification=spec_uncongested,
+                    class_name=tc["name"],
+                    scenario=scenario,
+                    add_volumes=(i != 0),
+                )
+        else:
+            for iteration in range(0, parameters["iterations"]):
+                for i, tc in enumerate(parameters["transit_classes"]):
+                    spec_uncongested = self._get_base_assignment_spec_uncongested(i)
+                    self._tracker.run_tool(
+                        extended_assignment_tool,
+                        specification=spec_uncongested,
+                        class_name=tc["name"],
+                        scenario=scenario,
+                        add_volumes=(i != 0),
+                    )
+                network = scenario.get_network()
+                network = self._surface_transit_speed_update(network, 1, stsu_att, True)
+
+    def _get_base_assignment_spec_uncongested(self):
+        pass
+
+    def _surface_transit_speed_update(self):
+        pass
+
+    def _parse_exponent_string(self):
+        pass
+
+    @contextmanager
+    def _temp_stsu_ttfs(self, scenario, parameters):
+        orig_ttf_values = scenario.get_attribute_values(
+            "TRANSIT_SEGMENT", ["transit_time_func"]
+        )
+        ttfs_changed = False
+        stsu_ttf_map = {}
+        ttfs = self._parse_exponent_string()
+        created = {}
+        for ttf, items in ttfs.items():
+            for i in range(1, 100):
+                func = "ft" + str(i)
+                if scenario.emmebank.create_function(func) is None:
+                    scenario.emmebank.create_function(func, "(length*60/us1)")
+                    stsu_ttf_map[int(ttf)] = int(func[2:])
+                    if ttf in parameters["xrow_ttf_range"]:
+                        parameters["xrow_ttf_range"].add(int(func[2:]))
+        try:
+            yield self._temp_stsu_map
+        finally:
+            for func in created:
+                if created[func] == True:
+                    scenario.emmebank.delete_function(func)
+            if self.ttfs_changed == True:
+                scenario.set_attribute_values(
+                    "TRANSIT_SEGMENT", ["transit_time_func"], orig_ttf_values
+                )
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):

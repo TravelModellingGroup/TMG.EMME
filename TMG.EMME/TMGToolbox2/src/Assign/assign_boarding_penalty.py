@@ -213,7 +213,7 @@ class AssignVBoardingPenalties(_m.Tool()):
             for scenario in self.Scenarios:
                 with _m.logbook_trace("Processing scenario %s" % scenario):
                     self._ProcessScenario(scenario, filterList)
-                self.TRACKER.completeTask()
+                self.TRACKER.complete_task()
 
             _MODELLER.desktop.refresh_needed(True)
 

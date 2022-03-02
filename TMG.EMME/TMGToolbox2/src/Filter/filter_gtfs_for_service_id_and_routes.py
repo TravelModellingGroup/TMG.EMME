@@ -130,18 +130,18 @@ class CleanGTFS(_m.Tool()):
         else:
             routesFile = self.UpdatedRoutesFile
         routeIdSet = self._GetRouteIdSet(routesFile)
-        self.TRACKER.completeTask()
+        self.TRACKER.complete_task()
 
         tripIdSet = self._FilterTripsFile(routeIdSet, serviceIdSet)
         if len(tripIdSet) == 0:
             self._warning = "Warning: No trips were selected."
-        self.TRACKER.completeTask()
+        self.TRACKER.complete_task()
 
         servicedStopsSet = self._FilterStopTimesFile(tripIdSet)
-        self.TRACKER.completeTask()
+        self.TRACKER.complete_task()
 
         self._FilterStopsFile(servicedStopsSet)
-        self.TRACKER.completeTask()
+        self.TRACKER.complete_task()
 
     ##########################################################################################################
 

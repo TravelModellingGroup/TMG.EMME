@@ -270,15 +270,15 @@ class ExportNetworkPackage(_m.Tool()):
                 if len(self.AttributeIdsToExport) > 0:
                     self._batchout_extra_attributes(temp_folder, zf)
                 else:
-                    self.TRACKER.completeTask()
+                    self.TRACKER.complete_task()
 
                 if self.Scenario.has_traffic_results:
                     self._batchout_traffic_results(temp_folder, zf)
-                self.TRACKER.completeTask()
+                self.TRACKER.complete_task()
 
                 if self.Scenario.has_transit_results:
                     self._batchout_transit_results(temp_folder, zf)
-                self.TRACKER.completeTask()
+                self.TRACKER.complete_task()
 
     @_m.logbook_trace("Exporting modes")
     def _batchout_modes(self, temp_folder, zf):
@@ -293,7 +293,7 @@ class ExportNetworkPackage(_m.Tool()):
         export_file = _path.join(temp_folder, "vehicles.202")
         if self.Scenario.element_totals["transit_vehicles"] == 0:
             self._export_blank_batch_file(export_file, "vehicles")
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
         else:
             self.TRACKER.run_tool(
                 _export_vehicles, export_file=export_file, scenario=self.Scenario
@@ -324,7 +324,7 @@ class ExportNetworkPackage(_m.Tool()):
         export_file = _path.join(temp_folder, "transit.221")
         if self.Scenario.element_totals["transit_lines"] == 0:
             self._export_blank_batch_file(export_file, "lines")
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
         else:
             # check if the description is empty or has single quote
             network = self.Scenario.get_network()
@@ -351,7 +351,7 @@ class ExportNetworkPackage(_m.Tool()):
     def _batchout_turns(self, temp_folder, zf):
         export_file = _path.join(temp_folder, "turns.231")
         if self.Scenario.element_totals["turns"] == 0:
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
         else:
             self.TRACKER.run_tool(
                 _export_turns,

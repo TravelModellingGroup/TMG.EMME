@@ -977,7 +977,7 @@ class progress_tracker:
         if number_of_tasks is not None:  # Can be reset with a new number of tasks
             self._taskIncr = 1000.0 / number_of_tasks
 
-    def completeTask(self):
+    def complete_task(self):
         """
         Call to indicate a Task is complete.
 
@@ -1007,7 +1007,7 @@ class progress_tracker:
         ret = self._activeTool(*args, **kwargs)
         self._toolIsRunning = False
         self._activeTool = None
-        self.completeTask()
+        self.complete_task()
         return ret
 
     def start_process(self, number_of_subtasks):
@@ -1034,7 +1034,7 @@ class progress_tracker:
             self._processIsRunning = False
             self._subTasks = 0
             self._completedSubtasks = 0
-            self.completeTask()
+            self.complete_task()
         else:
             self._completedSubtasks += 1
 
