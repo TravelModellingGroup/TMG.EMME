@@ -577,7 +577,7 @@ class ImportNetworkPackage(_m.Tool()):
                 scenario.title = self.scenario_description
 
                 _m.logbook_write("Created new scenario %s" % self.scenario_Id)
-                self.TRACKER.completeTask()
+                self.TRACKER.complete_task()
 
                 self._batchin_modes(scenario, temp_folder, zf)
                 self._batchin_vehicles(scenario, temp_folder, zf)
@@ -594,14 +594,14 @@ class ImportNetworkPackage(_m.Tool()):
 
                 if self._components.attribute_header_file is not None:
                     self._batchin_extra_attributes(scenario, temp_folder, zf)
-                self.TRACKER.completeTask()
+                self.TRACKER.complete_task()
 
                 if (
                     self._components.functions_file is not None
                     and not self.skip_merging_functions
                 ):
                     self._batchin_functions(temp_folder, zf)
-                self.TRACKER.completeTask()
+                self.TRACKER.complete_task()
 
     @_m.method(return_type=bool)
     def tool_exit_test(self):

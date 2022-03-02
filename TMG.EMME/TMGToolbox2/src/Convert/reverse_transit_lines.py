@@ -204,7 +204,7 @@ class ReverseTransitLines(_m.Tool()):
                 t = line.id, e.__class__.__name__, str(e)
                 errorLines.append(t)
             self.TRACKER.complete_subtask()
-        self.TRACKER.completeTask()
+        self.TRACKER.complete_task()
 
         self._WriteMainReport(reversedLines)
         if errorLines:
