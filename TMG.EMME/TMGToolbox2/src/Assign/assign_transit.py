@@ -221,7 +221,7 @@ class AssignTransit(_m.Tool()):
         return atts
 
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    def _load_output_matrices(self, parameters, matrix_name=list):
+    def _load_output_matrices(self, parameters, matrix_name=[]):
         """
         This loads all (into a dictionary) output matrices by matrix_name list provided but
         assigns None to all zero matrices for later initialization

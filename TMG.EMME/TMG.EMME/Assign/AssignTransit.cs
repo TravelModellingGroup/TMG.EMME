@@ -340,8 +340,6 @@ namespace TMG.Emme.Assign
                 writer.WriteEndObject();
             }
         }
-
-
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Assign.assign_transit", JSONParameterBuilder.BuildParameters(writer =>
@@ -370,6 +368,18 @@ namespace TMG.Emme.Assign
                 foreach (var transitClass in TransitClasses)
                 {
                     transitClass.Invoke().WriteParameters(writer);
+                }
+                writer.WriteEndArray();
+                writer.WriteStartArray("surface_transit_speeds");
+                foreach (var surfaceSpeed in SurfaceTransitSpeeds)
+                {
+                    surfaceSpeed.Invoke().WriteParameters(writer);
+                }
+                writer.WriteEndArray();
+                writer.WriteStartArray("ttf_definitions");
+                foreach (var ttfDefinition in TTFDefinitions)
+                {
+                    ttfDefinition.Invoke().WriteParameters(writer);
                 }
                 writer.WriteEndArray();
 
