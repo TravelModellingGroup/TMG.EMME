@@ -113,6 +113,14 @@ namespace TMG.Emme.Assign
         [SubModule(Name = "Transit Classes", Description = "", Index = 0)]
         public IFunction<TransitClass>[] TransitClasses;
 
+        [SubModule(Name = "Surface Transit Speed Model", Description = "",
+            Index = 37)]
+        public IFunction<SurfaceTransitSpeedModel>[] SurfaceTransitSpeeds;
+
+        [SubModule(Name = "TTF Definitions", Description = "",
+            Index = 38)]
+        public IFunction<TTFDefinition>[] TTFDefinitions;
+
         [Module(Name = "Transit Class", Description = "",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
 
@@ -248,6 +256,92 @@ namespace TMG.Emme.Assign
                 writer.WriteEndObject();
             }
         }
+
+        [Module(Name = "Surface Transit Speed Model", Description = "",
+        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+        public class SurfaceTransitSpeedModel : XTMF2.IModule
+        {
+            [Parameter(Name = "Alighting Duration", Description = "",
+                Index = 0)]
+            public IFunction<float> AlightingDuration;
+
+            [Parameter(Name = "Boarding Duration", Description = "",
+                Index = 1)]
+            public IFunction<float> BoardingDuration;
+
+            [Parameter(Name = "Default Duration", Description = "",
+                Index = 2)]
+            public IFunction<float> DefaultDuration;
+
+            [Parameter(Name = "Global EROW Speed", Description = "",
+                Index = 3)]
+            public IFunction<float> GlobalEROWSpeed;
+
+            [Parameter(Name = "Line Filter Expression", Description = "",
+                Index = 4)]
+            public IFunction<string> LineFilterExpression;
+
+            [Parameter(Name = "Mode Filter Expression", Description = "",
+                Index = 5)]
+            public IFunction<string> ModeFilterExpression;
+
+            [Parameter(Name = "Transit Auto Correlation", Description = "",
+                Index = 6)]
+            public IFunction<float> TransitAutoCorrelation;
+            public string Name { get; set; }
+
+            public bool RuntimeValidation(ref string error)
+            {
+                return true;
+            }
+
+            public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber("alighting_duration", AlightingDuration.Invoke());
+                writer.WriteNumber("boarding_duration", BoardingDuration.Invoke());
+                writer.WriteNumber("default_duration", DefaultDuration.Invoke());
+                writer.WriteNumber("global_erow_speed", GlobalEROWSpeed.Invoke());
+                writer.WriteString("line_filter_expression", LineFilterExpression.Invoke());
+                writer.WriteString("mode_filter_expression", ModeFilterExpression.Invoke());
+                writer.WriteNumber("transit_auto_correlation", TransitAutoCorrelation.Invoke());
+                writer.WriteEndObject();
+            }
+        }
+
+        [Module(Name = "TTF Definitions", Description = "",
+        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+        public class TTFDefinition : XTMF2.IModule
+        {
+            [Parameter(Name = "Congestion Exponent", Description = "",
+                Index = 0)]
+            public IFunction<float> CongestionExponent;
+
+            [Parameter(Name = "Congestion Perception", Description = "",
+                Index = 1)]
+            public IFunction<int> CongestionPerception;
+
+            [Parameter(Name = "TTF", Description = "",
+                Index = 2)]
+            public IFunction<int> TTF;
+            public string Name { get; set; }
+
+            public bool RuntimeValidation(ref string error)
+            {
+                return true;
+            }
+
+            public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber("congestion_exponent", CongestionExponent.Invoke());
+                writer.WriteNumber("congestion_perception", CongestionPerception.Invoke());
+                writer.WriteNumber("ttf", TTF.Invoke());
+                writer.WriteEndObject();
+            }
+        }
+
+
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Assign.assign_transit", JSONParameterBuilder.BuildParameters(writer =>
