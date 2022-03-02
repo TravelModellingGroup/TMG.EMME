@@ -75,6 +75,24 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteEndArray();
                     writer.WriteEndObject();
                     writer.WriteEndArray();
+                    writer.WriteStartArray("surface_transit_speeds");
+                    writer.WriteStartObject();
+                    writer.WriteNumber("alighting_duration", 1.1219f);
+                    writer.WriteNumber("boarding_duration", 1.9577f);
+                    writer.WriteNumber("default_duration", 7.4331f);
+                    writer.WriteNumber("global_erow_speed", 35f);
+                    writer.WriteString("line_filter_expression", "");
+                    writer.WriteString("mode_filter_expression", "b");
+                    writer.WriteNumber("transit_auto_correlation", 1.612f);
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();
+                    writer.WriteStartArray("ttf_definitions");
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 5.972385f);
+                    writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 1);
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();
                     writer.WriteString("congestion_exponent", "");
                     writer.WriteNumber("assignment_period", 0.0f);
                     writer.WriteString("name_string", "");
@@ -130,7 +148,30 @@ namespace TMG.Emme.Test.Assign
                     WalkPerceptions =  Helper.CreateParameters(walkPerceptions),
                 }
             };
-
+            var surfaceTransitSpeeds = new[]
+            {
+                new Emme.Assign.AssignTransit.SurfaceTransitSpeedModel()
+                {
+                    Name = "STSM1",
+                    AlightingDuration = Helper.CreateParameter(1.1219f),
+                    BoardingDuration = Helper.CreateParameter(1.9577f),
+                    DefaultDuration = Helper.CreateParameter(7.4331f),
+                    GlobalEROWSpeed = Helper.CreateParameter(35f),
+                    LineFilterExpression = Helper.CreateParameter(""),
+                    ModeFilterExpression = Helper.CreateParameter("b"),
+                    TransitAutoCorrelation = Helper.CreateParameter(1.612f),
+                }
+            };
+            var ttfDefinitions = new[]
+            {
+                new Emme.Assign.AssignTransit.TTFDefinition()
+                {
+                    Name = "TTF1",
+                    CongestionExponent = Helper.CreateParameter(5.972385f),
+                    CongestionPerception = Helper.CreateParameter(1),
+                    TTF = Helper.CreateParameter(1),
+                }
+            };
             var module = new Emme.Assign.AssignTransit()
             {
                 CalculateCongestedIvttFlag = Helper.CreateParameter(true),
@@ -154,6 +195,8 @@ namespace TMG.Emme.Test.Assign
                 WalkAllWayFlag = Helper.CreateParameter(false),
                 XRowTTFRange = Helper.CreateParameter(""),
                 TransitClasses = Helper.CreateParameters(transitClasses),
+                SurfaceTransitSpeeds = Helper.CreateParameters(surfaceTransitSpeeds),
+                TTFDefinitions = Helper.CreateParameters(ttfDefinitions)
             };
             module.Invoke(Helper.Modeller);
         }
