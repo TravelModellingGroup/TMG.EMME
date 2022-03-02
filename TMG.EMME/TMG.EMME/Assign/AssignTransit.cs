@@ -110,7 +110,7 @@ namespace TMG.Emme.Assign
             Index = 35)]
         public IFunction<string> XRowTTFRange;
 
-        [SubModule(Name = "Transit Classes", Description = "", Index = 0)]
+        [SubModule(Name = "Transit Classes", Description = "", Index = 36)]
         public IFunction<TransitClass>[] TransitClasses;
 
         [SubModule(Name = "Surface Transit Speed Model", Description = "",
