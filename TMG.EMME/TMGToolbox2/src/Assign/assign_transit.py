@@ -640,9 +640,7 @@ class AssignTransit(_m.Tool()):
         walk_all_way_flag,
         walk_attribute,
     ):
-        if fare_perception == 0.0:
-            fare_perception = 0.0
-        else:
+        if fare_perception != 0.0:
             fare_perception = 60.0 / fare_perception
         base_spec = {
             "modes": modes,
