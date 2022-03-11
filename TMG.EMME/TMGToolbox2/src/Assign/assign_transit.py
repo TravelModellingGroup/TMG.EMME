@@ -616,38 +616,7 @@ class AssignTransit(_m.Tool()):
                     add_volumes=(i != 0),
                 )
         else:
-            for iteration in range(0, parameters["iterations"]):
-                for i, tc in enumerate(parameters["transit_classes"]):
-                    spec_uncongested = self._get_base_assignment_spec_uncongested(
-                        scenario,
-                        tc["board_penalty_perception"],
-                        self.connector_logit_truncation,
-                        self.consider_total_impedance,
-                        demand_matrix_list[i],
-                        effective_headway_attribute_list[i],
-                        tc["fare_perception"],
-                        headway_fraction_attribute_list[i],
-                        impedance_matrix_list[i],
-                        tc["link_fare_attribute_id"],
-                        [tc["mode"]],
-                        parameters["node_logit_scale"],
-                        self.number_of_processors,
-                        parameters["origin_distribution_logit_scale"],
-                        tc["segment_fare_attribute"],
-                        self.use_logit_connector_choice,
-                        tc["wait_time_perception"],
-                        parameters["walk_all_way_flag"],
-                        walk_time_perception_attribute_list[i],
-                    )
-                    self._tracker.run_tool(
-                        extended_assignment_tool,
-                        specification=spec_uncongested,
-                        class_name=tc["name"],
-                        scenario=scenario,
-                        add_volumes=(i != 0),
-                    )
-                network = scenario.get_network()
-                network = self._surface_transit_speed_update(network, 1, stsu_att, True)
+            pass
 
     def _get_base_assignment_spec_uncongested(
         self,
