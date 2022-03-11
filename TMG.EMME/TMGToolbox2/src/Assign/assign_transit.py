@@ -45,6 +45,7 @@ TMG Transit Assignment Tool
 
     V 2.0.2 Updated to receive JSON file parameters from Python API call
 """
+import enum
 import traceback as _traceback
 import time as _time
 import multiprocessing
@@ -62,6 +63,9 @@ _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
+extended_assignment_tool = _MODELLER.tool(
+    "inro.emme.transit_assignment.extended_transit_assignment"
+)
 null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
 
@@ -75,6 +79,9 @@ class AssignTransit(_m.Tool()):
         self._tracker = _util.progress_tracker(self.number_of_tasks)
         self.scenario = _MODELLER.scenario
         self.number_of_processors = multiprocessing.cpu_count()
+        self.connector_logit_truncation = 0.05
+        self.consider_total_impedance = True
+        self.use_logit_connector_choice = True
 
     def page(self):
         if EMME_VERSION < (4, 1, 5):
@@ -106,6 +113,7 @@ class AssignTransit(_m.Tool()):
 
     def run_xtmf(self, parameters):
         scenario = _util.load_scenario(parameters["scenario_number"])
+        self._check_attributs_exists(scenario, parameters)
         try:
             self._execute(scenario, parameters)
         except Exception as e:
@@ -124,7 +132,6 @@ class AssignTransit(_m.Tool()):
                 "board_penalty_matrix",
             ],
         )
-
         with _trace(
             name="(%s v%s)" % (self.__class__.__name__, self.version),
             attributes=self._load_atts(scenario, parameters),
@@ -213,12 +220,48 @@ class AssignTransit(_m.Tool()):
                     self._assign_walk_perception(scenario, parameters)
                     if parameters["node_logit_scale"] is not False:
                         self._publish_efficient_connector_network(scenario)
+                    with _util.temp_extra_attribute_manager(
+                        scenario, "TRANSIT_LINE"
+                    ) as stsu_att:
+                        with self._temp_stsu_ttfs(scenario, parameters) as ttf_map:
+                            if parameters["surface_transit_speed"] != False:
+                                pass
+                            self._run_transit_assignment(
+                                scenario,
+                                parameters,
+                                stsu_att,
+                                demand_matrix_list,
+                                effective_headway_attribute_list,
+                                headway_fraction_attribute_list,
+                                impedance_matrix_list,
+                                walk_time_perception_attribute_list,
+                            )
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_atts(self, scenario, parameters):
         # TODO
         atts = {}
         return atts
+
+    def _check_attributs_exists(self, scenario, parameters):
+        walk_att = "walk_time_perception_attribute"
+        seg_att = "segment_fare_attribute"
+        ehwy_att = "effective_headway_attribute"
+        hwy_att = "headway_fraction_attribute"
+        link_att = "link_fare_attribute_id"
+        for tc in parameters["transit_classes"]:
+            if scenario.extra_attribute(tc[walk_att]) is None:
+                raise Exception(
+                    "Walk perception attribute %s does not exist" % walk_att
+                )
+            if scenario.extra_attribute(tc[seg_att]) is None:
+                raise Exception("Segment fare attribute %s does not exist" % seg_att)
+            if scenario.extra_attribute(tc[link_att]) is None:
+                raise Exception("Link fare attribute %s does not exist" % link_att)
+        if scenario.extra_attribute(parameters[ehwy_att]) is None:
+            raise Exception("Effective headway attribute %s does not exist" % ehwy_att)
+        if scenario.extra_attribute(parameters[hwy_att]) is None:
+            raise Exception("Effective headway attribute %s does not exist" % hwy_att)
 
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_output_matrices(self, parameters, matrix_name=[]):
@@ -292,6 +335,7 @@ class AssignTransit(_m.Tool()):
                 )
                 impedance_matrix_list.append(matrix)
                 temp_matrix_list.append(matrix)
+        return impedance_matrix_list
 
     def _init_output_matrices(
         self,
@@ -504,6 +548,224 @@ class AssignTransit(_m.Tool()):
                     if link.j_node.number > 99999:
                         link.j_node.data1 = -1
         scenario.publish_network(network)
+
+    def _run_transit_assignment(
+        self,
+        scenario,
+        parameters,
+        stsu_att,
+        demand_matrix_list,
+        effective_headway_attribute_list,
+        headway_fraction_attribute_list,
+        impedance_matrix_list,
+        walk_time_perception_attribute_list,
+    ):
+        if parameters["congested_assignment"] == True:
+            pass
+        else:
+            self._run_uncongested_assignment(
+                scenario,
+                parameters,
+                stsu_att,
+                demand_matrix_list,
+                effective_headway_attribute_list,
+                headway_fraction_attribute_list,
+                impedance_matrix_list,
+                walk_time_perception_attribute_list,
+            )
+
+    def _run_uncongested_assignment(
+        self,
+        scenario,
+        parameters,
+        stsu_att,
+        demand_matrix_list,
+        effective_headway_attribute_list,
+        headway_fraction_attribute_list,
+        impedance_matrix_list,
+        walk_time_perception_attribute_list,
+    ):
+        if parameters["surface_transit_speed"] == False:
+            for i, tc in enumerate(parameters["transit_classes"]):
+                spec_uncongested = self._get_base_assignment_spec_uncongested(
+                    scenario,
+                    tc["board_penalty_perception"],
+                    self.connector_logit_truncation,
+                    self.consider_total_impedance,
+                    demand_matrix_list[i],
+                    effective_headway_attribute_list[i],
+                    tc["fare_perception"],
+                    headway_fraction_attribute_list[i],
+                    impedance_matrix_list[i],
+                    tc["link_fare_attribute_id"],
+                    [tc["mode"]],
+                    parameters["node_logit_scale"],
+                    self.number_of_processors,
+                    parameters["origin_distribution_logit_scale"],
+                    tc["segment_fare_attribute"],
+                    self.use_logit_connector_choice,
+                    tc["wait_time_perception"],
+                    parameters["walk_all_way_flag"],
+                    walk_time_perception_attribute_list[i],
+                )
+                self._tracker.run_tool(
+                    extended_assignment_tool,
+                    specification=spec_uncongested,
+                    class_name=tc["name"],
+                    scenario=scenario,
+                    add_volumes=(i != 0),
+                )
+        else:
+            pass
+
+    def _get_base_assignment_spec_uncongested(
+        self,
+        scenario,
+        board_perception,
+        connector_logit_truncation,
+        consider_total_impedance,
+        demand_matrix,
+        effective_headway,
+        fare_perception,
+        headway_fraction,
+        impedance_matrix,
+        link_fare_attribute,
+        modes,
+        node_logit_scale,
+        number_of_processors,
+        origin_distribution_logit_scale,
+        segment_fare,
+        use_logit_connector_choice,
+        wait_perception,
+        walk_all_way_flag,
+        walk_attribute,
+    ):
+        if fare_perception != 0.0:
+            fare_perception = 60.0 / fare_perception
+        base_spec = {
+            "modes": modes,
+            "demand": demand_matrix.id,
+            "waiting_time": {
+                "headway_fraction": headway_fraction.id,
+                "effective_headways": effective_headway.id,
+                "spread_factor": 1,
+                "perception_factor": wait_perception,
+            },
+            "boarding_time": {
+                "at_nodes": None,
+                "on_lines": {
+                    "penalty": "ut3",
+                    "perception_factor": board_perception,
+                },
+            },
+            "boarding_cost": {
+                "at_nodes": {"penalty": 0, "perception_factor": 1},
+                "on_lines": None,
+            },
+            "in_vehicle_time": {"perception_factor": "us2"},
+            "in_vehicle_cost": {
+                "penalty": segment_fare,
+                "perception_factor": fare_perception,
+            },
+            "aux_transit_time": {"perception_factor": walk_attribute.id},
+            "aux_transit_cost": {
+                "penalty": link_fare_attribute,
+                "perception_factor": fare_perception,
+            },
+            "connector_to_connector_path_prohibition": None,
+            "od_results": {"total_impedance": impedance_matrix.id},
+            "flow_distribution_between_lines": {
+                "consider_total_impedance": consider_total_impedance
+            },
+            "save_strategies": True,
+            "type": "EXTENDED_TRANSIT_ASSIGNMENT",
+        }
+        if use_logit_connector_choice:
+            base_spec["flow_distribution_at_origins"] = {
+                "choices_at_origins": {
+                    "choice_points": "ALL_ORIGINS",
+                    "choice_set": "ALL_CONNECTORS",
+                    "logit_parameters": {
+                        "scale": origin_distribution_logit_scale,
+                        "truncation": connector_logit_truncation,
+                    },
+                },
+                "fixed_proportions_on_connectors": None,
+            }
+        base_spec["performance_settings"] = {
+            "number_of_processors": number_of_processors
+        }
+        if node_logit_scale is not False:
+            base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                "choices_at_regular_nodes": {
+                    "choice_points": "ui1",
+                    "aux_transit_choice_set": "ALL_POSSIBLE_LINKS",
+                    "logit_parameters": {
+                        "scale": node_logit_scale,
+                        "truncation": connector_logit_truncation,
+                    },
+                }
+            }
+        else:
+            base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
+            }
+
+        mode_list = []
+        partial_network = scenario.get_partial_network(["MODE"], True)
+        # if all modes are selected for class, get all transit modes for journey levels
+        if modes == ["*"]:
+            for mode in partial_network.modes():
+                if mode.type == "TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": 1})
+        base_spec["journey_levels"] = [
+            {
+                "description": "Walking",
+                "destinations_reachable": walk_all_way_flag,
+                "transition_rules": mode_list,
+                "boarding_time": None,
+                "boarding_cost": None,
+                "waiting_time": None,
+            },
+            {
+                "description": "Transit",
+                "destinations_reachable": True,
+                "transition_rules": mode_list,
+                "boarding_time": None,
+                "boarding_cost": None,
+                "waiting_time": None,
+            },
+        ]
+        return base_spec
+
+    @contextmanager
+    def _temp_stsu_ttfs(self, scenario, parameters):
+        orig_ttf_values = scenario.get_attribute_values(
+            "TRANSIT_SEGMENT", ["transit_time_func"]
+        )
+        ttfs_changed = False
+        _temp_stsu_map = {}
+        created = {}
+        for ttf in parameters["ttf_definitions"]:
+            for i in range(1, 100):
+                func = "ft" + str(i)
+                if scenario.emmebank.function(func) is None:
+                    scenario.emmebank.create_function(func, "(length*60/us1)")
+                    _temp_stsu_map[int(ttf["ttf"])] = int(func[2:])
+                    if str(ttf["ttf"]) in parameters["xrow_ttf_range"]:
+                        parameters["xrow_ttf_range"].add(int(func[2:]))
+                    created[func] = True
+                    break
+        try:
+            yield _temp_stsu_map
+        finally:
+            for func in created:
+                if created[func] == True:
+                    scenario.emmebank.delete_function(func)
+            if ttfs_changed == True:
+                scenario.set_attribute_values(
+                    "TRANSIT_SEGMENT", ["transit_time_func"], orig_ttf_values
+                )
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):

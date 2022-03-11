@@ -100,7 +100,7 @@ namespace TMG.Emme.Assign
 
         [Parameter(Name = "Surface Transit Speed", Description = "",
             Index = 33)]
-        public IFunction<string> SurfaceTransitSpeed;
+        public IFunction<bool> SurfaceTransitSpeed;
 
         [Parameter(Name = "Walk All Way Flag", Description = "",
             Index = 34)]
@@ -110,7 +110,7 @@ namespace TMG.Emme.Assign
             Index = 35)]
         public IFunction<string> XRowTTFRange;
 
-        [SubModule(Name = "Transit Classes", Description = "", Index = 0)]
+        [SubModule(Name = "Transit Classes", Description = "", Index = 36)]
         public IFunction<TransitClass>[] TransitClasses;
 
         [SubModule(Name = "Surface Transit Speed Model", Description = "",
@@ -212,7 +212,7 @@ namespace TMG.Emme.Assign
                 writer.WriteNumber("fare_perception", FarePerception.Invoke());
                 writer.WriteString("in_vehicle_time_matrix", InVehicleTimeMatrix.Invoke());
                 writer.WriteString("impedance_matrix", ImpedanceMatrix.Invoke());
-                writer.WriteString("link_fare_attribute", LinkFareAttributeId.Invoke());
+                writer.WriteString("link_fare_attribute_id", LinkFareAttributeId.Invoke());
                 writer.WriteString("mode", Mode.Invoke());
                 writer.WriteString("perceived_travel_time_matrix", PerceivedTravelTimeMatrix.Invoke());
                 writer.WriteString("segment_fare_attribute", SegmentFareAttributeId.Invoke());
@@ -361,7 +361,7 @@ namespace TMG.Emme.Assign
                 writer.WriteString("csvfile", CSVFile.Invoke());
                 writer.WriteNumber("origin_distribution_logit_scale", OriginDistributionLogitScale.Invoke());
                 writer.WriteNumber("walk_distribution_logit_scale", WalkDistributionLogitScale.Invoke());
-                writer.WriteString("surface_transit_speed", SurfaceTransitSpeed.Invoke());
+                writer.WriteBoolean("surface_transit_speed", SurfaceTransitSpeed.Invoke());
                 writer.WriteBoolean("walk_all_way_flag", WalkAllWayFlag.Invoke());
                 writer.WriteString("xrow_ttf_range", XRowTTFRange.Invoke());
                 writer.WriteStartArray("transit_classes");

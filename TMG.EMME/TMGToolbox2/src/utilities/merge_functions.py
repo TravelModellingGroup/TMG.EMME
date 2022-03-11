@@ -173,10 +173,10 @@ class MergeFunctions(_m.Tool()):
         ):
 
             file_functions = self._LoadFunctionFile()
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
 
             database_functions = self._LoadFunctionsInDatabank()
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
 
             if self.conflict_option == self.SKIP_OPTION:
                 msg = "Skipped the import of functions."
@@ -184,7 +184,7 @@ class MergeFunctions(_m.Tool()):
                 newFuncCount, modFuncCount = self._MergeFunctions(
                     database_functions, file_functions
                 )
-                self.TRACKER.completeTask()
+                self.TRACKER.complete_task()
                 msg = "Done."
                 if newFuncCount > 0:
                     msg += " %s functions added." % newFuncCount

@@ -149,7 +149,7 @@ class ExportBinaryMatrix(_m.Tool()):
 
             data.save(self.ExportFile)
 
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
 
     ##########################################################################################################
 

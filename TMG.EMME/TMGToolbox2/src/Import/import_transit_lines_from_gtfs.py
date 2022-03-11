@@ -323,12 +323,12 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
             attributes=self._GetAtts(),
         ):
             routes = self._LoadCheckGtfsRoutesFile()
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
 
             sc = _bank.scenario(str(self.Scenario))
             network = sc.get_network()
             print("Loaded network")
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
 
             stops2nodes = self._LoadStopNodeMapFile(network)
 
@@ -347,7 +347,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                 copy = _bank.copy_scenario(sc.id, str(self.NewScenarioId))
                 copy.title = self.NewScenarioTitle
                 copy.publish_network(network, True)
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
 
     ##########################################################################################################
 
@@ -413,7 +413,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                 if network.node(cells[1]) is None:
                     raise IOError("Mapping error: Node %s does not exist" % cells[1])
                 stops2nodes[cells[0]] = cells[1]
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
         msg = "%s stop-node pairs loaded." % len(stops2nodes)
         print(msg)
         _m.logbook_write(msg)
@@ -436,7 +436,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                 route.trips[trip.id] = trip
                 trips[trip.id] = trip
                 self.TRACKER.complete_subtask()
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
         msg = "%s trips loaded." % len(trips)
         print(msg)
         _m.logbook_write(msg)
@@ -473,7 +473,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                     writer.write("\n%s,%s" % (record, node))
                     count += 1
                     self.TRACKER.complete_subtask()
-                self.TRACKER.completeTask()
+                self.TRACKER.complete_task()
         msg = "%s stop times loaded" % count
         print(msg)
         _m.logbook_write(msg)
@@ -666,7 +666,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                 print("Added route %s" % route.emme_id)
 
                 self.TRACKER.complete_subtask()
-        self.TRACKER.completeTask()
+        self.TRACKER.complete_task()
 
         msg = "Done. %s lines were successfully created." % lineCount
         print(msg)

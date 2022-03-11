@@ -333,7 +333,7 @@ class ImportBinaryMatrix(_m.Tool()):
 
                 matrix.set_data(data)
 
-            self.TRACKER.completeTask()
+            self.TRACKER.complete_task()
 
     def _GetAtts(self):
         atts = {

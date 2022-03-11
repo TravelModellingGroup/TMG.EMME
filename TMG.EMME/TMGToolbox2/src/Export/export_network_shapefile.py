@@ -110,7 +110,7 @@ class ExportNetworkAsShapefile(_m.Tool()):
             transit_shapes=self.transit_shapes,
             scenario=self.scenario,
         )
-        self.TRACKER.completeTask()
+        self.TRACKER.complete_task()
 
     def _check_inputs(self):
         if self.scenario is None:

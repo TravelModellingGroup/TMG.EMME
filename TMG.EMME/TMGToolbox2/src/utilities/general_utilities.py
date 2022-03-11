@@ -473,30 +473,26 @@ def create_temp_attribute(
     return temp_extra_attribute[0]
 
 
-def process_transit_attribute(scenario, prefix, attribute_type, default_value):
-    while True:
-        if prefix.startswith("@"):
-            transit_attrib_id = "%s" % (prefix)
-        else:
-            transit_attrib_id = "@%s" % (prefix)
-        checked_extra_attribute = scenario.extra_attribute(transit_attrib_id)
-        if checked_extra_attribute == None:
-            temp_transit_attrib = scenario.create_extra_attribute(
-                attribute_type, transit_attrib_id, default_value
-            )
-            break
-        elif (
-            checked_extra_attribute != None
-            and checked_extra_attribute.type == attribute_type
-        ):
-            raise Exception(
-                "Attribute %s already exist or has some issues!" % transit_attrib_id
-            )
-        else:
-            temp_transit_attrib = scenario.extra_attribute(
-                transit_attrib_id
-            ).initialize(default_value)
-            break
+def process_transit_attribute(
+    scenario, transit_attrib_id, attribute_type, default_value
+):
+    if not transit_attrib_id.startswith("@"):
+        transit_attrib_id = "@" + transit_attrib_id
+    checked_extra_attribute = scenario.extra_attribute(transit_attrib_id)
+    if checked_extra_attribute == None:
+        temp_transit_attrib = scenario.create_extra_attribute(
+            attribute_type, transit_attrib_id, default_value
+        )
+    elif (
+        checked_extra_attribute != None
+        and checked_extra_attribute.type != attribute_type
+    ):
+        raise Exception(
+            "Attribute %s already exist or has some issues!" % transit_attrib_id
+        )
+    else:
+        temp_transit_attrib = scenario.extra_attribute(transit_attrib_id)
+        temp_transit_attrib.initialize(default_value)
     return temp_transit_attrib, transit_attrib_id
 
 
@@ -527,9 +523,8 @@ def process_traffic_attribute(scenario, prefix, attribute_type, default_value):
             )
             _m.logbook_write("Created extra attribute '@tvph'")
         else:
-            temp_traffic_attrib = scenario.extra_attribute(
-                traffic_attrib_id
-            ).initialize(0)
+            temp_traffic_attrib = scenario.extra_attribute(traffic_attrib_id)
+            temp_traffic_attrib.initialize(0)
     return temp_traffic_attrib, traffic_attrib_id
 
 
@@ -977,7 +972,7 @@ class progress_tracker:
         if number_of_tasks is not None:  # Can be reset with a new number of tasks
             self._taskIncr = 1000.0 / number_of_tasks
 
-    def completeTask(self):
+    def complete_task(self):
         """
         Call to indicate a Task is complete.
 
@@ -1007,7 +1002,7 @@ class progress_tracker:
         ret = self._activeTool(*args, **kwargs)
         self._toolIsRunning = False
         self._activeTool = None
-        self.completeTask()
+        self.complete_task()
         return ret
 
     def start_process(self, number_of_subtasks):
@@ -1034,7 +1029,7 @@ class progress_tracker:
             self._processIsRunning = False
             self._subTasks = 0
             self._completedSubtasks = 0
-            self.completeTask()
+            self.complete_task()
         else:
             self._completedSubtasks += 1
 
