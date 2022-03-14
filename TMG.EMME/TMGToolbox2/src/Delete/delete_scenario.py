@@ -70,11 +70,7 @@ class DeleteScenario(_m.Tool()):
         project = _MODELLER.emmebank
         scenario = project.scenario(str(Scenario))
         if scenario is None:
-            print(
-                "A delete was requested for scenario "
-                + str(Scenario)
-                + " but the scenario does not exist."
-            )
+            print("A delete was requested for scenario " + str(Scenario) + " but the scenario does not exist.")
             return
         if scenario.delete_protected == True:
             scenario.delete_protected = False

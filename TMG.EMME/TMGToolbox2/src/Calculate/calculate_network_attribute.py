@@ -46,9 +46,7 @@ from multiprocessing import cpu_count
 
 
 _MODELLER = _m.Modeller()  # Instatiate Modeller once.
-_network_calculation = _m.Modeller().tool(
-    "inro.emme.network_calculation.network_calculator"
-)
+_network_calculation = _m.Modeller().tool("inro.emme.network_calculation.network_calculator")
 
 
 class CalculateNetworkAttribute(_m.Tool()):
@@ -80,9 +78,7 @@ class CalculateNetworkAttribute(_m.Tool()):
         self.expression = expression
         self._load_scenario(self.scenario_number)
 
-        self._process_parameters(
-            result, link_selection, node_selection, transit_line_selection
-        )
+        self._process_parameters(result, link_selection, node_selection, transit_line_selection)
 
         # self._report()
         spec = self.network_calculator_spec()
@@ -150,9 +146,7 @@ class CalculateNetworkAttribute(_m.Tool()):
 
         return scenario
 
-    def _process_parameters(
-        self, result, link_selection, node_selection, transit_line_selection
-    ):
+    def _process_parameters(self, result, link_selection, node_selection, transit_line_selection):
         if self.result is not None and self.result != "None":
             self.result = result
         else:

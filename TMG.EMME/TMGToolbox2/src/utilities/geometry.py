@@ -44,9 +44,7 @@ class Face(_m.Tool()):
             branding_text="- TMG Toolbox 2",
         )
 
-        pb.add_text_element(
-            "To import, call inro.modeller.Modeller().module('%s')" % str(self)
-        )
+        pb.add_text_element("To import, call inro.modeller.Modeller().module('%s')" % str(self))
 
         return pb.render()
 
@@ -195,9 +193,7 @@ def castAsAttachable(geom):
 def crossProduct(coordA1, coordA2, coordB1, coordB2):
     # A and B, as vectors
     # AxB = (A.x * B.y) - (A.y * B.x)
-    return (coordA2[0] - coordA1[0]) * (coordB2[1] - coordB1[1]) - (
-        coordA2[1] - coordA1[1]
-    ) * (coordB2[0] - coordB1[0])
+    return (coordA2[0] - coordA1[0]) * (coordB2[1] - coordB1[1]) - (coordA2[1] - coordA1[1]) * (coordB2[0] - coordB1[0])
 
 
 def dotProduct(coordA1, coordA2, coordB1, coordB2):
@@ -215,12 +211,12 @@ def checkSegmentIntersection(coordA1, coordA2, coordB1, coordB2):
     s = None
     t = None
     try:
-        s = (
-            -deltaY1 * (coordA1[0] - coordB1[0]) + deltaX1 * (coordA1[1] - coordB1[1])
-        ) / (-deltaX2 * deltaY1 + deltaX1 * deltaY2)
-        t = (
-            deltaX2 * (coordA1[1] - coordB1[1]) - deltaY2 * (coordA1[0] - coordB1[0])
-        ) / (-deltaX2 * deltaY1 + deltaX1 * deltaY2)
+        s = (-deltaY1 * (coordA1[0] - coordB1[0]) + deltaX1 * (coordA1[1] - coordB1[1])) / (
+            -deltaX2 * deltaY1 + deltaX1 * deltaY2
+        )
+        t = (deltaX2 * (coordA1[1] - coordB1[1]) - deltaY2 * (coordA1[0] - coordB1[0])) / (
+            -deltaX2 * deltaY1 + deltaX1 * deltaY2
+        )
     except ZeroDivisionError:
         return False
 
@@ -251,9 +247,7 @@ class StringField:
 class FloatField:
     def __init__(self, name, length=12, decimals=4, default=0.0):
         if length < 3:
-            raise IOError(
-                "DBF field definition failed: Field length must be at least 3."
-            )
+            raise IOError("DBF field definition failed: Field length must be at least 3.")
         if decimals >= (length - 2):
             raise IOError(
                 "DBF field definition failed: Cannot assign more than {0} decimals for a field length of {1}".format(
@@ -358,9 +352,7 @@ class Shapely2ESRI:
         31: "MULTIPATCH",
     }
 
-    convert_geometry_to_index = dict(
-        (v, k) for k, v in convert_index_to_geometry.items()
-    )
+    convert_geometry_to_index = dict((v, k) for k, v in convert_index_to_geometry.items())
 
     def __init__(self, filepath, mode="read", geometryType=0, projectionFile=None):
         if len(mode) <= 0:
@@ -523,9 +515,7 @@ class Shapely2ESRI:
 
         """
         if self._size > 0:
-            raise IOError(
-                "Cannot add a field to a shapefile which already contains records!"
-            )
+            raise IOError("Cannot add a field to a shapefile which already contains records!")
         fieldType = fieldType.upper()
         field = None
         if fieldType == "STR":
@@ -567,9 +557,7 @@ class Shapely2ESRI:
             else:
                 projectionFile = _MODELLER.desktop.project.spatial_reference_file
         else:
-            _warn.warn(
-                "Emme project spatial reference only available in versions 4.1 and newer."
-            )
+            _warn.warn("Emme project spatial reference only available in versions 4.1 and newer.")
             return  # Do nothing
 
         destinationPath = self.filepath + ".prj"

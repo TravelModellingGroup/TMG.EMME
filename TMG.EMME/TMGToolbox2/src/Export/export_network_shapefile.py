@@ -48,9 +48,7 @@ class ExportNetworkAsShapefile(_m.Tool()):
 
     def __init__(self):
         # Init internal variables
-        self.TRACKER = _util.progress_tracker(
-            self.number_of_tasks
-        )  # init the progress_tracker
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
         # Set the defaults of parameters used by Modeller
         self.scenario = _MODELLER.scenario  # Default is primary scenario
@@ -91,18 +89,9 @@ class ExportNetworkAsShapefile(_m.Tool()):
 
     def _execute(self):
 
-        print(
-            "Exporting scenario "
-            + str(self.scenario_number)
-            + "as a shapefile to "
-            + self.export_path
-        )
+        print("Exporting scenario " + str(self.scenario_number) + "as a shapefile to " + self.export_path)
 
-        if (
-            self.transit_shapes == ""
-            or self.transit_shapes is None
-            or self.transit_shapes == " "
-        ):
+        if self.transit_shapes == "" or self.transit_shapes is None or self.transit_shapes == " ":
             self.transit_shapes = "SEGMENTS"
 
         _exportShapefile(
@@ -114,9 +103,7 @@ class ExportNetworkAsShapefile(_m.Tool()):
 
     def _check_inputs(self):
         if self.scenario is None:
-            raise Exception(
-                "Scenario '%s' is not a valid scenario" % self.scenario_number
-            )
+            raise Exception("Scenario '%s' is not a valid scenario" % self.scenario_number)
 
         if self.export_path is None or "":
             raise IOError("Export file not specified")

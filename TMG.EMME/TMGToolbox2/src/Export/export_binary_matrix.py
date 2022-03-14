@@ -56,17 +56,13 @@ class ExportBinaryMatrix(_m.Tool()):
 
     version = "1.0.1"
     tool_run_msg = ""
-    number_of_tasks = (
-        1  # For progress reporting, enter the integer number of tasks here
-    )
+    number_of_tasks = 1  # For progress reporting, enter the integer number of tasks here
 
     MATRIX_TYPES = {1: "ms", 2: "mo", 3: "md", 4: "mf"}
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.progress_tracker(
-            self.number_of_tasks
-        )  # init the progress_tracker
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.Scenario = _MODELLER.scenario  # Default is primary scenario
@@ -134,9 +130,7 @@ class ExportBinaryMatrix(_m.Tool()):
 
     def _Execute(self):
         with _m.logbook_trace(
-            name="{classname} v{version}".format(
-                classname=(self.__class__.__name__), version=self.version
-            ),
+            name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._GetAtts(),
         ):
 

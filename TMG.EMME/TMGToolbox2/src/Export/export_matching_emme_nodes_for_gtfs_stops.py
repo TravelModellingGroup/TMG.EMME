@@ -54,9 +54,7 @@ class GTFStoEmmeMap(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.progress_tracker(
-            self.number_of_tasks
-        )  # init the progress_tracker
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
     def page(self):
 
@@ -98,9 +96,7 @@ class GTFStoEmmeMap(_m.Tool()):
         try:
             self._Execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
         self.tool_run_msg = _m.PageBuilder.format_info("Done.")
@@ -112,9 +108,7 @@ class GTFStoEmmeMap(_m.Tool()):
         try:
             self._Execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
         self.tool_run_msg = _m.PageBuilder.format_info("Done")
@@ -129,9 +123,7 @@ class GTFStoEmmeMap(_m.Tool()):
 
     def _Execute(self):
         with _m.logbook_trace(
-            name="{classname} v{version}".format(
-                classname=(self.__class__.__name__), version=self.version
-            ),
+            name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._GetAtts(),
         ):
             # def file type
@@ -174,9 +166,7 @@ class GTFStoEmmeMap(_m.Tool()):
             for line in reader.readlines():
                 cells = line.strip().split(",")
                 id = cells[idCol]
-                stop = GtfsStop(
-                    id, cells[lonCol], cells[latCol], cells[nameCol], cells[descCol]
-                )
+                stop = GtfsStop(id, cells[lonCol], cells[latCol], cells[nameCol], cells[descCol])
                 stops[id] = [float(cells[lonCol]), float(cells[latCol])]
         return stops
 
@@ -256,9 +246,7 @@ class GTFStoEmmeMap(_m.Tool()):
         for node in network.regular_nodes():
             spatialIndex.insertPoint(node)
         for stop in convertedStops:
-            nearestNode = spatialIndex.nearestToPoint(
-                convertedStops[stop][0], convertedStops[stop][1]
-            )
+            nearestNode = spatialIndex.nearestToPoint(convertedStops[stop][0], convertedStops[stop][1])
             if nearestNode[0] == "Nothing Found":
                 map.append(
                     [

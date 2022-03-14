@@ -54,9 +54,7 @@ class ReverseTransitLines(_m.Tool()):
 
     version = "1.0.0"
     tool_run_msg = ""
-    number_of_tasks = (
-        1  # For progress reporting, enter the integer number of tasks here
-    )
+    number_of_tasks = 1  # For progress reporting, enter the integer number of tasks here
 
     # ---PARAMETERS
 
@@ -65,9 +63,7 @@ class ReverseTransitLines(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.progress_tracker(
-            self.number_of_tasks
-        )  # init the progress_tracker
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.scenario = _MODELLER.scenario  # Default is primary scenario
@@ -87,9 +83,7 @@ class ReverseTransitLines(_m.Tool()):
         if self.tool_run_msg != "":  # to display messages in the page
             pb.tool_run_status(self.tool_run_msg_status)
 
-        pb.add_select_scenario(
-            tool_attribute_name="Scenario", title="Scenario:", allow_none=False
-        )
+        pb.add_select_scenario(tool_attribute_name="Scenario", title="Scenario:", allow_none=False)
 
         pb.add_text_box(
             tool_attribute_name="line_selector_expression",
@@ -108,9 +102,7 @@ class ReverseTransitLines(_m.Tool()):
         try:
             self._execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
         self.tool_run_msg = _m.PageBuilder.format_info("Done.")
@@ -124,9 +116,7 @@ class ReverseTransitLines(_m.Tool()):
         try:
             self._execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
     # ---
@@ -134,25 +124,17 @@ class ReverseTransitLines(_m.Tool()):
 
     def _execute(self):
         with _m.logbook_trace(
-            name="{classname} v{version}".format(
-                classname=(self.__class__.__name__), version=self.version
-            ),
+            name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._GetAtts(),
         ):
 
-            with _util.temp_extra_attribute_manager(
-                self.scenario, "TRANSIT_LINE"
-            ) as lineFlagAttribute:
+            with _util.temp_extra_attribute_manager(self.scenario, "TRANSIT_LINE") as lineFlagAttribute:
                 self._FlagLines(lineFlagAttribute.id)
 
                 network = self.scenario.get_network()
                 print("Loaded network")
 
-                linesToReverse = [
-                    line
-                    for line in network.transit_lines()
-                    if line[lineFlagAttribute.id]
-                ]
+                linesToReverse = [line for line in network.transit_lines() if line[lineFlagAttribute.id]]
                 if len(linesToReverse) == 0:
                     _m.logbook_write("Found no lines to reverse")
                     return
@@ -229,9 +211,7 @@ class ReverseTransitLines(_m.Tool()):
         # Create the copy
         copy = network.create_transit_line(newId, line.vehicle.id, newItinerary)
         for segment in copy.segments(False):
-            d = (
-                segmentAttributes.pop()
-            )  # Pops from the tail of the list, reversing the order
+            d = segmentAttributes.pop()  # Pops from the tail of the list, reversing the order
             for attName, value in d.items():
                 segment[attName] = value
 
@@ -255,13 +235,7 @@ class ReverseTransitLines(_m.Tool()):
     def _WriteMainReport(self, reversedLines):
         acc = ""
         for originalId, newId in reversedLines:
-            acc += (
-                "<tr><td>"
-                + self.escape(originalId)
-                + "</td><td>"
-                + self.escape(newId)
-                + "</td></tr>"
-            )
+            acc += "<tr><td>" + self.escape(originalId) + "</td><td>" + self.escape(newId) + "</td></tr>"
 
         body = (
             """

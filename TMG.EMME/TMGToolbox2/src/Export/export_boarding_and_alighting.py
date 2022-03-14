@@ -86,15 +86,10 @@ class ExportBoardingAndAlighting(_m.Tool()):
                 fields = ["node_id", "boardings", "alightings", "x", "y", "station"]
                 csv_file_writer = csv.writer(output_file)
                 csv_file_writer.writerow(fields)
-                ba_dict = self._find_boarding_alighting(
-                    scenario_board_alight_dict, node_frm_file_dict
-                )
+                ba_dict = self._find_boarding_alighting(scenario_board_alight_dict, node_frm_file_dict)
                 self._write_boarding_and_alighting_to_file(ba_dict, csv_file_writer)
         else:
-            raise Exception(
-                "Network in Scenario %s do not have transit results!"
-                % parameters["scenario_number"]
-            )
+            raise Exception("Network in Scenario %s do not have transit results!" % parameters["scenario_number"])
 
     def _load_node_from_file(self, csv_file_to_read_from):
         # Reads the list of nodes and description (e.g. station names) provided in input file

@@ -90,9 +90,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
 
     version = "0.0.6"
     tool_run_msg = ""
-    number_of_tasks = (
-        8  # For progress reporting, enter the integer number of tasks here
-    )
+    number_of_tasks = 8  # For progress reporting, enter the integer number of tasks here
 
     # Tool Input Parameters
     #    Only those parameters neccessary for Modeller and/or XTMF to dock with
@@ -114,9 +112,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.progress_tracker(
-            self.number_of_tasks
-        )  # init the progress_tracker
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.Scenario = _MODELLER.scenario  # Default is primary scenario
@@ -149,9 +145,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
         if self.tool_run_msg != "":  # to display messages in the page
             pb.tool_run_status(self.tool_run_msg_status)
 
-        pb.add_select_scenario(
-            tool_attribute_name="Scenario", title="Base Scenario", allow_none=False
-        )
+        pb.add_select_scenario(tool_attribute_name="Scenario", title="Base Scenario", allow_none=False)
 
         pb.add_text_box(
             tool_attribute_name="MaxNonStopNodes",
@@ -282,9 +276,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
         try:
             self._Execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
         self.tool_run_msg = _m.PageBuilder.format_info("Tool complete.")
@@ -317,9 +309,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
 
     def _Execute(self):
         with _m.logbook_trace(
-            name="{classname} v{version}".format(
-                classname=(self.__class__.__name__), version=self.version
-            ),
+            name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._GetAtts(),
         ):
             routes = self._LoadCheckGtfsRoutesFile()
@@ -425,9 +415,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
             self.TRACKER.start_process(len(reader))
             directionGiven = "direction_id" in reader.header
             for record in reader.readlines():
-                route = routes[
-                    record["route_id"]
-                ]  # Assume the GTFS feed is well-formatted & contains all routes
+                route = routes[record["route_id"]]  # Assume the GTFS feed is well-formatted & contains all routes
                 if directionGiven:
                     direction = record["direction_id"]
                 else:
@@ -461,9 +449,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                         continue
                     index = int(record["stop_sequence"])
                     stopId = record["stop_id"]
-                    stopTime = StopTime(
-                        stopId, record["departure_time"], record["arrival_time"]
-                    )
+                    stopTime = StopTime(stopId, record["departure_time"], record["arrival_time"])
                     trip.stopTimes.append((index, stopTime))
 
                     if stopId in stops2nodes:
@@ -524,9 +510,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                 baseEmmeId = route.emme_id
                 vehicle = network.transit_vehicle(route.emme_vehicle)
                 if vehicle is None:
-                    raise Exception(
-                        "Cannot find a vehicle with id=%s" % route.emme_vehicle
-                    )
+                    raise Exception("Cannot find a vehicle with id=%s" % route.emme_vehicle)
                 if GtfsModeMap[vehicle.mode.id] != route.route_type:
                     print(
                         "Warning: Vehicle mode of route {0} ({1}) does not match suggested route type ({2})".format(
@@ -546,17 +530,11 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                     stop_itin = seq.split(";")
 
                     # Get node itinerary
-                    node_itin = self._GetNodeItinerary(
-                        stop_itin, stops2nodes, network, skippedStopIds
-                    )
+                    node_itin = self._GetNodeItinerary(stop_itin, stops2nodes, network, skippedStopIds)
 
-                    if (
-                        len(node_itin) < 2
-                    ):  # Must have at least two nodes to build a route
+                    if len(node_itin) < 2:  # Must have at least two nodes to build a route
                         # routeId, branchNum, error, seq
-                        failedSequences.append(
-                            (baseEmmeId, seqCount, "too few nodes", seq)
-                        )
+                        failedSequences.append((baseEmmeId, seqCount, "too few nodes", seq))
                         seqCount += 1
                         continue
 
@@ -642,15 +620,11 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
                     for node in nodeSet:
                         count = full_itin.count(node)
                         if count > 1:
-                            linesToCheck.append(
-                                (id, "Loop detected. Possible map matching error.")
-                            )
+                            linesToCheck.append((id, "Loop detected. Possible map matching error."))
                             break
 
                     if len(node_itin) < 5:
-                        linesToCheck.append(
-                            (id, "Short route: less than 4 total links in path")
-                        )
+                        linesToCheck.append((id, "Short route: less than 4 total links in path"))
 
                     # Write to service table
                     for trip in trips:
@@ -672,9 +646,7 @@ class GenerateTransitLinesFromGTFS(_m.Tool()):
         print(msg)
         _m.logbook_write(msg)
 
-        _m.logbook_write(
-            "Skipped stops report", value=self._WriteSkippedStopsReport(skippedStopIds)
-        )
+        _m.logbook_write("Skipped stops report", value=self._WriteSkippedStopsReport(skippedStopIds))
         print("%s stops skipped" % len(skippedStopIds))
         _m.logbook_write(
             "Failed sequences report",

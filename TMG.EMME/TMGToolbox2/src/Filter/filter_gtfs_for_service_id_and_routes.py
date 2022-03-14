@@ -41,9 +41,7 @@ class CleanGTFS(_m.Tool()):
 
     version = "0.0.1"
     tool_run_msg = ""
-    number_of_tasks = (
-        4  # For progress reporting, enter the integer number of tasks here
-    )
+    number_of_tasks = 4  # For progress reporting, enter the integer number of tasks here
 
     GTFSFolderName = _m.Attribute(str)
     ServiceIdSet = _m.Attribute(str)
@@ -96,9 +94,7 @@ class CleanGTFS(_m.Tool()):
         try:
             self._Execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
         msg = "GTFS folder is cleaned."

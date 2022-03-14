@@ -43,9 +43,7 @@ class Face(_m.Tool()):
                                 a shortest-path calculator) for network editing",
         )
 
-        pb.add_text_element(
-            "To import, call inro.modeller.Modeller().module('%s')" % str(self)
-        )
+        pb.add_text_element("To import, call inro.modeller.Modeller().module('%s')" % str(self))
 
         return pb.render()
 
@@ -122,11 +120,7 @@ def createSegmentAlightingsAttribute(network):
     for line in network.transit_lines():
         for i, segment in enumerate(line.segments(include_hidden=True)):
             if i > 0:
-                a = (
-                    prevVolume
-                    + float(segment.transit_boardings)
-                    - float(segment.transit_volume)
-                )
+                a = prevVolume + float(segment.transit_boardings) - float(segment.transit_volume)
                 if a < 0:
                     a = 0.0  # Alightings can be negative due to rounding error
                 segment.transit_alightings = a
@@ -244,9 +238,7 @@ def splitLink(
             copyLinkAtts(link, newLinkF, segLength, vertexBuffer)
 
             if link.reverse_link is not None and twoWay:
-                newLinkR = network.create_link(
-                    newNode.number, prevNode.number, link.reverse_link.modes
-                )
+                newLinkR = network.create_link(newNode.number, prevNode.number, link.reverse_link.modes)
                 vertexBuffer.reverse()
                 copyLinkAtts(link.reverse_link, newLinkR, segLength, vertexBuffer)
                 newLinksR.insert(0, newLinkR)
@@ -260,9 +252,7 @@ def splitLink(
         newLinksF.append(newLinkF)
         copyLinkAtts(link, newLinkF, segLength, vertexBuffer)
         if link.reverse_link is not None and twoWay:
-            newLinkR = network.create_link(
-                newNode.number, prevNode.number, link.reverse_link.modes
-            )
+            newLinkR = network.create_link(newNode.number, prevNode.number, link.reverse_link.modes)
             vertexBuffer.reverse()
             copyLinkAtts(link.reverse_link, newLinkR, segLength, vertexBuffer)
             newLinksR.insert(0, newLinkR)
@@ -270,9 +260,7 @@ def splitLink(
         # Handle transit lines
         for segment in link.segments():
             lineProxy = TransitLineProxy(segment.line)
-            lineProxy.segments.pop(
-                segment.number
-            )  # Cut this segment from the line's itinerary
+            lineProxy.segments.pop(segment.number)  # Cut this segment from the line's itinerary
 
             for i, newLink in enumerate(newLinksF):
                 segmentProxy = TransitSegmentProxy(segment, newLink.i_node)
@@ -291,9 +279,7 @@ def splitLink(
         if link.reverse_link is not None and twoWay:
             for segment in link.reverse_link.segments():
                 lineProxy = TransitLineProxy(segment.line)
-                lineProxy.segments.pop(
-                    segment.number
-                )  # Cut this segment from the line's itinerary
+                lineProxy.segments.pop(segment.number)  # Cut this segment from the line's itinerary
 
                 for i, newLink in enumerate(newLinksR):
                     segmentProxy = TransitSegmentProxy(segment, newLink.i_node)
@@ -320,31 +306,23 @@ def splitLink(
     turnAtts = [att for att in network.attributes("TURN")]
     firstForwardLink = newLinksF[0]
     for turn in link.incoming_turns():
-        newTurn = network.turn(
-            turn.i_node.number, turn.j_node.number, firstForwardLink.j_node.number
-        )
+        newTurn = network.turn(turn.i_node.number, turn.j_node.number, firstForwardLink.j_node.number)
         for att in turnAtts:
             newTurn[att] = turn[att]
     lastForwardLink = newLinksF[-1]
     for turn in link.outgoing_turns():
-        newTurn = network.turn(
-            lastForwardLink.i_node.number, turn.j_node.number, turn.k_node.number
-        )
+        newTurn = network.turn(lastForwardLink.i_node.number, turn.j_node.number, turn.k_node.number)
         for att in turnAtts:
             newTurn[att] = turn[att]
     if link.reverse_link is not None and twoWay:
         firstRevrseLink = newLinksR[0]
         for turn in link.reverse_link.incoming_turns():
-            newTurn = network.turn(
-                turn.i_node.number, turn.j_node.number, firstRevrseLink.j_node.number
-            )
+            newTurn = network.turn(turn.i_node.number, turn.j_node.number, firstRevrseLink.j_node.number)
             for att in turnAtts:
                 newTurn[att] = turn[att]
         lastReverseLink = newLinksR[-1]
         for turn in link.reverse_link.outgoing_turns():
-            newTurn = network.turn(
-                lastReverseLink.i_node.number, turn.j_node.number, turn.k_node.number
-            )
+            newTurn = network.turn(lastReverseLink.i_node.number, turn.j_node.number, turn.k_node.number)
             for att in turnAtts:
                 newTurn[att] = turn[att]
 
@@ -431,8 +409,7 @@ def renumberTransitVehicle(oldVehicle, newId):
 
     if net.transit_vehicle(newId) is not None:
         raise InvalidNetworkOperationError(
-            "Cannot change transit vehicle %s to %s as this ID already exists in the scenario"
-            % (oldVehicle, newId)
+            "Cannot change transit vehicle %s to %s as this ID already exists in the scenario" % (oldVehicle, newId)
         )
 
     created = False
@@ -443,11 +420,7 @@ def renumberTransitVehicle(oldVehicle, newId):
         for att in newVehicle.network.attributes("TRANSIT_VEHICLE"):
             newVehicle[att] = oldVehicle[att]
 
-        dependants = [
-            line
-            for line in net.transit_lines()
-            if line.vehicle.number == oldVehicle.number
-        ]
+        dependants = [line for line in net.transit_lines() if line.vehicle.number == oldVehicle.number]
         for line in dependants:
             line.vehicle = newVehicle
             changedLines.append(line)
@@ -486,16 +459,12 @@ def lineConcatenator(network, lineSet, newId):
 
         nextItem = itineraries[num + 1]
 
-        if (
-            item[-1] != nextItem[0]
-        ):  # compare final stop of current line to first stop of next line
+        if item[-1] != nextItem[0]:  # compare final stop of current line to first stop of next line
             raise Exception("Lines don't connect!")
         elif num == 0:  # don't need to add the first line's itinerary
             continue
         else:
-            combinedItinerary += item[
-                1:
-            ]  # combine stop lists, removing the redundant start node
+            combinedItinerary += item[1:]  # combine stop lists, removing the redundant start node
 
     attNames = network.attributes("TRANSIT_SEGMENT")
     lineAttNames = network.attributes("TRANSIT_LINE")
@@ -562,9 +531,7 @@ def copyNetwork(network_to_copy):
 
     # 3. Copy the transit vehicles
     for vehicle_to_copy in network_to_copy.transit_vehicles():
-        new_vehicle = new_network.create_transit_vehicle(
-            vehicle_to_copy.id, vehicle_to_copy.mode.id
-        )
+        new_vehicle = new_network.create_transit_vehicle(vehicle_to_copy.id, vehicle_to_copy.mode.id)
         for attname in new_network.attributes("TRANSIT_VEHICLE"):
             new_vehicle[attname] = vehicle_to_copy[attname]
 
@@ -577,22 +544,16 @@ def copyNetwork(network_to_copy):
     # 5. Copy the links
     for link_to_copy in network_to_copy.links():
         modes = [mode.id for mode in link_to_copy.modes]
-        new_link = new_network.create_link(
-            link_to_copy.i_node.id, link_to_copy.j_node.id, modes
-        )
+        new_link = new_network.create_link(link_to_copy.i_node.id, link_to_copy.j_node.id, modes)
         for attname in new_network.attributes("LINK"):
             new_link[attname] = link_to_copy[attname]
-        new_link.vertices = [
-            vtx for vtx in link_to_copy.vertices
-        ]  # Copy the link vertices properly
+        new_link.vertices = [vtx for vtx in link_to_copy.vertices]  # Copy the link vertices properly
 
     # 6. Copy the turns
     for intersection_to_copy in network_to_copy.intersections():
         new_network.create_intersection(intersection_to_copy.id)
     for turn_to_copy in network_to_copy.turns():
-        new_turn = new_network.turn(
-            turn_to_copy.i_node.id, turn_to_copy.j_node.id, turn_to_copy.k_node.id
-        )
+        new_turn = new_network.turn(turn_to_copy.i_node.id, turn_to_copy.j_node.id, turn_to_copy.k_node.id)
         for attname in new_network.attributes("TURN"):
             new_turn[attname] = turn_to_copy[attname]
 
@@ -679,9 +640,7 @@ __ATTRIBUTE_CASTS = {
 }
 
 
-def mergeLinks(
-    node, deleteStop=False, vertex=True, linkAggregators={}, segmentAggregators={}
-):
+def mergeLinks(node, deleteStop=False, vertex=True, linkAggregators={}, segmentAggregators={}):
     """
     Deletes a node and merges its links. This only works for nodes connected to exactly
     2 other nodes with either two or four links. The node can be a transit stop but cannot
@@ -723,9 +682,7 @@ def mergeLinks(
 
     network = node.network
 
-    incomingLinks, outgoingLinks, lineQueue = _preProcessNodeForMerging(
-        node, deleteStop
-    )
+    incomingLinks, outgoingLinks, lineQueue = _preProcessNodeForMerging(node, deleteStop)
 
     pairsToMerge = _getLinkPairs(incomingLinks, outgoingLinks)
 
@@ -743,9 +700,7 @@ def mergeLinks(
     try:
         # Merge the links first
         for link1, link2 in pairsToMerge:
-            newLink = _mergeLinkPair(
-                network, link1, link2, linkAggregators, createdLinks
-            )
+            newLink = _mergeLinkPair(network, link1, link2, linkAggregators, createdLinks)
 
             # Optionally insert the deleted node as a vertex in the merged link
             if vertex == True:
@@ -799,8 +754,7 @@ def _preProcessNodeForMerging(node, deleteStop):
         for segment in link.segments():
             if segment.line.segment(-2).number == segment.number:
                 raise InvalidNetworkOperationError(
-                    "Cannot delete node %s: it is the final stop of transit line %s."
-                    % (node, segment.line)
+                    "Cannot delete node %s: it is the final stop of transit line %s." % (node, segment.line)
                 )
             else:
                 nextSegment = segment.line.segment(segment.number + 1)
@@ -819,14 +773,12 @@ def _preProcessNodeForMerging(node, deleteStop):
         for segment in link.segments():
             if segment.number == 0:
                 raise InvalidNetworkOperationError(
-                    "Cannot delete node %s: it is the first stop of transit line %s."
-                    % (node, segment.line)
+                    "Cannot delete node %s: it is the first stop of transit line %s." % (node, segment.line)
                 )
             if not deleteStop:
                 if segment.allow_alightings or segment.allow_boardings:
                     raise InvalidNetworkOperationError(
-                        "Cannot delete node%s: it is being used as a transit stop for line %s"
-                        % (node, segment.line)
+                        "Cannot delete node%s: it is being used as a transit stop for line %s" % (node, segment.line)
                     )
 
             if segment.line in lineQueue:
@@ -835,14 +787,11 @@ def _preProcessNodeForMerging(node, deleteStop):
                 lineQueue[segment.line] = [segment.number]
 
     if len(neighbourSet) != 2:
-        raise InvalidNetworkOperationError(
-            "Cannot delete node %s: can only merge nodes with a degree of 2." % node
-        )
+        raise InvalidNetworkOperationError("Cannot delete node %s: can only merge nodes with a degree of 2." % node)
 
     if nIncomingLinks != nOutgoingLinks:
         raise InvalidNetworkOperationError(
-            "Cannot delete node %s: can only delete nodes with the same number of incoming and outgoing links."
-            % node
+            "Cannot delete node %s: can only delete nodes with the same number of incoming and outgoing links." % node
         )
 
     return incomingLinks, outgoingLinks, lineQueue
@@ -871,8 +820,7 @@ def _mergeLinkPair(network, link1, link2, linkAggregators, createdLinks):
     # Check if the merged link already exists
     if network.link(link1.i_node.number, link2.j_node.number) is not None:
         raise InvalidNetworkOperationError(
-            "Merged link %s-%s already exists!"
-            % (link1.i_node.number, link2.j_node.number)
+            "Merged link %s-%s already exists!" % (link1.i_node.number, link2.j_node.number)
         )
 
     newModes = link1.modes | link2.modes  # Always permit the union of the set of modes
@@ -906,9 +854,7 @@ def _mergeLinkPair(network, link1, link2, linkAggregators, createdLinks):
     return newLink
 
 
-def _mergeLineSegments(
-    network, line, segmentNumbersToRemove, segmentAggregators, lineRenamingMap
-):
+def _mergeLineSegments(network, line, segmentNumbersToRemove, segmentAggregators, lineRenamingMap):
 
     proxy = TransitLineProxy(line)
 
@@ -959,9 +905,7 @@ class TransitLineProxy:
     saved changes.
     """
 
-    DEFAULT_ATTS = set(
-        ["description", "layover_time", "speed", "headway", "data1", "data2", "data3"]
-    )
+    DEFAULT_ATTS = set(["description", "layover_time", "speed", "headway", "data1", "data2", "data3"])
 
     __MAP = {"layover_time": "layover"}
 
@@ -981,9 +925,7 @@ class TransitLineProxy:
             if not attId in self.DEFAULT_ATTS:
                 self.exatts[attId] = line[attId]
 
-        self.segments = [
-            TransitSegmentProxy(segment) for segment in line.segments(True)
-        ]
+        self.segments = [TransitSegmentProxy(segment) for segment in line.segments(True)]
 
     def __getitem__(self, key):
         if type(key) != str and type(key) != str:
@@ -1256,13 +1198,9 @@ class AStarLinks:
     def calcPath(self, start, end, mode=None, reset_max_speed=True, prior_link=None):
 
         if start.network != self.__network:
-            raise Exception(
-                "Start node does not belong to prepared network or is not a node"
-            )
+            raise Exception("Start node does not belong to prepared network or is not a node")
         if end.network != self.__network:
-            raise Exception(
-                "End node does not belong to prepared network or is not a node"
-            )
+            raise Exception("End node does not belong to prepared network or is not a node")
 
         # ---Init
         if mode:
@@ -1346,9 +1284,7 @@ class AStarLinks:
                         toLink.pendingCost = updatedCost
                         toLink.previousLink = link
                         toLink.degree = link.degree + 1
-                        if (
-                            not toLink.isQueued
-                        ):  # Only add to queue if not already in queue.
+                        if not toLink.isQueued:  # Only add to queue if not already in queue.
                             pq.append(toLink)
                             toLink.isQueued = True
                             toLink.j_node.estimate = self.__calcHeuristic(toLink.j_node)
@@ -1371,9 +1307,7 @@ class AStarLinks:
                             pq.append(toLink)
                             toLink.isQueued = True
                             toLink.j_node.estimate = self.__calcHeuristic(toLink.j_node)
-                link.j_node.isClosed = (
-                    True  # Only close nodes which are not intersections
-                )
+                link.j_node.isClosed = True  # Only close nodes which are not intersections
 
             pq.sort(key=_functools.cmp_to_key(self.__comparator), reverse=True)
         return []  # Priority queue is empty, shortest-path not found
@@ -1429,13 +1363,7 @@ class AStarLinks:
 
     def __calcHeuristic(self, node):
         end = self.__end
-        dist = (
-            _math.sqrt(
-                (node.x - end.x) * (node.x - end.x)
-                + (node.y - end.y) * (node.y - end.y)
-            )
-            * self.coord_factor
-        )
+        dist = _math.sqrt((node.x - end.x) * (node.x - end.x) + (node.y - end.y) * (node.y - end.y)) * self.coord_factor
         return dist / self.__maxSpeed
 
     def __resetNetwork(self):
