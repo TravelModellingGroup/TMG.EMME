@@ -35,9 +35,7 @@ _m.ListType = list
 class RotateNetwork(_m.Tool()):
     version = "0.1.0"
     tool_run_msg = ""
-    number_of_tasks = (
-        6  # For progress reporting, enter the integer number of tasks here
-    )
+    number_of_tasks = 6  # For progress reporting, enter the integer number of tasks here
     # Tool Input Parameters
     #    Only those parameters neccessary for Modeller and/or XTMF to dock with
     #    need to be placed here. Internal parameters (such as lists and dicts)
@@ -52,9 +50,7 @@ class RotateNetwork(_m.Tool()):
 
     def __init__(self):
         # -- Init internal varaiables
-        self.TRACKER = _util.progress_tracker(
-            self.number_of_tasks
-        )  # init the progress_tracker
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
         # --Set the defaults of parameters used by Modeller
         self.scenario = _MODELLER.scenario  # Default is primary scenario
@@ -75,9 +71,7 @@ class RotateNetwork(_m.Tool()):
         if self.tool_run_msg != "":  # to display messages in the page
             pb.tool_run_status(self.tool_run_msg_status)
 
-        pb.add_select_scenario(
-            tool_attribute_name="Scenario", title="Scenario:", allow_none=False
-        )
+        pb.add_select_scenario(tool_attribute_name="Scenario", title="Scenario:", allow_none=False)
 
         pb.add_text_box(
             tool_attribute_name="ReferenceLinkINode",
@@ -133,9 +127,7 @@ class RotateNetwork(_m.Tool()):
         try:
             self._execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
         self.tool_run_msg = _m.PageBuilder.format_info("Done.")
 
@@ -152,17 +144,13 @@ class RotateNetwork(_m.Tool()):
         try:
             self._execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
         self.tool_run_msg = _m.PageBuilder.format_info("Done.")
 
     def _execute(self):
         with _m.logbook_trace(
-            name="{classname} v{version}".format(
-                classname=(self.__class__.__name__), version=self.version
-            ),
+            name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._GetAtts(),
         ):
             network = self.scenario.get_network()
@@ -175,22 +163,14 @@ class RotateNetwork(_m.Tool()):
 
             refLink = self._GetRefLink(network)
             referenceVector = self._GetLinkVector(refLink)
-            _m.logbook_write(
-                "Found reference link '%s-%s'"
-                % (self.ReferenceLinkINode, self.ReferenceLinkJNode)
-            )
+            _m.logbook_write("Found reference link '%s-%s'" % (self.ReferenceLinkINode, self.ReferenceLinkJNode))
 
-            angle = self._GetRotationAngle(
-                anchorVector, referenceVector
-            )  # + math.pi / 2
+            angle = self._GetRotationAngle(anchorVector, referenceVector)  # + math.pi / 2
             _m.logbook_write("Rotation: %s degrees" % math.degrees(angle))
             cosTheta = math.cos(angle)
             sinTheta = math.sin(angle)
 
-            self.TRACKER.start_process(
-                network.element_totals["centroids"]
-                + network.element_totals["regular_nodes"]
-            )
+            self.TRACKER.start_process(network.element_totals["centroids"] + network.element_totals["regular_nodes"])
             for node in network.nodes():
                 self._RotateNode(node, cosTheta, sinTheta)
                 self.TRACKER.complete_subtask()
@@ -211,10 +191,7 @@ class RotateNetwork(_m.Tool()):
             delta = self._GetTranslation(referenceVector, anchorVector)
             _m.logbook_write("Translation: %s" % str(delta))
 
-            self.TRACKER.start_process(
-                network.element_totals["centroids"]
-                + network.element_totals["regular_nodes"]
-            )
+            self.TRACKER.start_process(network.element_totals["centroids"] + network.element_totals["regular_nodes"])
             for node in network.nodes():
                 self._TranslateNode(node, delta)
                 self.TRACKER.complete_subtask()

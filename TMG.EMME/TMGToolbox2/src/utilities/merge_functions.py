@@ -66,9 +66,7 @@ _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 class MergeFunctions(_m.Tool()):
     version = "1.0.0"
     tool_run_msg = ""
-    number_of_tasks = (
-        3  # For progress reporting, enter the integer number of tasks here
-    )
+    number_of_tasks = 3  # For progress reporting, enter the integer number of tasks here
 
     # Tool Input Parameters
     #    Only those parameters neccessary for Modeller and/or XTMF to dock with
@@ -102,9 +100,7 @@ class MergeFunctions(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.progress_tracker(
-            self.number_of_tasks
-        )  # init the progress_tracker
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.revert_on_error = True
@@ -157,18 +153,14 @@ class MergeFunctions(_m.Tool()):
         try:
             self._Execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
     ##########################################################################################################
 
     def _Execute(self):
         with _m.logbook_trace(
-            name="{classname} v{version}".format(
-                classname=(self.__class__.__name__), version=self.version
-            ),
+            name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._GetAtts(),
         ):
 
@@ -181,9 +173,7 @@ class MergeFunctions(_m.Tool()):
             if self.conflict_option == self.SKIP_OPTION:
                 msg = "Skipped the import of functions."
             else:
-                newFuncCount, modFuncCount = self._MergeFunctions(
-                    database_functions, file_functions
-                )
+                newFuncCount, modFuncCount = self._MergeFunctions(database_functions, file_functions)
                 self.TRACKER.complete_task()
                 msg = "Done."
                 if newFuncCount > 0:
@@ -312,10 +302,7 @@ class MergeFunctions(_m.Tool()):
                     self._LaunchGUI(conflicts, modifiedFunctions)
                 elif self.conflict_option == self.RAISE_OPTION:
                     tup = len(conflicts), ", ".join([t[0] for t in conflicts])
-                    msg = (
-                        "The following %s functions have conflicting definitions: %s"
-                        % tup
-                    )
+                    msg = "The following %s functions have conflicting definitions: %s" % tup
                     raise Exception(msg)
 
         return len(newFunctions), len(modifiedFunctions)

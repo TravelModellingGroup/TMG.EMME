@@ -61,9 +61,7 @@ class ImportBinaryMatrix(_m.Tool()):
 
     version = "0.0.2"
     tool_run_msg = ""
-    number_of_tasks = (
-        1  # For progress reporting, enter the integer number of tasks here
-    )
+    number_of_tasks = 1  # For progress reporting, enter the integer number of tasks here
 
     MATRIX_TYPES = {1: "ms", 2: "mo", 3: "md", 4: "mf"}
 
@@ -81,9 +79,7 @@ class ImportBinaryMatrix(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.progress_tracker(
-            self.number_of_tasks
-        )  # init the progress_tracker
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.Scenario = _MODELLER.scenario  # Default is primary scenario
@@ -125,9 +121,7 @@ class ImportBinaryMatrix(_m.Tool()):
             note="Select an existing matrix to save data, or leave as None and create a new matrix below.",
         )
 
-        pb.add_header(
-            "Create a NEW matrix to save data: (Ignore if using existing matrix)"
-        )
+        pb.add_header("Create a NEW matrix to save data: (Ignore if using existing matrix)")
 
         with pb.add_table(visible_border=False) as t:
             mt_type = [
@@ -209,9 +203,7 @@ class ImportBinaryMatrix(_m.Tool()):
         try:
             self._execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc(e)
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc(e))
             raise
 
         self.tool_run_msg = _m.PageBuilder.format_info("Done. Matrix is imported.")
@@ -273,9 +265,7 @@ class ImportBinaryMatrix(_m.Tool()):
 
             if str(self.ImportFile)[-2:] == "gz":
                 new_file = "matrix.mtx"
-                with gzip.open(self.ImportFile, "rb") as zip_file, open(
-                    new_file, "wb"
-                ) as non_zip_file:
+                with gzip.open(self.ImportFile, "rb") as zip_file, open(new_file, "wb") as non_zip_file:
                     shutil.copyfileobj(zip_file, non_zip_file)
                 data = _MatrixData.load(new_file)
                 os.remove(new_file)
@@ -289,9 +279,7 @@ class ImportBinaryMatrix(_m.Tool()):
                 origins = set(origins)
                 destinations = set(destinations)
                 if origins ^ destinations:
-                    raise Exception(
-                        "Asymmetrical matrix detected. Matrix must be square."
-                    )
+                    raise Exception("Asymmetrical matrix detected. Matrix must be square.")
             # 1D matrix
             else:
                 origins = data.indices[0]
@@ -310,8 +298,7 @@ class ImportBinaryMatrix(_m.Tool()):
                             _m.logbook_write(index)
 
                     raise Exception(
-                        "Matrix zones not compatible with scenario %s. Check logbook for details."
-                        % self.Scenario
+                        "Matrix zones not compatible with scenario %s. Check logbook for details." % self.Scenario
                     )
 
                 matrix.set_data(data, scenario_id=self.Scenario.id)
@@ -327,9 +314,7 @@ class ImportBinaryMatrix(_m.Tool()):
                         for index in zones - origins:
                             _m.logbook_write(index)
 
-                    raise Exception(
-                        "Matrix zones not compatible with emmebank zone system. Check Logbook for details."
-                    )
+                    raise Exception("Matrix zones not compatible with emmebank zone system. Check Logbook for details.")
 
                 matrix.set_data(data)
 

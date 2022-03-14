@@ -36,14 +36,10 @@ _inro_export_util = _MODELLER.module("inro.emme.utility.export_utilities")
 _export_modes = _MODELLER.tool("inro.emme.data.network.mode.export_modes")
 _export_vehicles = _MODELLER.tool("inro.emme.data.network.transit.export_vehicles")
 _export_base_network = _MODELLER.tool("inro.emme.data.network.base.export_base_network")
-_export_transit_lines = _MODELLER.tool(
-    "inro.emme.data.network.transit.export_transit_lines"
-)
+_export_transit_lines = _MODELLER.tool("inro.emme.data.network.transit.export_transit_lines")
 _export_link_shapes = _MODELLER.tool("inro.emme.data.network.base.export_link_shape")
 _export_turns = _MODELLER.tool("inro.emme.data.network.turn.export_turns")
-_export_attributes = _MODELLER.tool(
-    "inro.emme.data.extra_attribute.export_extra_attributes"
-)
+_export_attributes = _MODELLER.tool("inro.emme.data.extra_attribute.export_extra_attributes")
 _export_functions = _MODELLER.tool("inro.emme.data.function.export_functions")
 _pdu = _MODELLER.module("tmg2.utilities.pandas_utils")
 _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
@@ -52,9 +48,7 @@ _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 class ExportNetworkPackage(_m.Tool()):
     version = "1.2.2"
     tool_run_msg = ""
-    number_of_tasks = (
-        11  # For progress reporting, enter the integer number of tasks here
-    )
+    number_of_tasks = 11  # For progress reporting, enter the integer number of tasks here
 
     Scenario = _m.Attribute(_m.InstanceType)
     ExportFile = _m.Attribute(str)
@@ -68,9 +62,7 @@ class ExportNetworkPackage(_m.Tool()):
     # xtmf_ScenarioString = _m.Attribute(str)
 
     def __init__(self):
-        self.TRACKER = _util.progress_tracker(
-            self.number_of_tasks
-        )  # init the progress_tracker
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
         self.Scenario = _MODELLER.scenario  # Default is primary scenario
         self.ExportMetadata = ""
@@ -114,9 +106,7 @@ class ExportNetworkPackage(_m.Tool()):
             note="Optional",
         )
 
-        pb.add_text_box(
-            "ExportMetadata", size=255, multi_line=True, title="Export comments"
-        )
+        pb.add_text_box("ExportMetadata", size=255, multi_line=True, title="Export comments")
 
         pb.add_html(
             """
@@ -159,14 +149,10 @@ class ExportNetworkPackage(_m.Tool()):
         try:
             self._execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
-        self.tool_run_msg = _m.PageBuilder.format_info(
-            "Done. Scenario exported to %s" % self.ExportFile
-        )
+        self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario exported to %s" % self.ExportFile)
 
     @_m.method(return_type=bool)
     def check_all_flag(self):
@@ -180,14 +166,10 @@ class ExportNetworkPackage(_m.Tool()):
 
         self.ExportFile = ExportFile
         if export_attributes.lower() == "all":
-            self.ExportAllFlag = (
-                True  # if true, self.AttributeIdsToExport gets set in execute
-            )
+            self.ExportAllFlag = True  # if true, self.AttributeIdsToExport gets set in execute
         else:
             cells = export_attributes.split(",")
-            self.AttributeIdsToExport = [
-                str(c.strip()) for c in cells if c.strip()
-            ]  # Clean out null values
+            self.AttributeIdsToExport = [str(c.strip()) for c in cells if c.strip()]  # Clean out null values
 
         try:
             self._execute()
@@ -204,14 +186,10 @@ class ExportNetworkPackage(_m.Tool()):
         xtmf_AttributeIdString = parameters["extra_attributes"]
 
         if xtmf_AttributeIdString.lower() == "all":
-            self.ExportAllFlag = (
-                True  # if true, self.AttributeIdsToExport gets set in execute
-            )
+            self.ExportAllFlag = True  # if true, self.AttributeIdsToExport gets set in execute
         else:
             cells = xtmf_AttributeIdString.split(",")
-            self.AttributeIdsToExport = [
-                str(c.strip()) for c in cells if c.strip()
-            ]  # Clean out null values
+            self.AttributeIdsToExport = [str(c.strip()) for c in cells if c.strip()]  # Clean out null values
         try:
             self._execute()
         except Exception as e:
@@ -236,23 +214,17 @@ class ExportNetworkPackage(_m.Tool()):
             if self.ExportAllFlag:
                 self.AttributeIdsToExport = defined_attributes
             else:
-                missing_attributes = set(self.AttributeIdsToExport).difference(
-                    defined_attributes
-                )
+                missing_attributes = set(self.AttributeIdsToExport).difference(defined_attributes)
                 if missing_attributes:
                     raise IOError(
                         "Attributes [%s] not defined in scenario %s"
                         % (", ".join(missing_attributes), self.Scenario.number)
                     )
 
-            with _zipfile.ZipFile(
-                self.ExportFile, "w", _zipfile.ZIP_DEFLATED
-            ) as zf, self._temp_file() as temp_folder:
+            with _zipfile.ZipFile(self.ExportFile, "w", _zipfile.ZIP_DEFLATED) as zf, self._temp_file() as temp_folder:
                 version_file = _path.join(temp_folder, "version.txt")
                 with open(version_file, "w") as writer:
-                    writer.write(
-                        "%s\n%s" % (str(5.0), _util.get_emme_version(returnType=str))
-                    )
+                    writer.write("%s\n%s" % (str(5.0), _util.get_emme_version(returnType=str)))
                 zf.write(version_file, arcname="version.txt")
 
                 info_path = _path.join(temp_folder, "info.txt")
@@ -283,9 +255,7 @@ class ExportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Exporting modes")
     def _batchout_modes(self, temp_folder, zf):
         export_file = _path.join(temp_folder, "modes.201")
-        self.TRACKER.run_tool(
-            _export_modes, export_file=export_file, scenario=self.Scenario
-        )
+        self.TRACKER.run_tool(_export_modes, export_file=export_file, scenario=self.Scenario)
         zf.write(export_file, arcname="modes.201")
 
     @_m.logbook_trace("Exporting vehicles")
@@ -295,9 +265,7 @@ class ExportNetworkPackage(_m.Tool()):
             self._export_blank_batch_file(export_file, "vehicles")
             self.TRACKER.complete_task()
         else:
-            self.TRACKER.run_tool(
-                _export_vehicles, export_file=export_file, scenario=self.Scenario
-            )
+            self.TRACKER.run_tool(_export_vehicles, export_file=export_file, scenario=self.Scenario)
         zf.write(export_file, arcname="vehicles.202")
 
     @_m.logbook_trace("Exporting base network")
@@ -314,9 +282,7 @@ class ExportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Exporting link shapes")
     def _batchout_shapes(self, temp_folder, zf):
         export_file = _path.join(temp_folder, "shapes.251")
-        self.TRACKER.run_tool(
-            _export_link_shapes, export_file=export_file, scenario=self.Scenario
-        )
+        self.TRACKER.run_tool(_export_link_shapes, export_file=export_file, scenario=self.Scenario)
         zf.write(export_file, arcname="shapes.251")
 
     @_m.logbook_trace("Exporting transit lines")
@@ -332,9 +298,7 @@ class ExportNetworkPackage(_m.Tool()):
                 if len(line.description) == 0:
                     line.description = "No Description"
                 else:
-                    line.description = line.description.replace("'", "`").replace(
-                        '"', " "
-                    )
+                    line.description = line.description.replace("'", "`").replace('"', " ")
                     if len(line.description) > 20 and self.ExportToEmmeOldVersion:
                         line.description = line.description[0:19]
             self.Scenario.publish_network(network)
@@ -371,9 +335,7 @@ class ExportNetworkPackage(_m.Tool()):
     def _batchout_extra_attributes(self, temp_folder, zf):
         _m.logbook_write("List of attributes: %s" % self.AttributeIdsToExport)
 
-        extra_attributes = [
-            self.Scenario.extra_attribute(id_) for id_ in self.AttributeIdsToExport
-        ]
+        extra_attributes = [self.Scenario.extra_attribute(id_) for id_ in self.AttributeIdsToExport]
         types = set([att.type.lower() for att in extra_attributes])
 
         self.TRACKER.run_tool(
@@ -387,9 +349,7 @@ class ExportNetworkPackage(_m.Tool()):
         for t in types:
             if t == "transit_segment":
                 t = "segment"
-            filename = _path.join(
-                temp_folder, "extra_%ss_%s.csv" % (t, self.Scenario.number)
-            )
+            filename = _path.join(temp_folder, "extra_%ss_%s.csv" % (t, self.Scenario.number))
             zf.write(filename, arcname="exatt_%ss.241" % t)
         summary_file = _path.join(temp_folder, "exatts.241")
         self._export_attribute_definition_file(summary_file, extra_attributes)
@@ -467,9 +427,7 @@ class ExportNetworkPackage(_m.Tool()):
     def _get_select_attribute_options_json(self):
         keyval = {}
         for att in self.Scenario.extra_attributes():
-            label = "{id} ({domain}) - {name}".format(
-                id=att.name, domain=att.type, name=att.description
-            )
+            label = "{id} ({domain}) - {name}".format(id=att.name, domain=att.type, name=att.description)
             keyval[att.name] = label
         return keyval
 
@@ -477,12 +435,8 @@ class ExportNetworkPackage(_m.Tool()):
     def _get_select_attribute_options_html(self):
         list_ = []
         for att in self.Scenario.extra_attributes():
-            label = "{id} ({domain}) - {name}".format(
-                id=att.name, domain=att.type, name=att.description
-            )
-            html = str(
-                '<option value="{id}">{text}</option>'.format(id=att.name, text=label)
-            )
+            label = "{id} ({domain}) - {name}".format(id=att.name, domain=att.type, name=att.description)
+            html = str('<option value="{id}">{text}</option>'.format(id=att.name, text=label))
             list_.append(html)
         return "\n".join(list_)
 

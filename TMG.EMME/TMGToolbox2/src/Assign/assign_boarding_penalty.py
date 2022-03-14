@@ -73,9 +73,7 @@ class AssignVBoardingPenalties(_m.Tool()):
 
     version = "1.2.0"
     tool_run_msg = ""
-    number_of_tasks = (
-        15  # For progress reporting, enter the integer number of tasks here
-    )
+    number_of_tasks = 15  # For progress reporting, enter the integer number of tasks here
 
     # Tool Input Parameters
     #    Only those parameters necessary for Modeller and/or XTMF to dock with
@@ -89,9 +87,7 @@ class AssignVBoardingPenalties(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.progress_tracker(
-            self.number_of_tasks
-        )  # init the progress_tracker
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         """
@@ -166,9 +162,7 @@ class AssignVBoardingPenalties(_m.Tool()):
 
             self._Execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
         self.tool_run_msg = _m.PageBuilder.format_info("Done.")
@@ -198,10 +192,8 @@ class AssignVBoardingPenalties(_m.Tool()):
 
     def _Execute(self):
         with _m.logbook_trace(
-            name="{classname} v{version}".format(
-                classname=(self.__class__.__name__), version=self.version
-            ),
-            attributes=self._GetAtts(),
+            name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
+            attributes=self._get_atts(),
         ):
 
             tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
@@ -221,7 +213,7 @@ class AssignVBoardingPenalties(_m.Tool()):
 
     # ----SUB FUNCTIONS---------------------------------------------------------------------------------
 
-    def _GetAtts(self):
+    def _get_atts(self):
         atts = {
             "Scenarios": str(self.Scenarios),
             "Version": self.version,
@@ -236,26 +228,26 @@ class AssignVBoardingPenalties(_m.Tool()):
         self.TRACKER.start_process(2 * len(penaltyFilterList) + 2)
 
         with _m.logbook_trace("Resetting UT2 and UT3 to 0"):
-            tool(specification=self._GetClearLineSpec("ut2", "0"), scenario=scenario)
-            tool(specification=self._GetClearLineSpec("ut3", "0"), scenario=scenario)
+            tool(specification=self._get_clear_line_spec("ut2", "0"), scenario=scenario)
+            tool(specification=self._get_clear_line_spec("ut3", "0"), scenario=scenario)
             self.TRACKER.complete_subtask()
 
         for group in penaltyFilterList:
             with _m.logbook_trace("Applying " + group["label"] + " BP"):
-                tool(specification=self._GetGroupSpecInitial(group), scenario=scenario)
-                tool(specification=self._GetGroupSpecTransfer(group), scenario=scenario)
+                tool(specification=self._get_group_spec_initial(group), scenario=scenario)
+                tool(specification=self._get_group_spec_transfer(group), scenario=scenario)
                 self.TRACKER.complete_subtask()
 
         with _m.logbook_trace("Resetting US2 to 1"):
-            tool(specification=self._GetClearSegmentSpec("us2", "1"), scenario=scenario)
+            tool(specification=self._get_clear_segment_spec("us2", "1"), scenario=scenario)
             self.TRACKER.complete_subtask()
 
         for group in penaltyFilterList:
             with _m.logbook_trace("Applying " + group["label"] + " IVTT Perception"):
-                tool(specification=self._IVTTPerceptionSpec(group), scenario=scenario)
+                tool(specification=self._IVTT_perception_spec(group), scenario=scenario)
                 self.TRACKER.complete_subtask()
 
-    def _GetClearLineSpec(self, variable, expression):
+    def _get_clear_line_spec(self, variable, expression):
         return {
             "result": variable,
             "expression": expression,
@@ -264,7 +256,7 @@ class AssignVBoardingPenalties(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    def _GetClearSegmentSpec(self, variable, expression):
+    def _get_clear_segment_spec(self, variable, expression):
         return {
             "result": variable,
             "expression": expression,
@@ -273,7 +265,7 @@ class AssignVBoardingPenalties(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    def _GetGroupSpecTransfer(self, group):
+    def _get_group_spec_transfer(self, group):
         return {
             "result": "ut2",
             "expression": str(group["transfer"]),
@@ -282,7 +274,7 @@ class AssignVBoardingPenalties(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    def _GetGroupSpecInitial(self, group):
+    def _get_group_spec_initial(self, group):
         return {
             "result": "ut3",
             "expression": str(group["initial"]),
@@ -291,7 +283,7 @@ class AssignVBoardingPenalties(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    def _IVTTPerceptionSpec(self, group):
+    def _IVTT_perception_spec(self, group):
         return {
             "result": "us2",
             "expression": str(group["ivttPerception"]),

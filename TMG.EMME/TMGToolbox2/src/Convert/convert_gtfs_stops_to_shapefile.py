@@ -39,9 +39,7 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
 
     version = "0.0.1"
     tool_run_msg = ""
-    number_of_tasks = (
-        1  # For progress reporting, enter the integer number of tasks here
-    )
+    number_of_tasks = 1  # For progress reporting, enter the integer number of tasks here
 
     # Tool Input Parameters
     #    Only those parameters neccessary for Modeller and/or XTMF to dock with
@@ -53,9 +51,7 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
 
     def __init__(self):
         # ---Init internal variables
-        self.TRACKER = _util.progress_tracker(
-            self.number_of_tasks
-        )  # init the progress_tracker
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
     def page(self):
         pb = _tmgTPB.TmgToolPageBuilder(
@@ -92,9 +88,7 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
         try:
             self._Execute()
         except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(
-                e, _traceback.format_exc()
-            )
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
         self.tool_run_msg = _m.PageBuilder.format_info("Tool is completed.")
@@ -113,9 +107,7 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
 
     def _Execute(self):
         with _m.logbook_trace(
-            name="{classname} v{version}".format(
-                classname=(self.__class__.__name__), version=self.version
-            ),
+            name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._GetAtts(),
         ):
 
@@ -180,9 +172,7 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
             for line in reader.readlines():
                 cells = line.strip().split(",")
                 id = cells[idCol]
-                stop = GtfsStop(
-                    id, cells[lonCol], cells[latCol], cells[nameCol], cells[descCol]
-                )
+                stop = GtfsStop(id, cells[lonCol], cells[latCol], cells[nameCol], cells[descCol])
                 stops[id] = stop
         return stops  # StopID -> stop
 
