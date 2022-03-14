@@ -111,7 +111,7 @@ class AssignTransit(_m.Tool()):
 
     def run_xtmf(self, parameters):
         scenario = _util.load_scenario(parameters["scenario_number"])
-        self._check_attributs_exists(scenario, parameters)
+        self._check_attributes_exist(scenario, parameters)
         try:
             self._execute(scenario, parameters)
         except Exception as e:
@@ -209,9 +209,11 @@ class AssignTransit(_m.Tool()):
                     if parameters["node_logit_scale"] is not False:
                         self._publish_efficient_connector_network(scenario)
                     with _util.temp_extra_attribute_manager(scenario, "TRANSIT_LINE") as stsu_att:
-                        with self._temp_stsu_ttfs(scenario, parameters) as ttf_map:
+                        with self._temp_stsu_ttfs(scenario, parameters) as temp_stsu_ttf:
+                            stsu_ttf_map = temp_stsu_ttf[0]
+                            ttfs_changed = temp_stsu_ttf[1]
                             if parameters["surface_transit_speed"] != False:
-                                pass
+                                self._get_base_speed(scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed)
                             self._run_transit_assignment(
                                 scenario,
                                 parameters,
@@ -229,7 +231,7 @@ class AssignTransit(_m.Tool()):
         atts = {}
         return atts
 
-    def _check_attributs_exists(self, scenario, parameters):
+    def _check_attributes_exist(self, scenario, parameters):
         walk_att = "walk_time_perception_attribute"
         seg_att = "segment_fare_attribute"
         ehwy_att = "effective_headway_attribute"
@@ -488,7 +490,6 @@ class AssignTransit(_m.Tool()):
                    to 1 apply same to all connectors.
 
                     *** Outgoing link connector attributes must be set to -1 to override flow connectors with fixed proportions.
-
         """
         network = scenario.get_network()
         for node in network.regular_nodes():
@@ -514,6 +515,100 @@ class AssignTransit(_m.Tool()):
                     if link.j_node.number > 99999:
                         link.j_node.data1 = -1
         scenario.publish_network(network)
+
+    def _get_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed):
+        erow_defined = self._check_attributes_and_get_erow(scenario)
+        self._set_up_line_attributes(scenario, parameters, stsu_att)
+        network = scenario.get_network()
+        for line in network.transit_lines():
+            for stsu in parameters["surface_transit_speeds"]:
+                if line[stsu_att.id] != 0.0:
+                    index = int(line[str(stsu_att.id)]) - 1
+                    default_duration = stsu["default_duration"]
+                    correlation = stsu["transit_auto_correlation"]
+                    erow_speed_global = stsu["global_erow_speed"]
+                else:
+                    continue
+                segments = line.segments()
+                number_of_segments = segments.__length_hint__()
+                for segment in segments:
+                    if segment.allow_alightings == True and segment.allow_boardings == True:
+                        segment.dwell_time = 0.01
+                    else:
+                        segment.dwell_time = 0.0
+                    if segment.j_node is None:
+                        continue
+                    segment_number = segment.number
+                    segment.transit_time_func = stsu_ttf_map[segment.transit_time_func]
+                    time = segment.link["auto_time"]
+                    if time > 0.0:
+                        if segment.transit_time_func in self.ttfs_xrow:
+                            if erow_defined == True and segment["@erow_speed"] > 0.0:
+                                segment.data1 = segment["@erow_speed"]
+                            else:
+                                segment.data1 = erow_speed_global
+                        else:
+                            segment.data1 = (segment.link.length * 60.0) / (time * correlation)
+                    if time <= 0.0:
+                        if erow_defined == True and segment["@erow_speed"] > 0.0:
+                            segment.data1 = segment["@erow_speed"]
+                        else:
+                            if segment_number <= 1 or segment_number >= (number_of_segments - 1):
+                                segment.data1 = 20
+                            else:
+                                segment.data1 = erow_speed_global
+                    if segment_number == 0:
+                        continue
+                    segment.dwell_time = (segment["@tstop"] * default_duration) / 60
+        data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"])
+        scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"], data)
+        ttfs_changed.append(True)
+        return ttfs_changed
+
+    def _check_attributes_and_get_erow(self, scenario):
+        if scenario.extra_attribute("@doors") is None:
+            print(
+                "No Transit Vehicle door information is present in the network. Default assumption will be 2 doors per surface vehicle."
+            )
+        if scenario.extra_attribute("@boardings") is None:
+            scenario.create_extra_attribute("TRANSIT_SEGMENT", "@boardings")
+        if scenario.extra_attribute("@alightings") is None:
+            scenario.create_extra_attribute("TRANSIT_SEGMENT", "@alightings")
+        if scenario.extra_attribute("@erow_speed") is None:
+            erow_defined = False
+            print(
+                "No segment specific exclusive ROW speed attribute is defined in the network. Global erow speed will be used."
+            )
+        else:
+            erow_defined = True
+        return erow_defined
+
+    def _set_up_line_attributes(self, scenario, parameters, stsu_att):
+        stsu = []
+        for i, sts in enumerate(parameters["surface_transit_speeds"]):
+            spec = {
+                "type": "NETWORK_CALCULATION",
+                "result": str(stsu_att.id),
+                "expression": str(i + 1),
+                "selections": {"transit_line": "mode = " + sts["mode_filter_expression"]},
+            }
+            if sts["line_filter_expression"] == "" and sts["mode_filter_expression"] != "":
+                spec["selections"]["transit_line"] = "mode = " + sts["mode_filter_expression"]
+            elif sts["line_filter_expression"] != "" and sts["mode_filter_expression"] != "":
+                spec["selections"]["transit_line"] = (
+                    sts["line_filter_expression"] + " and mode = " + sts["mode_filter_expression"]
+                )
+            elif sts["line_filter_expression"] != "" and sts["mode_filter_expression"] == "":
+                spec["selections"]["transit_line"] = sts["mode_filter_expression"]
+            elif sts["line_filter_expression"] == "" and sts["mode_filter_expression"] == "":
+                spec["selections"]["transit_line"] = "all"
+            else:
+                raise Exception(
+                    "Please enter a correct mode filter and/or line filter in Surface Transit Speed parameters %d"
+                    % (i + 1)
+                )
+            report = network_calc_tool(spec, scenario=scenario)
+        return stsu
 
     def _run_transit_assignment(
         self,
@@ -765,26 +860,26 @@ class AssignTransit(_m.Tool()):
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
         orig_ttf_values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"])
-        ttfs_changed = False
-        _temp_stsu_map = {}
+        ttfs_changed = []
+        stsu_ttf_map = {}
         created = {}
         for ttf in parameters["ttf_definitions"]:
             for i in range(1, 100):
                 func = "ft" + str(i)
                 if scenario.emmebank.function(func) is None:
                     scenario.emmebank.create_function(func, "(length*60/us1)")
-                    _temp_stsu_map[int(ttf["ttf"])] = int(func[2:])
+                    stsu_ttf_map[int(ttf["ttf"])] = int(func[2:])
                     if str(ttf["ttf"]) in parameters["xrow_ttf_range"]:
                         parameters["xrow_ttf_range"].add(int(func[2:]))
                     created[func] = True
                     break
         try:
-            yield _temp_stsu_map
+            yield stsu_ttf_map, ttfs_changed
         finally:
             for func in created:
                 if created[func] == True:
                     scenario.emmebank.delete_function(func)
-            if ttfs_changed == True:
+            if True in ttfs_changed:
                 scenario.set_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"], orig_ttf_values)
 
     @_m.method(return_type=_m.TupleType)
