@@ -542,7 +542,7 @@ class AssignTransit(_m.Tool()):
                     segment.transit_time_func = stsu_ttf_map[segment.transit_time_func]
                     time = segment.link["auto_time"]
                     if time > 0.0:
-                        if segment.transit_time_func in self.ttfs_xrow:
+                        if segment.transit_time_func in self.ttfs_xrow(parameters):
                             if erow_defined == True and segment["@erow_speed"] > 0.0:
                                 segment.data1 = segment["@erow_speed"]
                             else:
@@ -564,6 +564,18 @@ class AssignTransit(_m.Tool()):
         scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"], data)
         ttfs_changed.append(True)
         return ttfs_changed
+
+    def ttfs_xrow(self, parameters):
+        ttfs_xrow = set()
+        parameter_xrow_range = parameters["xrow_ttf_range"].split()
+        for ttf_range in parameter_xrow_range:
+            if "-" in ttf_range:
+                ttf_range = ttf_range.split("-")
+                for i in range(int(ttf_range[0]), int(ttf_range[1]) + 1):
+                    ttfs_xrow.add(i)
+            else:
+                ttfs_xrow.add(int(ttf_range))
+        return ttfs_xrow
 
     def _check_attributes_and_get_erow(self, scenario):
         if scenario.extra_attribute("@doors") is None:
