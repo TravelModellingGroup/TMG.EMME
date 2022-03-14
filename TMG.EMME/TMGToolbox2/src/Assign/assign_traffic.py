@@ -272,9 +272,10 @@ class AssignTraffic(_m.Tool()):
 
         traffic_classes = parameters["traffic_classes"]
         mtx_name = matrix_name
+
         mtx_list = [
             _bank.matrix(tc[mtx_name])
-            if tc[mtx_name] == "mf0" or _bank.matrix(tc[mtx_name]).id == tc[mtx_name]
+            if tc[mtx_name] == "mf0" or _bank.matrix(tc[mtx_name]) == tc[mtx_name]
             else exception(tc[mtx_name])
             for tc in traffic_classes
         ]
