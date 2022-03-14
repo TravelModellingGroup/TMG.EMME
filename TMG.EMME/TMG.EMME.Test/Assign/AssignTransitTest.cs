@@ -105,7 +105,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteEndObject();
                     writer.WriteEndArray();
                     writer.WriteString("congestion_exponent", "");
-                    writer.WriteNumber("assignment_period", 0.0f);
+                    writer.WriteNumber("assignment_period", 3.0f);
                     writer.WriteString("name_string", "");
                     writer.WriteString("congested_assignment", "");
                     writer.WriteString("csvfile", "");
