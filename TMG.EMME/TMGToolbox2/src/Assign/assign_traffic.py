@@ -65,15 +65,9 @@ _util = _MODELLER.module("tmg2.utilities.general_utilities")
 EMME_VERSION = _util.get_emme_version(tuple)
 
 matrix_calc_tool = _MODELLER.tool("inro.emme.matrix_calculation.matrix_calculator")
-network_calculation_tool = _MODELLER.tool(
-    "inro.emme.network_calculation.network_calculator"
-)
-traffic_assignment_tool = _MODELLER.tool(
-    "inro.emme.traffic_assignment.sola_traffic_assignment"
-)
-extra_parameter_tool = _MODELLER.tool(
-    "inro.emme.traffic_assignment.set_extra_function_parameters"
-)
+network_calculation_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
+traffic_assignment_tool = _MODELLER.tool("inro.emme.traffic_assignment.sola_traffic_assignment")
+extra_parameter_tool = _MODELLER.tool("inro.emme.traffic_assignment.set_extra_function_parameters")
 
 delete_matrix = _MODELLER.tool("inro.emme.data.matrix.delete_matrix")
 
@@ -139,15 +133,12 @@ class AssignTraffic(_m.Tool()):
             matrix_name=["cost_matrix", "time_matrix", "toll_matrix"],
         )
         with _trace(
-            name="%s (%s v%s)"
-            % (parameters["run_title"], self.__class__.__name__, self.version),
+            name="%s (%s v%s)" % (parameters["run_title"], self.__class__.__name__, self.version),
             attributes=self._load_atts(scenario, parameters),
         ):
             self._tracker.reset()
             with _util.temporary_matrix_manager() as temp_matrix_list:
-                demand_matrix_list = self._init_input_matrices(
-                    load_input_matrix_list, temp_matrix_list
-                )
+                demand_matrix_list = self._init_input_matrices(load_input_matrix_list, temp_matrix_list)
                 cost_matrix_list = self._init_output_matrices(
                     load_output_matrix_dict,
                     temp_matrix_list,
@@ -166,9 +157,7 @@ class AssignTraffic(_m.Tool()):
                     matrix_name="toll_matrix",
                     description="",
                 )
-                peak_hour_matrix_list = self._init_temp_peak_hour_matrix(
-                    parameters, temp_matrix_list
-                )
+                peak_hour_matrix_list = self._init_temp_peak_hour_matrix(parameters, temp_matrix_list)
                 self._tracker.complete_subtask()
 
                 with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
@@ -187,9 +176,7 @@ class AssignTraffic(_m.Tool()):
                     # Calculate transit background traffic
                     self._calculate_transit_background_traffic(scenario, parameters)
                     # Calculate applied toll factor
-                    applied_toll_factor_list = self._calculate_applied_toll_factor(
-                        parameters
-                    )
+                    applied_toll_factor_list = self._calculate_applied_toll_factor(parameters)
                     # Calculate link costs
                     self._calculate_link_cost(
                         scenario,
@@ -211,9 +198,7 @@ class AssignTraffic(_m.Tool()):
                     with _m.logbook_trace("Running Road Assignments."):
                         completed_path_analysis = False
                         if completed_path_analysis is False:
-                            attributes = self._load_attribute_list(
-                                parameters, demand_matrix_list
-                            )
+                            attributes = self._load_attribute_list(parameters, demand_matrix_list)
                             attribute_list = attributes[0]
                             volume_attribute_list = attributes[1]
                             mode_list = self._load_mode_list(parameters)
@@ -236,19 +221,14 @@ class AssignTraffic(_m.Tool()):
                                 None,
                                 parameters,
                             )
-                            report = self._tracker.run_tool(
-                                traffic_assignment_tool, sola_spec, scenario=scenario
-                            )
+                            report = self._tracker.run_tool(traffic_assignment_tool, sola_spec, scenario=scenario)
                         checked = self._load_stopping_criteria(report)
                         number = checked[0]
                         stopping_criterion = checked[1]
                         value = checked[2]
 
                         print("Primary assignment complete at %s iterations." % number)
-                        print(
-                            "Stopping criterion was %s with a value of %s."
-                            % (stopping_criterion, value)
-                        )
+                        print("Stopping criterion was %s with a value of %s." % (stopping_criterion, value))
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_atts(self, scenario, parameters):
@@ -267,7 +247,7 @@ class AssignTraffic(_m.Tool()):
         }
         return atts
 
-    def _load_output_matrices(self, parameters, matrix_name=list):
+    def _load_output_matrices(self, parameters, matrix_name=""):
         """
         Load input matrices creates and loads all (input) matrix into a list based on
         matrix_name supplied. E.g of matrix_name: "demand_matrix" and matrix_id: "mf2"
@@ -292,9 +272,10 @@ class AssignTraffic(_m.Tool()):
 
         traffic_classes = parameters["traffic_classes"]
         mtx_name = matrix_name
+
         mtx_list = [
             _bank.matrix(tc[mtx_name])
-            if tc[mtx_name] == "mf0" or _bank.matrix(tc[mtx_name]).id == tc[mtx_name]
+            if tc[mtx_name] == "mf0" or _bank.matrix(tc[mtx_name]) == tc[mtx_name]
             else exception(tc[mtx_name])
             for tc in traffic_classes
         ]
@@ -384,9 +365,7 @@ class AssignTraffic(_m.Tool()):
                 else:
                     output_matrix_list.append(mtx)
         else:
-            raise Exception(
-                'Output matrix name "%s" provided does not exist', matrix_name
-            )
+            raise Exception('Output matrix name "%s" provided does not exist', matrix_name)
         return output_matrix_list
 
     def _init_temp_peak_hour_matrix(self, parameters, temp_matrix_list):
@@ -403,9 +382,7 @@ class AssignTraffic(_m.Tool()):
 
     # ---CREATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-    def _create_time_attribute_list(
-        self, scenario, demand_matrix_list, temp_attribute_list
-    ):
+    def _create_time_attribute_list(self, scenario, demand_matrix_list, temp_attribute_list):
         time_attribute_list = []
         time_attribute = _util.create_temp_attribute(
             scenario, "ltime", "LINK", default_value=0.0, assignment_type="traffic"
@@ -415,9 +392,7 @@ class AssignTraffic(_m.Tool()):
             temp_attribute_list.append(att)
         return time_attribute_list
 
-    def _create_cost_attribute_list(
-        self, scenario, demand_matrix_list, temp_attribute_list
-    ):
+    def _create_cost_attribute_list(self, scenario, demand_matrix_list, temp_attribute_list):
         cost_attribute_list = []
         count = 0
         while count < len(demand_matrix_list):
@@ -429,9 +404,7 @@ class AssignTraffic(_m.Tool()):
             count += 1
         return cost_attribute_list
 
-    def create_transit_traffic_attribute_list(
-        self, scenario, demand_matrix_list, temp_attribute_list
-    ):
+    def create_transit_traffic_attribute_list(self, scenario, demand_matrix_list, temp_attribute_list):
         t_traffic_attribute = _util.create_temp_attribute(
             scenario, "tvph", "LINK", default_value=0.0, assignment_type="traffic"
         )
@@ -445,9 +418,7 @@ class AssignTraffic(_m.Tool()):
         if volume_attribute_at is None:
             scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
         elif volume_attribute_at.type != "LINK":
-            raise Exception(
-                "Volume Attribute '%s' is not a link type attribute" % volume_attribute
-            )
+            raise Exception("Volume Attribute '%s' is not a link type attribute" % volume_attribute)
         elif volume_attribute is not None:
             _write("Deleting Previous Extra Attributes.")
             scenario.delete_extra_attribute(volume_attribute_at)
@@ -477,9 +448,7 @@ class AssignTraffic(_m.Tool()):
                 )
             self._tracker.complete_subtask()
 
-    def _calculate_peak_hour_matrices(
-        self, scenario, parameters, demand_matrix_list, peak_hour_matrix_list
-    ):
+    def _calculate_peak_hour_matrices(self, scenario, parameters, demand_matrix_list, peak_hour_matrix_list):
         with _trace("Calculting peak hour matrix"):
             for i in range(len(demand_matrix_list)):
                 matrix_calc_tool(
@@ -621,21 +590,16 @@ class AssignTraffic(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    def _get_link_cost_calc_spec(
-        self, cost_attribute_id, link_cost, link_toll_attribute, perception
-    ):
+    def _get_link_cost_calc_spec(self, cost_attribute_id, link_cost, link_toll_attribute, perception):
         return {
             "result": cost_attribute_id,
-            "expression": "(length * %f + %s)*%f"
-            % (link_cost, link_toll_attribute, perception),
+            "expression": "(length * %f + %s)*%f" % (link_cost, link_toll_attribute, perception),
             "aggregation": None,
             "selections": {"link": "all"},
             "type": "NETWORK_CALCULATION",
         }
 
-    def _get_peak_hour_spec(
-        self, peak_hour_matrix_id, demand_matrix_id, peak_hour_factor
-    ):
+    def _get_peak_hour_spec(self, peak_hour_matrix_id, demand_matrix_id, peak_hour_factor):
         return {
             "expression": demand_matrix_id + "*" + str(peak_hour_factor),
             "result": peak_hour_matrix_id,

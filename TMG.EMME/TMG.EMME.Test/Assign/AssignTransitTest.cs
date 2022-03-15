@@ -32,8 +32,9 @@ namespace TMG.Emme.Test.Assign
         [TestMethod]
         public void AssignTransit()
         {
-            Helper.ImportFrabitztownNetwork(1);
-            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            Helper.ImportFrabitztownNetwork(2);
+            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            Helper.RunAssignTraffic(2, "mf0");
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
                 JSONParameterBuilder.BuildParameters(writer =>
@@ -46,7 +47,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("iterations", 100);
                     writer.WriteNumber("norm_gap", 0.0f);
                     writer.WriteNumber("rel_gap", 0.0f);
-                    writer.WriteNumber("scenario_number", 1);
+                    writer.WriteNumber("scenario_number", 2);
                     writer.WriteNumber("walk_speed", 0.0f);
                     writer.WriteStartArray("transit_classes");
                     writer.WriteStartObject();
@@ -54,7 +55,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("board_penalty_matrix", "mf0");
                     writer.WriteNumber("board_penalty_perception", 1.0f);
                     writer.WriteString("congestion_matrix", "mf0");
-                    writer.WriteString("demand_matrix", "mf0");
+                    writer.WriteString("demand_matrix", "mf10");
                     writer.WriteString("fare_matrix", "mf0");
                     writer.WriteNumber("fare_perception", 0.0f);
                     writer.WriteString("in_vehicle_time_matrix", "mf0");
@@ -90,17 +91,27 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteStartObject();
                     writer.WriteNumber("congestion_exponent", 5.972385f);
                     writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 4);
+                    writer.WriteEndObject();
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 5.972385f);
+                    writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 2);
+                    writer.WriteEndObject();
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 5.972385f);
+                    writer.WriteNumber("congestion_perception", 1);
                     writer.WriteNumber("ttf", 1);
                     writer.WriteEndObject();
                     writer.WriteEndArray();
                     writer.WriteString("congestion_exponent", "");
-                    writer.WriteNumber("assignment_period", 0.0f);
+                    writer.WriteNumber("assignment_period", 3.0f);
                     writer.WriteString("name_string", "");
                     writer.WriteString("congested_assignment", "");
                     writer.WriteString("csvfile", "");
                     writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
                     writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
-                    writer.WriteBoolean("surface_transit_speed", false);
+                    writer.WriteBoolean("surface_transit_speed", true);
                     writer.WriteBoolean("walk_all_way_flag", false);
                     writer.WriteString("xrow_ttf_range", "");
 
@@ -110,8 +121,9 @@ namespace TMG.Emme.Test.Assign
         [TestMethod]
         public void AssignTransitModule()
         {
-            Helper.ImportFrabitztownNetwork(1);
-            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            Helper.ImportFrabitztownNetwork(2);
+            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            Helper.RunAssignTraffic(2, "mf0");
 
             var walkPerceptions = new[]
             {
@@ -132,7 +144,7 @@ namespace TMG.Emme.Test.Assign
                     BoardPenaltyMatrix = Helper.CreateParameter("mf0"),
                     BoardingPenaltyPerception = Helper.CreateParameter(1.0f),
                     CongestionMatrix = Helper.CreateParameter("mf0"),
-                    DemandMatrix = Helper.CreateParameter("mf0"),
+                    DemandMatrix = Helper.CreateParameter("mf10"),
                     FareMatrix = Helper.CreateParameter("mf0"),
                     FarePerception = Helper.CreateParameter(0.0f),
                     InVehicleTimeMatrix = Helper.CreateParameter("mf0"),
@@ -166,6 +178,20 @@ namespace TMG.Emme.Test.Assign
             {
                 new Emme.Assign.AssignTransit.TTFDefinition()
                 {
+                    Name = "TTF4",
+                    CongestionExponent = Helper.CreateParameter(5.972385f),
+                    CongestionPerception = Helper.CreateParameter(1),
+                    TTF = Helper.CreateParameter(4),
+                },
+                new Emme.Assign.AssignTransit.TTFDefinition()
+                {
+                    Name = "TTF2",
+                    CongestionExponent = Helper.CreateParameter(5.972385f),
+                    CongestionPerception = Helper.CreateParameter(1),
+                    TTF = Helper.CreateParameter(2),
+                },
+                new Emme.Assign.AssignTransit.TTFDefinition()
+                {
                     Name = "TTF1",
                     CongestionExponent = Helper.CreateParameter(5.972385f),
                     CongestionPerception = Helper.CreateParameter(1),
@@ -182,7 +208,7 @@ namespace TMG.Emme.Test.Assign
                 Iterations = Helper.CreateParameter(100),
                 NormalizedGap = Helper.CreateParameter(0.0f),
                 RelativeGap = Helper.CreateParameter(0.0f),
-                ScenarioNumber = Helper.CreateParameter(1),
+                ScenarioNumber = Helper.CreateParameter(2),
                 WalkSpeed = Helper.CreateParameter(0.0f),
                 CongestionExponent = Helper.CreateParameter(""),
                 AssignmentPeriod = Helper.CreateParameter(3.0f),
@@ -191,7 +217,7 @@ namespace TMG.Emme.Test.Assign
                 CSVFile = Helper.CreateParameter(""),
                 OriginDistributionLogitScale = Helper.CreateParameter(0.0f),
                 WalkDistributionLogitScale = Helper.CreateParameter(0.0f),
-                SurfaceTransitSpeed = Helper.CreateParameter(false),
+                SurfaceTransitSpeed = Helper.CreateParameter(true),
                 WalkAllWayFlag = Helper.CreateParameter(false),
                 XRowTTFRange = Helper.CreateParameter(""),
                 TransitClasses = Helper.CreateParameters(transitClasses),
