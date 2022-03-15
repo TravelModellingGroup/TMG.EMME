@@ -519,6 +519,7 @@ class AssignTransit(_m.Tool()):
     def _set_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed):
         erow_defined = self._check_attributes_and_get_erow(scenario)
         self._set_up_line_attributes(scenario, parameters, stsu_att)
+        ttfs_xrow = self.process_ttfs_xrow(parameters)
         network = scenario.get_network()
         for line in network.transit_lines():
             for stsu in parameters["surface_transit_speeds"]:
@@ -542,7 +543,7 @@ class AssignTransit(_m.Tool()):
                     segment.transit_time_func = stsu_ttf_map[segment.transit_time_func]
                     time = segment.link["auto_time"]
                     if time > 0.0:
-                        if segment.transit_time_func in self.process_ttfs_xrow(parameters):
+                        if segment.transit_time_func in ttfs_xrow:
                             if erow_defined == True and segment["@erow_speed"] > 0.0:
                                 segment.data1 = segment["@erow_speed"]
                             else:
