@@ -213,7 +213,7 @@ class AssignTransit(_m.Tool()):
                             stsu_ttf_map = temp_stsu_ttf[0]
                             ttfs_changed = temp_stsu_ttf[1]
                             if parameters["surface_transit_speed"] != False:
-                                self._load_base_speed(scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed)
+                                self._set_base_speed(scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed)
                             self._run_transit_assignment(
                                 scenario,
                                 parameters,
@@ -516,7 +516,7 @@ class AssignTransit(_m.Tool()):
                         link.j_node.data1 = -1
         scenario.publish_network(network)
 
-    def _load_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed):
+    def _set_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed):
         erow_defined = self._check_attributes_and_get_erow(scenario)
         self._set_up_line_attributes(scenario, parameters, stsu_att)
         network = scenario.get_network()
