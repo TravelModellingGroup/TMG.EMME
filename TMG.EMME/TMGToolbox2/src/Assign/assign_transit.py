@@ -213,7 +213,7 @@ class AssignTransit(_m.Tool()):
                             stsu_ttf_map = temp_stsu_ttf[0]
                             ttfs_changed = temp_stsu_ttf[1]
                             if parameters["surface_transit_speed"] != False:
-                                self._get_base_speed(scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed)
+                                self._load_base_speed(scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed)
                             self._run_transit_assignment(
                                 scenario,
                                 parameters,
@@ -516,7 +516,7 @@ class AssignTransit(_m.Tool()):
                         link.j_node.data1 = -1
         scenario.publish_network(network)
 
-    def _get_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed):
+    def _load_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed):
         erow_defined = self._check_attributes_and_get_erow(scenario)
         self._set_up_line_attributes(scenario, parameters, stsu_att)
         network = scenario.get_network()
@@ -542,7 +542,7 @@ class AssignTransit(_m.Tool()):
                     segment.transit_time_func = stsu_ttf_map[segment.transit_time_func]
                     time = segment.link["auto_time"]
                     if time > 0.0:
-                        if segment.transit_time_func in self.ttfs_xrow(parameters):
+                        if segment.transit_time_func in self.process_ttfs_xrow(parameters):
                             if erow_defined == True and segment["@erow_speed"] > 0.0:
                                 segment.data1 = segment["@erow_speed"]
                             else:
@@ -563,9 +563,8 @@ class AssignTransit(_m.Tool()):
         data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"])
         scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"], data)
         ttfs_changed.append(True)
-        return ttfs_changed
 
-    def ttfs_xrow(self, parameters):
+    def process_ttfs_xrow(self, parameters):
         ttfs_xrow = set()
         parameter_xrow_range = parameters["xrow_ttf_range"].split()
         for ttf_range in parameter_xrow_range:
