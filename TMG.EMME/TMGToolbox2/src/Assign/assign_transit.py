@@ -523,13 +523,11 @@ class AssignTransit(_m.Tool()):
         network = scenario.get_network()
         for line in network.transit_lines():
             for stsu in parameters["surface_transit_speeds"]:
-                if line[stsu_att.id] != 0.0:
-                    index = int(line[str(stsu_att.id)]) - 1
-                    default_duration = stsu["default_duration"]
-                    correlation = stsu["transit_auto_correlation"]
-                    erow_speed_global = stsu["global_erow_speed"]
-                else:
+                if line[stsu_att.id] <= 0.0:
                     continue
+                default_duration = stsu["default_duration"]
+                correlation = stsu["transit_auto_correlation"]
+                erow_speed_global = stsu["global_erow_speed"]
                 segments = line.segments()
                 number_of_segments = segments.__length_hint__()
                 for segment in segments:
@@ -852,9 +850,6 @@ class AssignTransit(_m.Tool()):
                 boarding_duration = stsu["boarding_duration"]
                 alighting_duration = stsu["alighting_duration"]
                 default_duration = stsu["default_duration"]
-                correlation = stsu["transit_auto_correlation"]
-                mode_filter = stsu["mode_filter_expression"]
-
                 try:
                     doors = segment.line["@doors"]
                     if doors == 0.0:
