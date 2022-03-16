@@ -84,7 +84,7 @@ namespace TMG.Emme.Assign
 
         [Parameter(Name = "Congested Assignment", Description = "",
             Index = 29)]
-        public IFunction<string> CongestedAssignment;
+        public IFunction<bool> CongestedAssignment;
 
         [Parameter(Name = "CSV File", Description = "",
             Index = 30)]
@@ -357,7 +357,7 @@ namespace TMG.Emme.Assign
                 writer.WriteString("congestion_exponent", CongestionExponent.Invoke());
                 writer.WriteNumber("assignment_period", AssignmentPeriod.Invoke());
                 writer.WriteString("name_string", NameString.Invoke());
-                writer.WriteString("congested_assignment", CongestedAssignment.Invoke());
+                writer.WriteBoolean("congested_assignment", CongestedAssignment.Invoke());
                 writer.WriteString("csvfile", CSVFile.Invoke());
                 writer.WriteNumber("origin_distribution_logit_scale", OriginDistributionLogitScale.Invoke());
                 writer.WriteNumber("walk_distribution_logit_scale", WalkDistributionLogitScale.Invoke());
