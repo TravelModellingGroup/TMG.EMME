@@ -1009,6 +1009,18 @@ class AssignTransit(_m.Tool()):
             raise Exception("All segments have a TTF of 0!")
         return list(used_functions)
 
+    def _get_atts_congested(self, scenario, parameters):
+        attributes = {
+            "Scenario": "%s - %s" % (scenario, scenario.title),
+            "Assignment Period": parameters["assignment_period"],
+            "Iterations": parameters["iterations"],
+            "Normalized Gap": parameters["norm_gap"],
+            "Relative Gap": parameters["rel_gap"],
+            "congestion function": self._get_func_spec(parameters),
+            "spec": self._get_base_assignment_spec(),
+        }
+        return attributes
+
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
         orig_ttf_values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"])
