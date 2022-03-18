@@ -46,11 +46,12 @@ TMG Transit Assignment Tool
     V 2.0.2 Updated to receive JSON file parameters from Python API call
 """
 import enum
+import math
 import traceback as _traceback
 import time as _time
 import multiprocessing
-from typing import DefaultDict
 import inro.modeller as _m
+import csv
 from contextlib import contextmanager
 
 _m.TupleType = object
@@ -61,9 +62,12 @@ _write = _m.logbook_write
 _MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
+_db_utils = _MODELLER.module("inro.emme.utility.database_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 extended_assignment_tool = _MODELLER.tool("inro.emme.transit_assignment.extended_transit_assignment")
+matrix_calc_tool = _MODELLER.tool("inro.emme.matrix_calculation.matrix_calculator")
+net_edit = _MODELLER.module("tmg.common.network_editing")
 null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
 
@@ -75,7 +79,6 @@ class AssignTransit(_m.Tool()):
 
     def __init__(self):
         self._tracker = _util.progress_tracker(self.number_of_tasks)
-        self.scenario = _MODELLER.scenario
         self.number_of_processors = multiprocessing.cpu_count()
         self.connector_logit_truncation = 0.05
         self.consider_total_impedance = True
@@ -237,12 +240,12 @@ class AssignTransit(_m.Tool()):
         ehwy_att = "effective_headway_attribute"
         hwy_att = "headway_fraction_attribute"
         link_att = "link_fare_attribute_id"
-        for tc in parameters["transit_classes"]:
-            if scenario.extra_attribute(tc[walk_att]) is None:
+        for transit_class in parameters["transit_classes"]:
+            if scenario.extra_attribute(transit_class[walk_att]) is None:
                 raise Exception("Walk perception attribute %s does not exist" % walk_att)
-            if scenario.extra_attribute(tc[seg_att]) is None:
+            if scenario.extra_attribute(transit_class[seg_att]) is None:
                 raise Exception("Segment fare attribute %s does not exist" % seg_att)
-            if scenario.extra_attribute(tc[link_att]) is None:
+            if scenario.extra_attribute(transit_class[link_att]) is None:
                 raise Exception("Link fare attribute %s does not exist" % link_att)
         if scenario.extra_attribute(parameters[ehwy_att]) is None:
             raise Exception("Effective headway attribute %s does not exist" % ehwy_att)
@@ -258,7 +261,7 @@ class AssignTransit(_m.Tool()):
         mtx_dict = {}
         transit_classes = parameters["transit_classes"]
         for i in range(0, len(matrix_name)):
-            mtx_dict[matrix_name[i]] = [tc[matrix_name[i]] for tc in transit_classes]
+            mtx_dict[matrix_name[i]] = [transit_class[matrix_name[i]] for transit_class in transit_classes]
         for mtx_name, mtx_ids in mtx_dict.items():
             mtx = [None if id == "mf0" else _bank.matrix(id) for id in mtx_ids]
             mtx_dict[mtx_name] = mtx
@@ -275,10 +278,10 @@ class AssignTransit(_m.Tool()):
 
         transit_classes = parameters["transit_classes"]
         mtx_list = [
-            _bank.matrix(tc[matrix_name])
-            if tc[matrix_name] == "mf0" or _bank.matrix(tc[matrix_name]) is not None
-            else exception(tc[matrix_name])
-            for tc in transit_classes
+            _bank.matrix(transit_class[matrix_name])
+            if transit_class[matrix_name] == "mf0" or _bank.matrix(transit_class[matrix_name]) is not None
+            else exception(transit_class[matrix_name])
+            for transit_class in transit_classes
         ]
         return mtx_list
 
@@ -299,19 +302,19 @@ class AssignTransit(_m.Tool()):
         """
         impedance_matrix_list = []
         transit_classes = parameters["transit_classes"]
-        for tc_parameter in transit_classes:
-            matrix_id = tc_parameter["impedance_matrix"]
+        for transit_class in transit_classes:
+            matrix_id = transit_class["impedance_matrix"]
             if matrix_id != "mf0":
                 _util.initialize_matrix(
                     id=matrix_id,
-                    description="Transit Perceived Travel times for %s" % tc_parameter["name"],
+                    description="Transit Perceived Travel times for %s" % transit_class["name"],
                 )
                 impedance_matrix_list.append(matrix)
             else:
-                _write("Creating temporary Impedance Matrix for class %s" % tc_parameter["name"])
+                _write("Creating temporary Impedance Matrix for class %s" % transit_class["name"])
                 matrix = _util.initialize_matrix(
                     default=0.0,
-                    description="Temporary Impedance for class %s" % tc_parameter["name"],
+                    description="Temporary Impedance for class %s" % transit_class["name"],
                     matrix_type="FULL",
                 )
                 impedance_matrix_list.append(matrix)
@@ -394,10 +397,10 @@ class AssignTransit(_m.Tool()):
 
     def _create_walk_time_perception_attribute_list(self, scenario, parameters, temp_matrix_list):
         walk_time_perception_attribute_list = []
-        for tc_parameter in parameters["transit_classes"]:
+        for transit_class in parameters["transit_classes"]:
             walk_time_perception_attribute = _util.create_temp_attribute(
                 scenario,
-                str(tc_parameter["walk_time_perception_attribute"]),
+                str(transit_class["walk_time_perception_attribute"]),
                 "LINK",
                 default_value=1.0,
                 assignment_type="transit",
@@ -446,8 +449,8 @@ class AssignTransit(_m.Tool()):
 
     def _assign_walk_perception(self, scenario, parameters):
         transit_classes = parameters["transit_classes"]
-        for tc in transit_classes:
-            walk_time_perception_attribute = tc["walk_time_perception_attribute"]
+        for transit_class in transit_classes:
+            walk_time_perception_attribute = transit_class["walk_time_perception_attribute"]
             ex_att = scenario.extra_attribute(walk_time_perception_attribute)
             ex_att.initialize(1.0)
 
@@ -462,8 +465,8 @@ class AssignTransit(_m.Tool()):
             network_calc_tool(spec, scenario)
 
         with _trace("Assigning perception factors"):
-            for tc in transit_classes:
-                for wp in tc["walk_perceptions"]:
+            for transit_class in transit_classes:
+                for wp in transit_class["walk_perceptions"]:
                     selection = str(wp["filter"])
                     value = str(wp["walk_perception_value"])
                     apply_selection(value, selection)
@@ -668,7 +671,7 @@ class AssignTransit(_m.Tool()):
                 walk_time_perception_attribute_list,
             )
         else:
-            for iteration in range(0, parameters["iterations"]):
+            for itr in range(0, parameters["iterations"]):
                 self._run_spec_uncongested(
                     scenario,
                     parameters,
@@ -680,7 +683,7 @@ class AssignTransit(_m.Tool()):
                     walk_time_perception_attribute_list,
                 )
                 network = scenario.get_network()
-                network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att, True)
+                network = self._surface_transit_speed_update(scenario, parameters, network, 1)
 
     def _run_spec_uncongested(
         self,
@@ -693,32 +696,32 @@ class AssignTransit(_m.Tool()):
         impedance_matrix_list,
         walk_time_perception_attribute_list,
     ):
-        for i, tc in enumerate(parameters["transit_classes"]):
+        for i, transit_class in enumerate(parameters["transit_classes"]):
             spec_uncongested = self._get_base_assignment_spec_uncongested(
                 scenario,
-                tc["board_penalty_perception"],
+                transit_class["board_penalty_perception"],
                 self.connector_logit_truncation,
                 self.consider_total_impedance,
                 demand_matrix_list[i],
                 effective_headway_attribute_list[i],
-                tc["fare_perception"],
+                transit_class["fare_perception"],
                 headway_fraction_attribute_list[i],
                 impedance_matrix_list[i],
-                tc["link_fare_attribute_id"],
-                [tc["mode"]],
+                transit_class["link_fare_attribute_id"],
+                [transit_class["mode"]],
                 parameters["node_logit_scale"],
                 self.number_of_processors,
                 parameters["origin_distribution_logit_scale"],
-                tc["segment_fare_attribute"],
+                transit_class["segment_fare_attribute"],
                 self.use_logit_connector_choice,
-                tc["wait_time_perception"],
+                transit_class["wait_time_perception"],
                 parameters["walk_all_way_flag"],
                 walk_time_perception_attribute_list[i],
             )
             self._tracker.run_tool(
                 extended_assignment_tool,
                 specification=spec_uncongested,
-                class_name=tc["name"],
+                class_name=transit_class["name"],
                 scenario=scenario,
                 add_volumes=(i != 0),
             )
@@ -839,7 +842,7 @@ class AssignTransit(_m.Tool()):
         ]
         return base_spec
 
-    def _surface_transit_speed_update(self, scenario, parameters, network, lambdaK, stsu_att, final):
+    def _surface_transit_speed_update(self, scenario, parameters, network, lambdaK):
         if "transit_alightings" not in network.attributes("TRANSIT_SEGMENT"):
             network.create_attribute("TRANSIT_SEGMENT", "transit_alightings", 0.0)
         for line in network.transit_lines():
