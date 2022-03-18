@@ -209,8 +209,10 @@ class AssignTransit(_m.Tool()):
                     )
                     self._tracker.complete_subtask()
                     self._assign_walk_perception(scenario, parameters)
-                    if parameters["node_logit_scale"] is not False:
-                        self._publish_efficient_connector_network(scenario)
+                    if parameters["node_logit_scale"] == True:
+                        network = self._publish_efficient_connector_network(scenario)
+                    else:
+                        network = scenario.get_network()
                     with _util.temp_extra_attribute_manager(scenario, "TRANSIT_LINE") as stsu_att:
                         with self._temp_stsu_ttfs(scenario, parameters) as temp_stsu_ttf:
                             stsu_ttf_map = temp_stsu_ttf[0]
@@ -220,6 +222,7 @@ class AssignTransit(_m.Tool()):
                             self._run_transit_assignment(
                                 scenario,
                                 parameters,
+                                network,
                                 stsu_att,
                                 demand_matrix_list,
                                 effective_headway_attribute_list,
@@ -525,6 +528,7 @@ class AssignTransit(_m.Tool()):
                     if link.j_node.number > 99999:
                         link.j_node.data1 = -1
         scenario.publish_network(network)
+        return network
 
     def _set_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed):
         erow_defined = self._check_attributes_and_get_erow(scenario)
@@ -634,6 +638,7 @@ class AssignTransit(_m.Tool()):
         self,
         scenario,
         parameters,
+        network,
         stsu_att,
         demand_matrix_list,
         effective_headway_attribute_list,
@@ -662,58 +667,17 @@ class AssignTransit(_m.Tool()):
                         )
                         congestion_costs = self._get_congestion_costs(network, assigned_total_demand)
                         average_impedance = average_min_trip_impedance + congestion_costs
-                        for iteration in range(0, parameters["iterations"] + 1):
-                            with _trace("Iteration %d" % iteration):
-                                print("Starting iteration %d" % iteration)
+                        alphas = []
+                        self._run_congested_assignment(
+                            scenario,
+                            parameters,
+                            stsu_att,
+                            strategies,
+                            average_min_trip_impedance,
+                            assigned_total_demand,
+                            average_impedance,
+                        )
 
-                                if iteration == 0:
-                                    zeroes = [0.0] * _bank.dimensions["transit_segments"]
-                                    setattr(scenario._net.segment, "data3", zeroes)
-                                    self._run_extended_transit_assignment(scenario, parameters, iteration, strategies)
-                                    alphas = [1.0]
-
-                                    network = self._prepare_network(scenario, parameters, stsu_att)
-                                    if parameters["surface_transit_speed"] == True:
-                                        network = self._surface_transit_speed_update(scenario, parameters, network, 1)
-
-                                    if parameters["csvfile"].lower() is not "":
-                                        self._write_csv_files(iteration, network, "", "", "")
-                                else:
-                                    excess_km = self._compute_segment_costs(scenario, network)
-                                    self._run_extended_transit_assignment(scenario, parameters, iteration, strategies)
-                                    network = self._update_network(scenario, network)
-                                    lambdaK = self._find_step_size(
-                                        network,
-                                        average_min_trip_impedance,
-                                        average_impedance,
-                                        assigned_total_demand,
-                                    )
-                                    if parameters["surface_transit_speed"] == True:
-                                        network = self._surface_transit_speed_update(scenario, parameters, network, 1)
-                                    self._update_volumes(network, lambdaK)
-                                    (
-                                        average_impedance,
-                                        cngap,
-                                        crgap,
-                                        norm_gap_difference,
-                                        net_cost,
-                                    ) = self._compute_gaps(
-                                        assigned_total_demand,
-                                        lambdaK,
-                                        average_min_trip_impedance,
-                                        average_impedance,
-                                        network,
-                                    )
-                                    if parameters["csvfile"].lower() is not "":
-                                        self._write_csv_files(
-                                            iteration,
-                                            network,
-                                            cngap,
-                                            crgap,
-                                            norm_gap_difference,
-                                        )
-                                    if crgap < parameters["rel_gap"] or norm_gap_difference >= 0:
-                                        break
                 self._save_results(scenario, parameters, network, alphas, strategies)
                 trace.write(
                     name="TMG Congested Transit Assignment",
@@ -767,6 +731,62 @@ class AssignTransit(_m.Tool()):
                 )
                 network = scenario.get_network()
                 network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+
+    def _run_congested_assignment(
+        self,
+        scenario,
+        parameters,
+        stsu_att,
+        strategies,
+        average_min_trip_impedance,
+        assigned_total_demand,
+        average_impedance,
+    ):
+        for iteration in range(0, parameters["iterations"] + 1):
+            with _trace("Iteration %d" % iteration):
+                print("Starting iteration %d" % iteration)
+
+                if iteration == 0:
+                    zeroes = [0.0] * _bank.dimensions["transit_segments"]
+                    setattr(scenario._net.segment, "data3", zeroes)
+                    self._run_extended_transit_assignment(scenario, parameters, iteration, strategies)
+                    alphas = [1.0]
+                    network = self._prepare_network(scenario, parameters, stsu_att)
+                    if parameters["surface_transit_speed"] == True:
+                        network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+
+                    if parameters["csvfile"].lower() is not "":
+                        self._write_csv_files(iteration, network, "", "", "")
+                else:
+                    excess_km = self._compute_segment_costs(scenario, network)
+                    self._run_extended_transit_assignment(scenario, parameters, iteration, strategies)
+                    network = self._update_network(scenario, network)
+                    lambdaK = self._find_step_size(
+                        network,
+                        average_min_trip_impedance,
+                        average_impedance,
+                        assigned_total_demand,
+                    )
+                    if parameters["surface_transit_speed"] == True:
+                        network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+                    self._update_volumes(network, lambdaK)
+                    (average_impedance, cngap, crgap, norm_gap_difference, net_cost,) = self._compute_gaps(
+                        assigned_total_demand,
+                        lambdaK,
+                        average_min_trip_impedance,
+                        average_impedance,
+                        network,
+                    )
+                    if parameters["csvfile"].lower() is not "":
+                        self._write_csv_files(
+                            iteration,
+                            network,
+                            cngap,
+                            crgap,
+                            norm_gap_difference,
+                        )
+                    if crgap < parameters["rel_gap"] or norm_gap_difference >= 0:
+                        break
 
     def _run_spec_uncongested(
         self,
@@ -977,6 +997,17 @@ class AssignTransit(_m.Tool()):
         data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"])
         scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"], data)
         return network
+
+    def _add_cong_term_to_func(self, scenario):
+        used_functions = set()
+        any_non_zero = False
+        for segment in scenario.get_network().transit_segments():
+            if segment.transit_time_func != 0:
+                used_functions.add("ft" + str(segment.transit_time_func))
+                any_non_zero = True
+        if not any_non_zero:
+            raise Exception("All segments have a TTF of 0!")
+        return list(used_functions)
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
