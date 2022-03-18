@@ -1021,6 +1021,61 @@ class AssignTransit(_m.Tool()):
         }
         return attributes
 
+    def _get_func_spec(self, parameters):
+        partial_spec = (
+            "import math \ndef calc_segment_cost(transit_volume, capacity, segment):\n    cap_period = "
+            + str(parameters["assignment_period"])
+        )
+        i = 0
+        for ttf_def in parameters["ttf_definitions"]:
+            ttf = ttf_def["ttf"]
+            alpha = ttf_def["congestion_exponent"]
+            beta = (2 * alpha - 1) / (2 * alpha - 2)
+            alpha_square = alpha ** 2
+            beta_square = beta ** 2
+            if i == 0:
+                partial_spec += (
+                    "\n    if segment.transit_time_func == "
+                    + ttf
+                    + ": \n        return max(0,("
+                    + ttf_def["congestion_perception"]
+                    + " * (1 + math.sqrt("
+                    + str(alpha_square)
+                    + " * \n            (1 - transit_volume / capacity) ** 2 + "
+                    + str(beta_square)
+                    + ") - "
+                    + str(alpha)
+                    + " \n            * (1 - transit_volume / capacity) - "
+                    + str(beta)
+                    + ")))"
+                )
+            else:
+                partial_spec += (
+                    "\n    elif segment.transit_time_func == "
+                    + ttf
+                    + ": \n        return max(0,("
+                    + ttf_def["congestion_perception"]
+                    + " * (1 + math.sqrt("
+                    + str(alpha_square)
+                    + " *  \n            (1 - transit_volume / capacity) ** 2 + "
+                    + str(beta_square)
+                    + ") - "
+                    + str(alpha)
+                    + " \n            * (1 - transit_volume / capacity) - "
+                    + str(beta)
+                    + ")))"
+                )
+            i += 1
+        partial_spec += '\n    else: \n        raise Exception("ttf=%s congestion values not defined in input" %s segment.transit_time_func)'
+        func_spec = {
+            "type": "CUSTOM",
+            "assignment_period": parameters["assignment_period"],
+            "orig_func": False,
+            "congestion_attribute": "us3",
+            "python_function": partial_spec,
+        }
+        return func_spec
+
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
         orig_ttf_values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"])
