@@ -229,6 +229,7 @@ class AssignTransit(_m.Tool()):
                                 headway_fraction_attribute_list,
                                 impedance_matrix_list,
                                 walk_time_perception_attribute_list,
+                                headway_fraction_attribute_list,
                             )
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -676,6 +677,7 @@ class AssignTransit(_m.Tool()):
                             average_min_trip_impedance,
                             assigned_total_demand,
                             average_impedance,
+                            headway_fraction_attribute_list,
                         )
 
                 self._save_results(scenario, parameters, network, alphas, strategies)
@@ -741,6 +743,7 @@ class AssignTransit(_m.Tool()):
         average_min_trip_impedance,
         assigned_total_demand,
         average_impedance,
+        headway_fraction_attribute_list,
     ):
         for iteration in range(0, parameters["iterations"] + 1):
             with _trace("Iteration %d" % iteration):
@@ -1009,7 +1012,17 @@ class AssignTransit(_m.Tool()):
             raise Exception("All segments have a TTF of 0!")
         return list(used_functions)
 
-    def _get_atts_congested(self, scenario, parameters):
+    def _get_atts_congested(
+        self,
+        scenario,
+        parameters,
+        demand_matrix_list,
+        connector_logit_truncation,
+        headway_fraction_attribute_list,
+        effective_headway_attribute_list,
+        walk_time_perception_attribute_list,
+        impedance_matrix_list,
+    ):
         attributes = {
             "Scenario": "%s - %s" % (scenario, scenario.title),
             "Assignment Period": parameters["assignment_period"],
@@ -1017,7 +1030,17 @@ class AssignTransit(_m.Tool()):
             "Normalized Gap": parameters["norm_gap"],
             "Relative Gap": parameters["rel_gap"],
             "congestion function": self._get_func_spec(parameters),
-            "spec": self._get_base_assignment_spec(),
+            "spec": self._get_base_assignment_spec(
+                scenario,
+                parameters,
+                demand_matrix_list,
+                connector_logit_truncation,
+                headway_fraction_attribute_list,
+                effective_headway_attribute_list,
+                walk_time_perception_attribute_list,
+                impedance_matrix_list,
+                consider_total_impedance=True,
+            ),
         }
         return attributes
 
@@ -1075,6 +1098,118 @@ class AssignTransit(_m.Tool()):
             "python_function": partial_spec,
         }
         return func_spec
+
+    def _get_base_assignment_spec(
+        self,
+        scenario,
+        parameters,
+        demand_matrix_list,
+        connector_logit_truncation,
+        headway_fraction_attribute_list,
+        effective_headway_attribute_list,
+        walk_time_perception_attribute_list,
+        impedance_matrix_list,
+        consider_total_impedance=False,
+    ):
+        farePerception = []
+        base_spec = []
+        for i, transit_class in enumerate(parameters["transit_classes"]):
+            if transit_class["fare_perception"] == 0.0:
+                farePerception.append(0.0)
+            else:
+                farePerception.append(60.0 / transit_class["fare_perception"])
+            base_spec.append(
+                {
+                    "modes": transit_class["mode"],
+                    "demand": demand_matrix_list.id,
+                    "waiting_time": {
+                        "headway_fraction": headway_fraction_attribute_list[i].id,
+                        "effective_headways": effective_headway_attribute_list[i].id,
+                        "spread_factor": 1,
+                        "perception_factor": transit_class["wait_time_perception"],
+                    },
+                    "boarding_time": {
+                        "at_nodes": None,
+                        "on_lines": {"penalty": "ut3", "perception_factor": transit_class["board_penalty_perception"]},
+                    },
+                    "boarding_cost": {"at_nodes": {"penalty": 0, "perception_factor": 1}, "on_lines": None},
+                    "in_vehicle_time": {"perception_factor": "us2"},
+                    "in_vehicle_cost": {
+                        "penalty": transit_class["segment_fare_attribute"],
+                        "perception_factor": transit_class["segment_fare_attribute"],
+                    },
+                    "aux_transit_time": {"perception_factor": walk_time_perception_attribute_list[i].id},
+                    "aux_transit_cost": {
+                        "penalty": transit_class["link_fare_attribute_id"],
+                        "perception_factor": transit_class["fare_perception"],
+                    },
+                    "connector_to_connector_path_prohibition": None,
+                    "od_results": {"total_impedance": impedance_matrix_list[i].id},
+                    "flow_distribution_between_lines": {"consider_total_impedance": consider_total_impedance},
+                    "save_strategies": True,
+                    "type": "EXTENDED_TRANSIT_ASSIGNMENT",
+                }
+            )
+        for i, transit_class in enumerate(parameters["transit_classes"]):
+            for i in range(0, len(base_spec)):
+                if parameters["node_logit_scale"]:
+                    base_spec[i]["flow_distribution_at_origins"] = {
+                        "choices_at_origins": {
+                            "choice_points": "ALL_ORIGINS",
+                            "choice_set": "ALL_CONNECTORS",
+                            "logit_parameters": {
+                                "scale": parameters["origin_distribution_logit_scale"],
+                                "truncation": connector_logit_truncation,
+                            },
+                        },
+                        "fixed_proportions_on_connectors": None,
+                    }
+                base_spec[i]["performance_settings"] = {"number_of_processors": self.number_of_processors}
+                if scenario.extra_attribute("@node_logit") != None:
+                    base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                        "choices_at_regular_nodes": {
+                            "choice_points": "@node_logit",
+                            "aux_transit_choice_set": "ALL_POSSIBLE_LINKS",
+                            "logit_parameters": {"scale": 0.2, "truncation": 0.05},
+                        }
+                    }
+                else:
+                    base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                        "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
+                    }
+                mode_list = []
+                partial_network = scenario.get_partial_network(["MODE"], True)
+                # if all modes are selected for class, get all transit modes for journey levels
+                if transit_class["mode"] == "*":
+                    for mode in partial_network.modes():
+                        if mode.type == "TRANSIT":
+                            mode_list.append({"mode": mode.id, "next_journey_level": 1})
+                else:
+                    modechars = transit_class["mode"].split()
+                    for modechar in modechars:
+                        mode = partial_network.mode(modechar)
+                        if mode.type == "TRANSIT":
+                            mode_list.append({"mode": mode.id, "next_journey_level": 1})
+                base_spec[i]["journey_levels"] = [
+                    {
+                        "description": "Walking",
+                        "destinations_reachable": parameters["walk_all_way_flag"],
+                        "transition_rules": mode_list,
+                        "boarding_time": None,
+                        "boarding_cost": None,
+                        "waiting_time": None,
+                    },
+                    {
+                        "description": "Transit",
+                        "destinations_reachable": True,
+                        "transition_rules": mode_list,
+                        "boarding_time": None,
+                        "boarding_cost": None,
+                        "waiting_time": None,
+                    },
+                ]
+
+        return base_spec
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
