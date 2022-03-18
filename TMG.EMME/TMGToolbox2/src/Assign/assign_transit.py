@@ -230,8 +230,15 @@ class AssignTransit(_m.Tool()):
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_atts(self, scenario, parameters):
-        # TODO
-        atts = {}
+        atts = {
+            "Scenario": "%s - %s" % (scenario, scenario.title),
+            "Version": self.version,
+            "Wait Perception": [t_class["wait_time_perception"] for t_class in parameters["transit_classes"]],
+            "Fare Perception": [t_class["fare_perception"] for t_class in parameters["transit_classes"]],
+            "Boarding Perception": [t_class["board_penalty_perception"] for t_class in parameters["transit_classes"]],
+            "Congestion": parameters["congested_assignment"],
+            "self": self.__MODELLER_NAMESPACE__,
+        }
         return atts
 
     def _check_attributes_exist(self, scenario, parameters):
