@@ -672,10 +672,7 @@ class AssignTransit(_m.Tool()):
                         )
                         assigned_total_demand = sum(assigned_class_demand)
                         average_min_trip_impedance = self._compute_min_trip_impedance(
-                            scenario,
-                            demand_matrix_list,
-                            assigned_class_demand,
-                            impedance_matrix_list,
+                            scenario, demand_matrix_list, assigned_class_demand, impedance_matrix_list
                         )
                         congestion_costs = self._get_congestion_costs(network, assigned_total_demand)
                         average_impedance = average_min_trip_impedance + congestion_costs
@@ -1296,6 +1293,7 @@ class AssignTransit(_m.Tool()):
             matrix_calc_spec = {
                 "type": "MATRIX_CALCULATION",
                 "expression": str(demand_matrix_list[i]) + " * (p.ne.q)",
+                # "expression": "mf10",
                 "aggregation": {"origins": "+", "destinations": "+"},
             }
             report = matrix_calc_tool(
@@ -1308,6 +1306,40 @@ class AssignTransit(_m.Tool()):
                 raise Exception("Invalid number of trips assigned")
             assigned_demand.append(trips)
         return assigned_demand
+
+    def _compute_min_trip_impedance(self, scenario, demand_matrix_list, assigned_class_demand, impedance_matrix_list):
+        average_min_trip_impedance = 0.0
+        class_imped = []
+        for i in range(0, len(assigned_class_demand)):
+            matrix_calc_spec = {
+                "type": "MATRIX_CALCULATION",
+                "expression": str(impedance_matrix_list[i].id)
+                + "*"
+                + str(demand_matrix_list[i])
+                + "/"
+                + str(assigned_class_demand[i]),
+                "aggregation": {"origins": "+", "destinations": "+"},
+            }
+            report = matrix_calc_tool(
+                specification=matrix_calc_spec,
+                scenario=scenario,
+                num_processors=self.number_of_processors,
+            )
+            class_imped.append(float(report["result"]))
+        for i in range(0, len(assigned_class_demand)):
+            average_min_trip_impedance += class_imped[i] * assigned_class_demand[i]
+        average_min_trip_impedance = average_min_trip_impedance / sum(assigned_class_demand)
+        return average_min_trip_impedance
+
+    def _get_congestion_costs(self, network, assigned_total_demand):
+        congestion_cost = 0.0
+        for line in network.transit_lines():
+            capacity = float(line.total_capacity)
+            for segment in line.segments():
+                flow_X_time = float(segment.voltr) * (float(segment.timtr) - float(segment.dwell_time))
+                congestion = self._calculate_segment_cost(float(segment.voltr), capacity, segment)
+                congestion_cost += flow_X_time * congestion
+        return congestion_cost / assigned_total_demand
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
