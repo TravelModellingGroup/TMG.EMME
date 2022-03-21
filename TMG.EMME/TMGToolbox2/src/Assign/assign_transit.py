@@ -667,7 +667,9 @@ class AssignTransit(_m.Tool()):
                         # self.ttfDict = self._ParseExponentString()
                         # for ttf_def in parameters["ttf_definition"]:
                         strategies = self._prep_strategy_files(scenario, parameters, demand_matrix_list)
-                        assigned_class_demand = self._compute_assigned_class_demand(scenario, demand_matrix_list)
+                        assigned_class_demand = self._compute_assigned_class_demand(
+                            scenario, demand_matrix_list, self.number_of_processors
+                        )
                         assigned_total_demand = sum(assigned_class_demand)
                         average_min_trip_impedance = self._compute_min_trip_impedance(
                             scenario,
@@ -1251,6 +1253,61 @@ class AssignTransit(_m.Tool()):
                 classData["strat_files"].append(strategies_name)
                 values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time"])
                 strategies_file.add_attr_values("TRANSIT_SEGMENT", "transit_time", values[1])
+
+    def _prep_strategy_files(self, scenario, parameters, demand_matrix_list):
+        strategies = scenario.transit_strategies
+        strategies.clear()
+        _time.sleep(0.05)
+        data = {
+            "type": "CONGESTED_TRANSIT_ASSIGNMENT",
+            "namespace": str(self),
+            "custom_status": True,
+            "per_strat_attributes": {"TRANSIT_SEGMENT": ["transit_time"]},
+        }
+        # mode_int_ids = scenario.get_attribute_values("MODE", [])[0]
+
+        def format_modes(modes):
+            if "*" in modes:
+                modes = [m for m in scenario.modes() if m.type in ("TRANSIT", "AUX_TRANSIT")]
+            modes = [str(m) for m in modes]
+            return "".join(modes)
+
+        class_data = []
+        for i, transit_class in enumerate(parameters["transit_classes"]):
+            name = transit_class["name"]
+            demand = _MODELLER.matrix_snapshot(_bank.matrix(demand_matrix_list[i]))
+            modes = transit_class["mode"]
+            class_data.append(
+                {
+                    "name": name,
+                    "modes": format_modes(modes),
+                    "demand": demand,
+                    "strat_files": [],
+                }
+            )
+        data["classes"] = class_data
+        data["multi_class"] = True
+        strategies.data = data
+        return strategies
+
+    def _compute_assigned_class_demand(self, scenario, demand_matrix_list, number_of_processors):
+        assigned_demand = []
+        for i in range(0, len(demand_matrix_list)):
+            matrix_calc_spec = {
+                "type": "MATRIX_CALCULATION",
+                "expression": str(demand_matrix_list[i]) + " * (p.ne.q)",
+                "aggregation": {"origins": "+", "destinations": "+"},
+            }
+            report = matrix_calc_tool(
+                specification=matrix_calc_spec,
+                scenario=scenario,
+                num_processors=number_of_processors,
+            )
+            trips = report["result"]
+            if trips <= 0:
+                raise Exception("Invalid number of trips assigned")
+            assigned_demand.append(trips)
+        return assigned_demand
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
