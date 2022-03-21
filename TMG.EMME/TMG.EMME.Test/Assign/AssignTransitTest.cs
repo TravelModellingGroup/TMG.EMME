@@ -44,7 +44,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("effective_headway_attribute", "@ehdw");
                     writer.WriteNumber("effective_headway_slope", 0.165f);
                     writer.WriteString("headway_fraction_attribute", "@frac");
-                    writer.WriteNumber("iterations", 100);
+                    writer.WriteNumber("iterations", 5);
                     writer.WriteNumber("norm_gap", 0.0f);
                     writer.WriteNumber("rel_gap", 0.0f);
                     writer.WriteNumber("scenario_number", 2);
@@ -107,11 +107,11 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("congestion_exponent", "");
                     writer.WriteNumber("assignment_period", 3.0f);
                     writer.WriteString("name_string", "");
-                    writer.WriteBoolean("congested_assignment", true);
+                    writer.WriteBoolean("congested_assignment", false);
                     writer.WriteString("csvfile", "");
                     writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
                     writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
-                    writer.WriteBoolean("surface_transit_speed", false);
+                    writer.WriteBoolean("surface_transit_speed", true);
                     writer.WriteBoolean("walk_all_way_flag", false);
                     writer.WriteString("xrow_ttf_range", "");
 
@@ -205,7 +205,7 @@ namespace TMG.Emme.Test.Assign
                 EffectiveHeadwayAttributeId = Helper.CreateParameter("@ehdw"),
                 EffectiveHeadwaySlope = Helper.CreateParameter(0.165f),
                 HeadwayFractionAttributeId = Helper.CreateParameter("@frac"),
-                Iterations = Helper.CreateParameter(100),
+                Iterations = Helper.CreateParameter(5),
                 NormalizedGap = Helper.CreateParameter(0.0f),
                 RelativeGap = Helper.CreateParameter(0.0f),
                 ScenarioNumber = Helper.CreateParameter(2),
@@ -213,11 +213,11 @@ namespace TMG.Emme.Test.Assign
                 CongestionExponent = Helper.CreateParameter(""),
                 AssignmentPeriod = Helper.CreateParameter(3.0f),
                 NameString = Helper.CreateParameter(""),
-                CongestedAssignment = Helper.CreateParameter(true),
+                CongestedAssignment = Helper.CreateParameter(false),
                 CSVFile = Helper.CreateParameter(""),
                 OriginDistributionLogitScale = Helper.CreateParameter(0.0f),
                 WalkDistributionLogitScale = Helper.CreateParameter(0.0f),
-                SurfaceTransitSpeed = Helper.CreateParameter(false),
+                SurfaceTransitSpeed = Helper.CreateParameter(true),
                 WalkAllWayFlag = Helper.CreateParameter(false),
                 XRowTTFRange = Helper.CreateParameter(""),
                 TransitClasses = Helper.CreateParameters(transitClasses),

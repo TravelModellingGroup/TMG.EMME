@@ -67,7 +67,6 @@ _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 extended_assignment_tool = _MODELLER.tool("inro.emme.transit_assignment.extended_transit_assignment")
 matrix_calc_tool = _MODELLER.tool("inro.emme.matrix_calculation.matrix_calculator")
-net_edit = _MODELLER.module("tmg.common.network_editing")
 null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
 
@@ -229,7 +228,6 @@ class AssignTransit(_m.Tool()):
                                 headway_fraction_attribute_list,
                                 impedance_matrix_list,
                                 walk_time_perception_attribute_list,
-                                headway_fraction_attribute_list,
                             )
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1210,6 +1208,37 @@ class AssignTransit(_m.Tool()):
                 ]
 
         return base_spec
+
+    def _run_extended_transit_assignment(self, scenario, parameters, iteration, strategies):
+        if iteration == 0:
+            msg = "Prepare Initial Assignment"
+        else:
+            msg = "Prepare Transit Assignment"
+        assignment_tool = extended_assignment_tool
+        assignment_tool.iterative_transit_assignment = True
+        with _trace(msg):
+            for i, transit_class in enumerate(parameters["transit_classes"]):
+                spec = self._get_transit_assignment_spec(i)
+                if i == 0:
+                    self._tracker.run_tool(
+                        assignment_tool,
+                        specification=spec,
+                        scenario=scenario,
+                        add_volumes=False,
+                    )
+                else:
+                    self._tracker.run_tool(
+                        assignment_tool,
+                        specification=spec,
+                        scenario=scenario,
+                        add_volumes=True,
+                    )
+                strategies_name = "Iteration %s %s" % (iteration, transit_class["name"])
+                strategies_file = strategies.add_strat_file(strategies_name)
+                classData = _db_utils.get_multi_class_strat(strategies, transit_class["name"])
+                classData["strat_files"].append(strategies_name)
+                values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time"])
+                strategies_file.add_attr_values("TRANSIT_SEGMENT", "transit_time", values[1])
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
