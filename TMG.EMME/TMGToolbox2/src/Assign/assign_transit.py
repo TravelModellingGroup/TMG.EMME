@@ -50,6 +50,8 @@ import math
 import traceback as _traceback
 import time as _time
 import multiprocessing
+
+from numpy import percentile
 import inro.modeller as _m
 import csv
 from contextlib import contextmanager
@@ -649,7 +651,16 @@ class AssignTransit(_m.Tool()):
             used_functions = self._add_cong_term_to_func(scenario)
             with _trace(
                 name="TMG Congested Transit Assignment",
-                attributes=self._get_atts_congested(scenario, parameters),
+                attributes=self._get_atts_congested(
+                    scenario,
+                    parameters,
+                    demand_matrix_list,
+                    self.connector_logit_truncation,
+                    headway_fraction_attribute_list,
+                    effective_headway_attribute_list,
+                    walk_time_perception_attribute_list,
+                    impedance_matrix_list,
+                ),
             ) as trace:
                 with _db_utils.congested_transit_temp_funcs(scenario, used_functions, False, "us3"):
                     with _db_utils.backup_and_restore(scenario, {"TRANSIT_SEGMENT": ["data3"]}):
@@ -1054,12 +1065,13 @@ class AssignTransit(_m.Tool()):
             beta = (2 * alpha - 1) / (2 * alpha - 2)
             alpha_square = alpha ** 2
             beta_square = beta ** 2
+            perception = ttf_def["congestion_perception"]
             if i == 0:
                 partial_spec += (
                     "\n    if segment.transit_time_func == "
-                    + ttf
+                    + f"{ttf}"
                     + ": \n        return max(0,("
-                    + ttf_def["congestion_perception"]
+                    + f"{perception}"
                     + " * (1 + math.sqrt("
                     + str(alpha_square)
                     + " * \n            (1 - transit_volume / capacity) ** 2 + "
@@ -1073,9 +1085,9 @@ class AssignTransit(_m.Tool()):
             else:
                 partial_spec += (
                     "\n    elif segment.transit_time_func == "
-                    + ttf
+                    + f"{ttf}"
                     + ": \n        return max(0,("
-                    + ttf_def["congestion_perception"]
+                    + f"{perception}"
                     + " * (1 + math.sqrt("
                     + str(alpha_square)
                     + " *  \n            (1 - transit_volume / capacity) ** 2 + "
@@ -1119,7 +1131,7 @@ class AssignTransit(_m.Tool()):
             base_spec.append(
                 {
                     "modes": transit_class["mode"],
-                    "demand": demand_matrix_list.id,
+                    "demand": demand_matrix_list[i].id,
                     "waiting_time": {
                         "headway_fraction": headway_fraction_attribute_list[i].id,
                         "effective_headways": effective_headway_attribute_list[i].id,

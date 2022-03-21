@@ -107,11 +107,11 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("congestion_exponent", "");
                     writer.WriteNumber("assignment_period", 3.0f);
                     writer.WriteString("name_string", "");
-                    writer.WriteBoolean("congested_assignment", false);
+                    writer.WriteBoolean("congested_assignment", true);
                     writer.WriteString("csvfile", "");
                     writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
                     writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
-                    writer.WriteBoolean("surface_transit_speed", true);
+                    writer.WriteBoolean("surface_transit_speed", false);
                     writer.WriteBoolean("walk_all_way_flag", false);
                     writer.WriteString("xrow_ttf_range", "");
 
@@ -213,11 +213,11 @@ namespace TMG.Emme.Test.Assign
                 CongestionExponent = Helper.CreateParameter(""),
                 AssignmentPeriod = Helper.CreateParameter(3.0f),
                 NameString = Helper.CreateParameter(""),
-                CongestedAssignment = Helper.CreateParameter(false),
+                CongestedAssignment = Helper.CreateParameter(true),
                 CSVFile = Helper.CreateParameter(""),
                 OriginDistributionLogitScale = Helper.CreateParameter(0.0f),
                 WalkDistributionLogitScale = Helper.CreateParameter(0.0f),
-                SurfaceTransitSpeed = Helper.CreateParameter(true),
+                SurfaceTransitSpeed = Helper.CreateParameter(false),
                 WalkAllWayFlag = Helper.CreateParameter(false),
                 XRowTTFRange = Helper.CreateParameter(""),
                 TransitClasses = Helper.CreateParameters(transitClasses),
