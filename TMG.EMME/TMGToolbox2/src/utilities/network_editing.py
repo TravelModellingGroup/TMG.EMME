@@ -101,7 +101,7 @@ def calcShapeLength(link, coordFactor=COORD_FACTOR):
 # ===========================================================================================
 
 
-def createSegmentAlightingsAttribute(network):
+def create_segment_alightings_attribute(network):
     """
     The Emme Network API does not by default define an attribute
     for transit alightings on a segment, so this utility function
