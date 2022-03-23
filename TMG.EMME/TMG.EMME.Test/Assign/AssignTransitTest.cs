@@ -48,7 +48,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("norm_gap", 0.0f);
                     writer.WriteNumber("rel_gap", 0.0f);
                     writer.WriteNumber("scenario_number", 2);
-                    writer.WriteNumber("walk_speed", 0.0f);
+                    writer.WriteNumber("walk_speed", 4.0f);
                     writer.WriteStartArray("transit_classes");
                     writer.WriteStartObject();
                     writer.WriteString("name", "transit_class_1");
@@ -209,7 +209,7 @@ namespace TMG.Emme.Test.Assign
                 NormalizedGap = Helper.CreateParameter(0.0f),
                 RelativeGap = Helper.CreateParameter(0.0f),
                 ScenarioNumber = Helper.CreateParameter(2),
-                WalkSpeed = Helper.CreateParameter(0.0f),
+                WalkSpeed = Helper.CreateParameter(4.0f),
                 CongestionExponent = Helper.CreateParameter(""),
                 AssignmentPeriod = Helper.CreateParameter(3.0f),
                 NameString = Helper.CreateParameter(""),
