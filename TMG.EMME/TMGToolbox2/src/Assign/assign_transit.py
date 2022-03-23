@@ -776,7 +776,7 @@ class AssignTransit(_m.Tool()):
                     average_min_trip_impedance = self._compute_min_trip_impedance(
                         scenario, demand_matrix_list, assigned_class_demand, impedance_matrix_list
                     )
-                    congestion_costs = self._get_congestion_costs(network, assigned_total_demand)
+                    congestion_costs = self._get_congestion_costs(parameters, network, assigned_total_demand)
                     average_impedance = average_min_trip_impedance + congestion_costs
                     if parameters["csvfile"].lower() is not "":
                         self._write_csv_files(iteration, network, "", "", "")
@@ -1383,13 +1383,13 @@ class AssignTransit(_m.Tool()):
         average_min_trip_impedance = average_min_trip_impedance / sum(assigned_class_demand)
         return average_min_trip_impedance
 
-    def _get_congestion_costs(self, network, assigned_total_demand):
+    def _get_congestion_costs(self, parameters, network, assigned_total_demand):
         congestion_cost = 0.0
         for line in network.transit_lines():
             capacity = float(line.total_capacity)
             for segment in line.segments():
                 flow_X_time = float(segment.voltr) * (float(segment.timtr) - float(segment.dwell_time))
-                congestion = self._calculate_segment_cost(float(segment.voltr), capacity, segment)
+                congestion = self._calculate_segment_cost(parameters, float(segment.voltr), capacity, segment)
                 congestion_cost += flow_X_time * congestion
         return congestion_cost / assigned_total_demand
 
@@ -1584,6 +1584,22 @@ class AssignTransit(_m.Tool()):
             },
         }
         return atts
+
+    def _calculate_segment_cost(self, parameters, transit_volume, capacity, segment):
+        for ttf_def in parameters["ttf_definitions"]:
+            ttf = segment.transit_time_func
+            if ttf == ttf_def["ttf"]:
+                alpha = ttf_def["congestion_exponent"]
+                beta = (2 * alpha - 1) / (2 * alpha - 2)
+                alpha_square = alpha ** 2
+                beta_square = beta ** 2
+                cost = ttf_def["congestion_perception"] * (
+                    1
+                    + math.sqrt(alpha_square * (1 - transit_volume / capacity) ** 2 + beta_square)
+                    - alpha * (1 - transit_volume / capacity)
+                    - beta
+                )
+        return max(0, cost)
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
