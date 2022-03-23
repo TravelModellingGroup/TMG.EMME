@@ -781,7 +781,7 @@ class AssignTransit(_m.Tool()):
                     if parameters["csvfile"].lower() is not "":
                         self._write_csv_files(iteration, network, "", "", "")
                 else:
-                    excess_km = self._compute_segment_costs(scenario, network)
+                    excess_km = self._compute_segment_costs(scenario, parameters, network)
                     self._run_extended_transit_assignment(
                         scenario,
                         parameters,
@@ -1600,6 +1600,21 @@ class AssignTransit(_m.Tool()):
                     - beta
                 )
         return max(0, cost)
+
+    def _compute_segment_costs(self, scenario, parameters, network):
+        excess_km = 0.0
+        for line in network.transit_lines():
+            capacity = line.total_capacity
+            for segment in line.segments():
+                volume = segment.current_voltr = segment.voltr
+                length = segment.link.length
+                if volume >= capacity:
+                    excess = volume - capacity
+                    excess_km += excess * length
+                segment.cost = self._calculate_segment_cost(parameters, segment.voltr, capacity, segment)
+        values = network.get_attribute_values("TRANSIT_SEGMENT", ["cost"])
+        scenario.set_attribute_values("TRANSIT_SEGMENT", ["data3"], values)
+        return excess_km
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
