@@ -218,7 +218,7 @@ class AssignTransit(_m.Tool()):
                         with self._temp_stsu_ttfs(scenario, parameters) as temp_stsu_ttf:
                             stsu_ttf_map = temp_stsu_ttf[0]
                             ttfs_changed = temp_stsu_ttf[1]
-                            if parameters["surface_transit_speed"] != False:
+                            if parameters["surface_transit_speed"] == True:
                                 self._set_base_speed(scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed)
                             self._run_transit_assignment(
                                 scenario,
@@ -666,27 +666,19 @@ class AssignTransit(_m.Tool()):
                     with _db_utils.backup_and_restore(scenario, {"TRANSIT_SEGMENT": ["data3"]}):
                         # self.ttfDict = self._ParseExponentString()
                         # for ttf_def in parameters["ttf_definition"]:
-                        strategies = self._prep_strategy_files(scenario, parameters, demand_matrix_list)
-                        assigned_class_demand = self._compute_assigned_class_demand(
-                            scenario, demand_matrix_list, self.number_of_processors
-                        )
-                        assigned_total_demand = sum(assigned_class_demand)
-                        average_min_trip_impedance = self._compute_min_trip_impedance(
-                            scenario, demand_matrix_list, assigned_class_demand, impedance_matrix_list
-                        )
-                        congestion_costs = self._get_congestion_costs(network, assigned_total_demand)
-                        average_impedance = average_min_trip_impedance + congestion_costs
-                        alphas = []
-                        self._run_congested_assignment(
+                        congested_assignment = self._run_congested_assignment(
                             scenario,
                             parameters,
+                            network,
+                            demand_matrix_list,
+                            impedance_matrix_list,
                             stsu_att,
-                            strategies,
-                            average_min_trip_impedance,
-                            assigned_total_demand,
-                            average_impedance,
                             headway_fraction_attribute_list,
+                            effective_headway_attribute_list,
+                            walk_time_perception_attribute_list,
                         )
+                        alphas = congested_assignment[1]
+                        strategies = congested_assignment[0]
 
                 self._save_results(scenario, parameters, network, alphas, strategies)
                 trace.write(
@@ -746,37 +738,64 @@ class AssignTransit(_m.Tool()):
         self,
         scenario,
         parameters,
+        network,
+        demand_matrix_list,
+        impedance_matrix_list,
         stsu_att,
-        strategies,
-        average_min_trip_impedance,
-        assigned_total_demand,
-        average_impedance,
         headway_fraction_attribute_list,
+        effective_headway_attribute_list,
+        walk_time_perception_attribute_list,
     ):
         for iteration in range(0, parameters["iterations"] + 1):
             with _trace("Iteration %d" % iteration):
                 print("Starting iteration %d" % iteration)
 
                 if iteration == 0:
+                    strategies = self._prep_strategy_files(scenario, parameters, demand_matrix_list)
                     zeroes = [0.0] * _bank.dimensions["transit_segments"]
                     setattr(scenario._net.segment, "data3", zeroes)
-                    self._run_extended_transit_assignment(scenario, parameters, iteration, strategies)
+                    self._run_extended_transit_assignment(
+                        scenario,
+                        parameters,
+                        iteration,
+                        strategies,
+                        demand_matrix_list,
+                        headway_fraction_attribute_list,
+                        effective_headway_attribute_list,
+                        walk_time_perception_attribute_list,
+                        impedance_matrix_list,
+                    )
                     alphas = [1.0]
+                    assigned_class_demand = self._compute_assigned_class_demand(
+                        scenario, demand_matrix_list, self.number_of_processors
+                    )
+                    assigned_total_demand = sum(assigned_class_demand)
                     network = self._prepare_network(scenario, parameters, stsu_att)
                     if parameters["surface_transit_speed"] == True:
                         network = self._surface_transit_speed_update(scenario, parameters, network, 1)
-
+                    average_min_trip_impedance = self._compute_min_trip_impedance(
+                        scenario, demand_matrix_list, assigned_class_demand, impedance_matrix_list
+                    )
+                    congestion_costs = self._get_congestion_costs(network, assigned_total_demand)
+                    average_impedance = average_min_trip_impedance + congestion_costs
                     if parameters["csvfile"].lower() is not "":
                         self._write_csv_files(iteration, network, "", "", "")
                 else:
                     excess_km = self._compute_segment_costs(scenario, network)
-                    self._run_extended_transit_assignment(scenario, parameters, iteration, strategies)
+                    self._run_extended_transit_assignment(
+                        scenario,
+                        parameters,
+                        iteration,
+                        strategies,
+                        demand_matrix_list,
+                        headway_fraction_attribute_list,
+                        effective_headway_attribute_list,
+                        walk_time_perception_attribute_list,
+                        impedance_matrix_list,
+                    )
                     network = self._update_network(scenario, network)
                     lambdaK = self._find_step_size(
-                        network,
-                        average_min_trip_impedance,
-                        average_impedance,
-                        assigned_total_demand,
+                        network, average_min_trip_impedance, average_impedance, assigned_total_demand, alphas
                     )
                     if parameters["surface_transit_speed"] == True:
                         network = self._surface_transit_speed_update(scenario, parameters, network, 1)
@@ -798,6 +817,7 @@ class AssignTransit(_m.Tool()):
                         )
                     if crgap < parameters["rel_gap"] or norm_gap_difference >= 0:
                         break
+        return (strategies, alphas)
 
     def _run_spec_uncongested(
         self,
@@ -1120,16 +1140,16 @@ class AssignTransit(_m.Tool()):
         impedance_matrix_list,
         consider_total_impedance=False,
     ):
-        farePerception = []
+        fare_perception = []
         base_spec = []
         for i, transit_class in enumerate(parameters["transit_classes"]):
             if transit_class["fare_perception"] == 0.0:
-                farePerception.append(0.0)
+                fare_perception.append(0.0)
             else:
-                farePerception.append(60.0 / transit_class["fare_perception"])
+                fare_perception.append(60.0 / transit_class["fare_perception"])
             base_spec.append(
                 {
-                    "modes": transit_class["mode"],
+                    "modes": [transit_class["mode"]],
                     "demand": demand_matrix_list[i].id,
                     "waiting_time": {
                         "headway_fraction": headway_fraction_attribute_list[i].id,
@@ -1159,7 +1179,7 @@ class AssignTransit(_m.Tool()):
                     "type": "EXTENDED_TRANSIT_ASSIGNMENT",
                 }
             )
-        for i, transit_class in enumerate(parameters["transit_classes"]):
+        for transit_class in parameters["transit_classes"]:
             for i in range(0, len(base_spec)):
                 if parameters["node_logit_scale"]:
                     base_spec[i]["flow_distribution_at_origins"] = {
@@ -1220,7 +1240,18 @@ class AssignTransit(_m.Tool()):
 
         return base_spec
 
-    def _run_extended_transit_assignment(self, scenario, parameters, iteration, strategies):
+    def _run_extended_transit_assignment(
+        self,
+        scenario,
+        parameters,
+        iteration,
+        strategies,
+        demand_matrix_list,
+        headway_fraction_attribute_list,
+        effective_headway_attribute_list,
+        walk_time_perception_attribute_list,
+        impedance_matrix_list,
+    ):
         if iteration == 0:
             msg = "Prepare Initial Assignment"
         else:
@@ -1228,9 +1259,30 @@ class AssignTransit(_m.Tool()):
         assignment_tool = extended_assignment_tool
         assignment_tool.iterative_transit_assignment = True
         with _trace(msg):
-            for i, transit_class in enumerate(parameters["transit_classes"]):
-                spec = self._get_transit_assignment_spec(i)
-                if i == 0:
+            for index, transit_class in enumerate(parameters["transit_classes"]):
+                spec = self._get_transit_assignment_spec(
+                    scenario,
+                    index,
+                    transit_class["fare_perception"],
+                    transit_class["mode"],
+                    demand_matrix_list,
+                    headway_fraction_attribute_list,
+                    effective_headway_attribute_list,
+                    walk_time_perception_attribute_list,
+                    impedance_matrix_list,
+                    transit_class["wait_time_perception"],
+                    self.consider_total_impedance,
+                    self.use_logit_connector_choice,
+                    parameters["origin_distribution_logit_scale"],
+                    self.connector_logit_truncation,
+                    self.number_of_processors,
+                    parameters["node_logit_scale"],
+                    parameters["walk_all_way_flag"],
+                    transit_class["board_penalty_perception"],
+                    transit_class["segment_fare_attribute"],
+                    transit_class["link_fare_attribute_id"],
+                )
+                if index == 0:
                     self._tracker.run_tool(
                         assignment_tool,
                         specification=spec,
@@ -1340,6 +1392,56 @@ class AssignTransit(_m.Tool()):
                 congestion = self._calculate_segment_cost(float(segment.voltr), capacity, segment)
                 congestion_cost += flow_X_time * congestion
         return congestion_cost / assigned_total_demand
+
+    def _prepare_network(self, scenario, parameters, stsu_att):
+        network = scenario.get_partial_network(
+            ["LINK", "TRANSIT_SEGMENT", "TRANSIT_LINE", "TRANSIT_VEHICLE"],
+            include_attributes=False,
+        )
+        attributes_to_copy = {
+            "TRANSIT_VEHICLE": ["total_capacity"],
+            "NODE": ["initial_boardings", "final_alightings"],
+            "LINK": ["length", "aux_transit_volume", "auto_time"],
+            "TRANSIT_LINE": ["headway", str(stsu_att.id), "data2", "@doors"],
+            "TRANSIT_SEGMENT": [
+                "dwell_time",
+                "transit_volume",
+                "transit_time",
+                "transit_boardings",
+                "transit_time_func",
+                "@tstop",
+            ],
+        }
+        if scenario.extra_attribute("@tstop") is None:
+            if parameters["surface_transit_speed"] == False:
+                attributes_to_copy["TRANSIT_SEGMENT"].remove("@tstop")
+            else:
+                raise Exception(
+                    "@tstop attribute needs to be defined. @tstop is an integer that shows how many transit stops are on each transit segment."
+                )
+        if "auto_time" not in scenario.attributes("LINK"):
+            if parameters["surface_transit_speed"] == False:
+                attributes_to_copy["LINK"].remove("auto_time")
+            else:
+                raise Exception("An auto assignment needs to be present on the scenario")
+        if scenario.extra_attribute("@doors") is None:
+            attributes_to_copy["TRANSIT_LINE"].remove("@doors")
+
+        for type, atts in attributes_to_copy.items():
+            atts = list(atts)
+            data = scenario.get_attribute_values(type, atts)
+            network.set_attribute_values(type, atts, data)
+        for type, mapping in self._attribute_mapping().items():
+            for source, dest in mapping.items():
+                network.copy_attribute(type, source, dest)
+        network.create_attribute("TRANSIT_SEGMENT", "current_voltr")
+        network.create_attribute("TRANSIT_SEGMENT", "cost")
+        network.create_attribute("TRANSIT_LINE", "total_capacity")
+        network.copy_attribute("TRANSIT_SEGMENT", "transit_time", "uncongested_time")
+        network.copy_attribute("TRANSIT_SEGMENT", "dwell_time", "base_dwell_time")
+        for line in network.transit_lines():
+            line.total_capacity = 60.0 * parameters["assignment_period"] * line.vehicle.total_capacity / line.headway
+        return network
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):

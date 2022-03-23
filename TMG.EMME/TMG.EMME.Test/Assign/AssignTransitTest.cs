@@ -33,7 +33,7 @@ namespace TMG.Emme.Test.Assign
         public void AssignTransit()
         {
             Helper.ImportFrabitztownNetwork(2);
-            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
             Helper.RunAssignTraffic(2, "mf0");
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
