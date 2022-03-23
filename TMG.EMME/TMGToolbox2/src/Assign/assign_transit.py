@@ -794,9 +794,11 @@ class AssignTransit(_m.Tool()):
                         impedance_matrix_list,
                     )
                     network = self._update_network(scenario, network)
-                    lambdaK = self._find_step_size(
+                    find_step_size = self._find_step_size(
                         network, average_min_trip_impedance, average_impedance, assigned_total_demand, alphas
                     )
+                    lambdaK = find_step_size[0]
+                    alphas = find_step_size[1]
                     if parameters["surface_transit_speed"] == True:
                         network = self._surface_transit_speed_update(scenario, parameters, network, 1)
                     self._update_volumes(network, lambdaK)
@@ -1615,6 +1617,15 @@ class AssignTransit(_m.Tool()):
         values = network.get_attribute_values("TRANSIT_SEGMENT", ["cost"])
         scenario.set_attribute_values("TRANSIT_SEGMENT", ["data3"], values)
         return excess_km
+
+    def _update_network(self, scenario, network):
+        attribute_mapping = self._attribute_mapping()
+        attribute_mapping["TRANSIT_SEGMENT"]["dwell_time"] = "dwell_time"
+        for type, mapping in attribute_mapping.items():
+            attributes = mapping.keys()
+            data = scenario.get_attribute_values(type, attributes)
+            network.set_attribute_values(type, attributes, data)
+        return network
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
