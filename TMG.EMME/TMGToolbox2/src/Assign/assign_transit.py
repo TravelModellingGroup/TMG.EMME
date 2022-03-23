@@ -1577,7 +1577,6 @@ class AssignTransit(_m.Tool()):
                 "waiting_time": None,
             },
         ]
-
         return base_spec
 
     def _attribute_mapping(self):
@@ -1677,7 +1676,6 @@ class AssignTransit(_m.Tool()):
             grad1 = grad2
             grad2 = grad3
             grad3 = grad
-
         lambdaK = max(0.0, min(1.0, lambdaK))
         alphas = [a * (1 - lambdaK) for a in alphas]
         alphas.append(lambdaK)
