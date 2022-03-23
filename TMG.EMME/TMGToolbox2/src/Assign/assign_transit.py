@@ -1573,6 +1573,18 @@ class AssignTransit(_m.Tool()):
 
         return base_spec
 
+    def _attribute_mapping(self):
+        atts = {
+            "NODE": {"initial_boardings": "inboa", "final_alightings": "fiali"},
+            "LINK": {"aux_transit_volume": "volax"},
+            "TRANSIT_SEGMENT": {
+                "transit_time": "timtr",
+                "transit_volume": "voltr",
+                "transit_boardings": "board",
+            },
+        }
+        return atts
+
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
         orig_ttf_values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"])
