@@ -795,7 +795,12 @@ class AssignTransit(_m.Tool()):
                     )
                     network = self._update_network(scenario, network)
                     find_step_size = self._find_step_size(
-                        network, average_min_trip_impedance, average_impedance, assigned_total_demand, alphas
+                        parameters,
+                        network,
+                        average_min_trip_impedance,
+                        average_impedance,
+                        assigned_total_demand,
+                        alphas,
                     )
                     lambdaK = find_step_size[0]
                     alphas = find_step_size[1]
@@ -1627,14 +1632,16 @@ class AssignTransit(_m.Tool()):
             network.set_attribute_values(type, attributes, data)
         return network
 
-    def _find_step_size(self, network, average_min_trip_impedance, average_impedance, assigned_total_demand, alphas):
+    def _find_step_size(
+        self, parameters, network, average_min_trip_impedance, average_impedance, assigned_total_demand, alphas
+    ):
         approx1 = 0.0
         approx2 = 0.5
         approx3 = 1.0
         grad1 = average_min_trip_impedance - average_impedance
-        grad2 = self._compute_gradient(assigned_total_demand, approx2, network)
+        grad2 = self._compute_gradient(parameters, assigned_total_demand, approx2, network)
         grad2 += average_min_trip_impedance - average_impedance
-        grad3 = self._compute_gradient(assigned_total_demand, approx3, network)
+        grad3 = self._compute_gradient(parameters, assigned_total_demand, approx3, network)
         grad3 += average_min_trip_impedance - average_impedance
         for m_steps in range(0, 21):
             h1 = approx2 - approx1
@@ -1662,7 +1669,7 @@ class AssignTransit(_m.Tool()):
             temp = abs(temp) * 100000.0
             if temp < 100:
                 break
-            grad = self._compute_gradient(assigned_total_demand, lambdaK, network)
+            grad = self._compute_gradient(parameters, assigned_total_demand, lambdaK, network)
             grad += average_min_trip_impedance - average_impedance
             approx1 = approx2
             approx2 = approx3
@@ -1675,6 +1682,25 @@ class AssignTransit(_m.Tool()):
         alphas = [a * (1 - lambdaK) for a in alphas]
         alphas.append(lambdaK)
         return lambdaK, alphas
+
+    def _compute_gradient(self, parameters, assigned_total_demand, lambdaK, network):
+        value = 0.0
+        for line in network.transit_lines():
+            capacity = float(line.total_capacity)
+            for segment in line.segments():
+                assigned_volume = float(segment.current_voltr)
+                cumulative_volume = float(segment.transit_volume)
+                t0 = (segment.transit_time - segment.dwell_time) / (1 + segment.cost)
+                volume_difference = cumulative_volume - assigned_volume
+                if lambdaK == 1:
+                    adjusted_volume = cumulative_volume
+                else:
+                    adjusted_volume = assigned_volume + lambdaK * (cumulative_volume - assigned_volume)
+                cost_difference = self._calculate_segment_cost(
+                    parameters, adjusted_volume, capacity, segment
+                ) - self._calculate_segment_cost(parameters, assigned_volume, capacity, segment)
+                value += t0 * cost_difference * volume_difference
+        return value / assigned_total_demand
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
