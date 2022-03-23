@@ -1627,6 +1627,55 @@ class AssignTransit(_m.Tool()):
             network.set_attribute_values(type, attributes, data)
         return network
 
+    def _find_step_size(self, network, average_min_trip_impedance, average_impedance, assigned_total_demand, alphas):
+        approx1 = 0.0
+        approx2 = 0.5
+        approx3 = 1.0
+        grad1 = average_min_trip_impedance - average_impedance
+        grad2 = self._compute_gradient(assigned_total_demand, approx2, network)
+        grad2 += average_min_trip_impedance - average_impedance
+        grad3 = self._compute_gradient(assigned_total_demand, approx3, network)
+        grad3 += average_min_trip_impedance - average_impedance
+        for m_steps in range(0, 21):
+            h1 = approx2 - approx1
+            h2 = approx3 - approx2
+            delta1 = (grad2 - grad1) / h1
+            delta2 = (grad3 - grad2) / h2
+            d = (delta2 - delta1) / (h1 + h2)
+            b = h2 * d + delta2
+            t1 = grad3 * d * 4
+            t2 = b ** 2
+            if t2 > t1:
+                temp = math.sqrt(t2 - t1)
+            else:
+                temp = 0.0
+            if abs(b - temp) < abs(b + temp):
+                temp = b + temp
+            else:
+                temp = b - temp
+            if temp == 0.0:
+                raise Exception(
+                    "Congested transit assignment cannot be applied to this transit network, please use Capacitated transit assignment instead."
+                )
+            temp = -2 * grad3 / temp
+            lambdaK = approx3 + temp
+            temp = abs(temp) * 100000.0
+            if temp < 100:
+                break
+            grad = self._compute_gradient(assigned_total_demand, lambdaK, network)
+            grad += average_min_trip_impedance - average_impedance
+            approx1 = approx2
+            approx2 = approx3
+            approx3 = lambdaK
+            grad1 = grad2
+            grad2 = grad3
+            grad3 = grad
+
+        lambdaK = max(0.0, min(1.0, lambdaK))
+        alphas = [a * (1 - lambdaK) for a in alphas]
+        alphas.append(lambdaK)
+        return lambdaK, alphas
+
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
         orig_ttf_values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"])
