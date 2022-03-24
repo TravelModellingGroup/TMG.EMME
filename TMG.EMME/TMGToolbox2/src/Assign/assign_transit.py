@@ -115,7 +115,7 @@ class AssignTransit(_m.Tool()):
 
     def run_xtmf(self, parameters):
         scenario = _util.load_scenario(parameters["scenario_number"])
-        self._check_attributes_exist(scenario, parameters)
+        # self._check_attributes_exist(scenario, parameters)
         try:
             self._execute(scenario, parameters)
         except Exception as e:
@@ -794,6 +794,9 @@ class AssignTransit(_m.Tool()):
                         impedance_matrix_list,
                     )
                     network = self._update_network(scenario, network)
+                    average_min_trip_impedance = self._compute_min_trip_impedance(
+                        scenario, demand_matrix_list, assigned_class_demand, impedance_matrix_list
+                    )
                     find_step_size = self._find_step_size(
                         parameters,
                         network,
@@ -1592,6 +1595,7 @@ class AssignTransit(_m.Tool()):
         return atts
 
     def _calculate_segment_cost(self, parameters, transit_volume, capacity, segment):
+        cost = 0
         for ttf_def in parameters["ttf_definitions"]:
             ttf = segment.transit_time_func
             if ttf == ttf_def["ttf"]:
@@ -1605,7 +1609,9 @@ class AssignTransit(_m.Tool()):
                     - alpha * (1 - transit_volume / capacity)
                     - beta
                 )
-        return max(0, cost)
+                return max(0, cost)
+            else:
+                return max(0, cost)
 
     def _compute_segment_costs(self, scenario, parameters, network):
         excess_km = 0.0
