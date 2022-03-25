@@ -959,16 +959,12 @@ class AssignTransit(_m.Tool()):
 
         mode_list = []
         partial_network = scenario.get_partial_network(["MODE"], True)
-        # if all modes are selected for class, get all transit modes for journey levels
-        if modes == "*":
-            for mode in partial_network.modes():
-                if mode.type == "TRANSIT":
-                    mode_list.append({"mode": mode.id, "next_journey_level": 1})
+        mode_list = partial_network.modes() if modes == "*" else modes
         base_spec["journey_levels"] = [
             {
                 "description": "Walking",
                 "destinations_reachable": walk_all_way_flag,
-                "transition_rules": mode_list,
+                "transition_rules": self._create_journey_level_modes(mode_list, 0),
                 "boarding_time": None,
                 "boarding_cost": None,
                 "waiting_time": None,
@@ -976,7 +972,7 @@ class AssignTransit(_m.Tool()):
             {
                 "description": "Transit",
                 "destinations_reachable": True,
-                "transition_rules": mode_list,
+                "transition_rules": self._create_journey_level_modes(mode_list, 1),
                 "boarding_time": None,
                 "boarding_cost": None,
                 "waiting_time": None,
@@ -1216,22 +1212,11 @@ class AssignTransit(_m.Tool()):
             mode_list = []
             partial_network = scenario.get_partial_network(["MODE"], True)
             mode_list = partial_network.modes() if modes[i] == "*" else modes[i]
-
-            def create_journey_level_modes(mode_list, level):
-                ret = []
-                for mode in mode_list:
-                    if mode.type == "TRANSIT":
-                        ret.append({"mode": mode.id, "next_journey_level": 1})
-                    elif mode.type == "AUX_TRANSIT":
-                        next_level = 1 if level >= 1 else 0
-                        ret.append({"mode": mode.id, "next_journey_level": next_level})
-                return ret
-
             base_spec[i]["journey_levels"] = [
                 {
                     "description": "Walking",
                     "destinations_reachable": parameters["walk_all_way_flag"],
-                    "transition_rules": create_journey_level_modes(mode_list, 0),
+                    "transition_rules": self._create_journey_level_modes(mode_list, 0),
                     "boarding_time": None,
                     "boarding_cost": None,
                     "waiting_time": None,
@@ -1239,7 +1224,7 @@ class AssignTransit(_m.Tool()):
                 {
                     "description": "Transit",
                     "destinations_reachable": True,
-                    "transition_rules": create_journey_level_modes(mode_list, 1),
+                    "transition_rules": self._create_journey_level_modes(mode_list, 1),
                     "boarding_time": None,
                     "boarding_cost": None,
                     "waiting_time": None,
@@ -1544,16 +1529,13 @@ class AssignTransit(_m.Tool()):
             }
         mode_list = []
         partial_network = scenario.get_partial_network(["MODE"], True)
+        mode_list = partial_network.modes() if modes == "*" else modes
         # if all modes are selected for class, get all transit modes for journey levels
-        if modes == "*":
-            for mode in partial_network.modes():
-                if mode.type == "TRANSIT":
-                    mode_list.append({"mode": mode.id, "next_journey_level": 1})
         base_spec["journey_levels"] = [
             {
                 "description": "Walking",
                 "destinations_reachable": walk_all_way_flag,
-                "transition_rules": mode_list,
+                "transition_rules": self._create_journey_level_modes(mode_list, 0),
                 "boarding_time": {
                     "at_nodes": None,
                     "on_lines": {"penalty": "ut3", "perception_factor": board_penalty_perception},
@@ -1566,7 +1548,7 @@ class AssignTransit(_m.Tool()):
             {
                 "description": "Transit",
                 "destinations_reachable": True,
-                "transition_rules": mode_list,
+                "transition_rules": self._create_journey_level_modes(mode_list, 1),
                 "boarding_time": {
                     "at_nodes": None,
                     "on_lines": {"penalty": "ut2", "perception_factor": board_penalty_perception},
@@ -1607,8 +1589,7 @@ class AssignTransit(_m.Tool()):
                     - beta
                 )
                 return max(0, cost)
-            else:
-                return max(0, cost)
+        return 0
 
     def _compute_segment_costs(self, scenario, parameters, network):
         excess_km = 0.0
@@ -1702,6 +1683,16 @@ class AssignTransit(_m.Tool()):
                 ) - self._calculate_segment_cost(parameters, assigned_volume, capacity, segment)
                 value += t0 * cost_difference * volume_difference
         return value / assigned_total_demand
+
+    def _create_journey_level_modes(self, mode_list, level):
+        ret = []
+        for mode in mode_list:
+            if mode.type == "TRANSIT":
+                ret.append({"mode": mode.id, "next_journey_level": 1})
+            elif mode.type == "AUX_TRANSIT":
+                next_level = 1 if level >= 1 else 0
+                ret.append({"mode": mode.id, "next_journey_level": next_level})
+        return ret
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
