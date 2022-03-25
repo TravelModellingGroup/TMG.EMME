@@ -1719,6 +1719,21 @@ class AssignTransit(_m.Tool()):
             if True in ttfs_changed:
                 scenario.set_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"], orig_ttf_values)
 
+    def _update_volumes(self, network, lambdaK):
+        alpha = 1 - lambdaK
+        for node in network.regular_nodes():
+            node.inboa = node.inboa * alpha + node.initial_boardings * lambdaK
+            node.fiali = node.fiali * alpha + node.final_alightings * lambdaK
+        for link in network.links():
+            link.volax = link.volax * alpha + link.aux_transit_volume * lambdaK
+        for line in network.transit_lines():
+            # capacity = float(line.total_capacity)
+            # congested = False
+            for segment in line.segments():
+                segment.voltr = segment.voltr * alpha + segment.transit_volume * lambdaK
+                segment.board = segment.board * alpha + segment.transit_boardings * lambdaK
+        return
+
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
         return self._tracker.get_progress()
