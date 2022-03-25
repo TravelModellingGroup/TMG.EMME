@@ -664,8 +664,6 @@ class AssignTransit(_m.Tool()):
             ) as trace:
                 with _db_utils.congested_transit_temp_funcs(scenario, used_functions, False, "us3"):
                     with _db_utils.backup_and_restore(scenario, {"TRANSIT_SEGMENT": ["data3"]}):
-                        # self.ttfDict = self._ParseExponentString()
-                        # for ttf_def in parameters["ttf_definition"]:
                         congested_assignment = self._run_congested_assignment(
                             scenario,
                             parameters,
@@ -962,7 +960,7 @@ class AssignTransit(_m.Tool()):
         mode_list = []
         partial_network = scenario.get_partial_network(["MODE"], True)
         # if all modes are selected for class, get all transit modes for journey levels
-        if modes == ["*"]:
+        if modes == "*":
             for mode in partial_network.modes():
                 if mode.type == "TRANSIT":
                     mode_list.append({"mode": mode.id, "next_journey_level": 1})
@@ -1150,13 +1148,13 @@ class AssignTransit(_m.Tool()):
         impedance_matrix_list,
         consider_total_impedance=False,
     ):
-        fare_perception = []
         base_spec = []
+        modes = []
         for i, transit_class in enumerate(parameters["transit_classes"]):
-            if transit_class["fare_perception"] == 0.0:
-                fare_perception.append(0.0)
-            else:
-                fare_perception.append(60.0 / transit_class["fare_perception"])
+            fare_perception = transit_class["fare_perception"]
+            modes.append(transit_class["mode"])
+            if fare_perception != 0.0:
+                fare_perception = 60.0 / fare_perception
             base_spec.append(
                 {
                     "modes": [transit_class["mode"]],
@@ -1180,7 +1178,7 @@ class AssignTransit(_m.Tool()):
                     "aux_transit_time": {"perception_factor": walk_time_perception_attribute_list[i].id},
                     "aux_transit_cost": {
                         "penalty": transit_class["link_fare_attribute_id"],
-                        "perception_factor": transit_class["fare_perception"],
+                        "perception_factor": fare_perception,
                     },
                     "connector_to_connector_path_prohibition": None,
                     "od_results": {"total_impedance": impedance_matrix_list[i].id},
@@ -1189,65 +1187,64 @@ class AssignTransit(_m.Tool()):
                     "type": "EXTENDED_TRANSIT_ASSIGNMENT",
                 }
             )
-        for transit_class in parameters["transit_classes"]:
-            for i in range(0, len(base_spec)):
-                if parameters["node_logit_scale"]:
-                    base_spec[i]["flow_distribution_at_origins"] = {
-                        "choices_at_origins": {
-                            "choice_points": "ALL_ORIGINS",
-                            "choice_set": "ALL_CONNECTORS",
-                            "logit_parameters": {
-                                "scale": parameters["origin_distribution_logit_scale"],
-                                "truncation": connector_logit_truncation,
-                            },
+        for i in range(0, len(base_spec)):
+            if parameters["node_logit_scale"]:
+                base_spec[i]["flow_distribution_at_origins"] = {
+                    "choices_at_origins": {
+                        "choice_points": "ALL_ORIGINS",
+                        "choice_set": "ALL_CONNECTORS",
+                        "logit_parameters": {
+                            "scale": parameters["origin_distribution_logit_scale"],
+                            "truncation": connector_logit_truncation,
                         },
-                        "fixed_proportions_on_connectors": None,
-                    }
-                base_spec[i]["performance_settings"] = {"number_of_processors": self.number_of_processors}
-                if scenario.extra_attribute("@node_logit") != None:
-                    base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
-                        "choices_at_regular_nodes": {
-                            "choice_points": "@node_logit",
-                            "aux_transit_choice_set": "ALL_POSSIBLE_LINKS",
-                            "logit_parameters": {"scale": 0.2, "truncation": 0.05},
-                        }
-                    }
-                else:
-                    base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
-                        "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
-                    }
-                mode_list = []
-                partial_network = scenario.get_partial_network(["MODE"], True)
-                # if all modes are selected for class, get all transit modes for journey levels
-                if transit_class["mode"] == "*":
-                    for mode in partial_network.modes():
-                        if mode.type == "TRANSIT":
-                            mode_list.append({"mode": mode.id, "next_journey_level": 1})
-                else:
-                    modechars = transit_class["mode"].split()
-                    for modechar in modechars:
-                        mode = partial_network.mode(modechar)
-                        if mode.type == "TRANSIT":
-                            mode_list.append({"mode": mode.id, "next_journey_level": 1})
-                base_spec[i]["journey_levels"] = [
-                    {
-                        "description": "Walking",
-                        "destinations_reachable": parameters["walk_all_way_flag"],
-                        "transition_rules": mode_list,
-                        "boarding_time": None,
-                        "boarding_cost": None,
-                        "waiting_time": None,
                     },
-                    {
-                        "description": "Transit",
-                        "destinations_reachable": True,
-                        "transition_rules": mode_list,
-                        "boarding_time": None,
-                        "boarding_cost": None,
-                        "waiting_time": None,
-                    },
-                ]
+                    "fixed_proportions_on_connectors": None,
+                }
+            base_spec[i]["performance_settings"] = {"number_of_processors": self.number_of_processors}
+            if scenario.extra_attribute("@node_logit") != None:
+                base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                    "choices_at_regular_nodes": {
+                        "choice_points": "@node_logit",
+                        "aux_transit_choice_set": "ALL_POSSIBLE_LINKS",
+                        "logit_parameters": {"scale": 0.2, "truncation": 0.05},
+                    }
+                }
+            else:
+                base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                    "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
+                }
+            mode_list = []
+            partial_network = scenario.get_partial_network(["MODE"], True)
+            mode_list = partial_network.modes() if modes[i] == "*" else modes[i]
 
+            def create_journey_level_modes(mode_list, level):
+                ret = []
+                for mode in mode_list:
+                    if mode.type == "TRANSIT":
+                        ret.append({"mode": mode.id, "next_journey_level": 1})
+                    elif mode.type == "AUX_TRANSIT":
+                        next_level = 1 if level >= 1 else 0
+                        ret.append({"mode": mode.id, "next_journey_level": next_level})
+                return ret
+
+            base_spec[i]["journey_levels"] = [
+                {
+                    "description": "Walking",
+                    "destinations_reachable": parameters["walk_all_way_flag"],
+                    "transition_rules": create_journey_level_modes(mode_list, 0),
+                    "boarding_time": None,
+                    "boarding_cost": None,
+                    "waiting_time": None,
+                },
+                {
+                    "description": "Transit",
+                    "destinations_reachable": True,
+                    "transition_rules": create_journey_level_modes(mode_list, 1),
+                    "boarding_time": None,
+                    "boarding_cost": None,
+                    "waiting_time": None,
+                },
+            ]
         return base_spec
 
     def _run_extended_transit_assignment(
@@ -1545,18 +1542,18 @@ class AssignTransit(_m.Tool()):
             base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                 "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
             }
-        modeList = []
+        mode_list = []
         partial_network = scenario.get_partial_network(["MODE"], True)
         # if all modes are selected for class, get all transit modes for journey levels
         if modes == "*":
             for mode in partial_network.modes():
                 if mode.type == "TRANSIT":
-                    modeList.append({"mode": mode.id, "next_journey_level": 1})
+                    mode_list.append({"mode": mode.id, "next_journey_level": 1})
         base_spec["journey_levels"] = [
             {
                 "description": "Walking",
                 "destinations_reachable": walk_all_way_flag,
-                "transition_rules": modeList,
+                "transition_rules": mode_list,
                 "boarding_time": {
                     "at_nodes": None,
                     "on_lines": {"penalty": "ut3", "perception_factor": board_penalty_perception},
@@ -1569,7 +1566,7 @@ class AssignTransit(_m.Tool()):
             {
                 "description": "Transit",
                 "destinations_reachable": True,
-                "transition_rules": modeList,
+                "transition_rules": mode_list,
                 "boarding_time": {
                     "at_nodes": None,
                     "on_lines": {"penalty": "ut2", "perception_factor": board_penalty_perception},
