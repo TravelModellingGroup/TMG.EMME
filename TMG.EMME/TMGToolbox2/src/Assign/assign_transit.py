@@ -1026,7 +1026,6 @@ class AssignTransit(_m.Tool()):
                     segment_dwell_time /= 60
                     if segment_dwell_time >= 99.99:
                         segment_dwell_time = 99.98
-
                     alpha = 1 - lambdaK
                     segment.dwell_time = old_dwell * alpha + segment_dwell_time * lambdaK
         data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"])
@@ -1694,6 +1693,38 @@ class AssignTransit(_m.Tool()):
                 ret.append({"mode": mode.id, "next_journey_level": next_level})
         return ret
 
+    def _update_volumes(self, network, lambdaK):
+        alpha = 1 - lambdaK
+        for node in network.regular_nodes():
+            node.inboa = node.inboa * alpha + node.initial_boardings * lambdaK
+            node.fiali = node.fiali * alpha + node.final_alightings * lambdaK
+        for link in network.links():
+            link.volax = link.volax * alpha + link.aux_transit_volume * lambdaK
+        for line in network.transit_lines():
+            # capacity = float(line.total_capacity)
+            # congested = False
+            for segment in line.segments():
+                segment.voltr = segment.voltr * alpha + segment.transit_volume * lambdaK
+                segment.board = segment.board * alpha + segment.transit_boardings * lambdaK
+        return
+
+    def _compute_gaps(
+        self,
+        assigned_total_demand,
+        lambdaK,
+        average_min_trip_impedance,
+        previous_average_min_trip_impedance,
+        network,
+    ):
+        cngap = previous_average_min_trip_impedance - average_min_trip_impedance
+        net_costs = self._compute_network_costs(assigned_total_demand, lambdaK, network)
+        average_impedance = (
+            lambdaK * average_min_trip_impedance + (1 - lambdaK) * previous_average_min_trip_impedance + net_costs
+        )
+        crgap = cngap / average_impedance
+        norm_gap_difference = (self.NormGap - cngap) * 100000.0
+        return (average_impedance, cngap, crgap, norm_gap_difference, net_costs)
+
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
         orig_ttf_values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"])
@@ -1718,21 +1749,6 @@ class AssignTransit(_m.Tool()):
                     scenario.emmebank.delete_function(func)
             if True in ttfs_changed:
                 scenario.set_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"], orig_ttf_values)
-
-    def _update_volumes(self, network, lambdaK):
-        alpha = 1 - lambdaK
-        for node in network.regular_nodes():
-            node.inboa = node.inboa * alpha + node.initial_boardings * lambdaK
-            node.fiali = node.fiali * alpha + node.final_alightings * lambdaK
-        for link in network.links():
-            link.volax = link.volax * alpha + link.aux_transit_volume * lambdaK
-        for line in network.transit_lines():
-            # capacity = float(line.total_capacity)
-            # congested = False
-            for segment in line.segments():
-                segment.voltr = segment.voltr * alpha + segment.transit_volume * lambdaK
-                segment.board = segment.board * alpha + segment.transit_boardings * lambdaK
-        return
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
