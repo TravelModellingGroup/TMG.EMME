@@ -1822,6 +1822,20 @@ class AssignTransit(_m.Tool()):
             if fare_matrix_list[i]:
                 self._extract_cost_matrix(i)
 
+    def _extract_times_matrices(
+        self, i, scenario, transit_class, wait_time_matrix_list, penalty_matrix_list, walk_time_matrix_list
+    ):
+        spec = {
+            "by_mode_subset": {
+                "modes": ["*"],
+                "actual_aux_transit_times": wait_time_matrix_list[i],
+                "actual_total_boarding_times": penalty_matrix_list[i],
+            },
+            "type": "EXTENDED_TRANSIT_MATRIX_RESULTS",
+            "actual_total_waiting_times": walk_time_matrix_list[i],
+        }
+        self._tracker.run_tool(matrix_results_tool, spec, scenario=scenario, class_name=transit_class["name"])
+
     def _extract_in_vehicle_times():
         ...
 
