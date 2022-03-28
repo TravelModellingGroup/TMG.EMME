@@ -677,7 +677,7 @@ class AssignTransit(_m.Tool()):
                         )
                         alphas = congested_assignment[1]
                         strategies = congested_assignment[0]
-
+                        network = congested_assignment[2]
                 self._save_results(scenario, parameters, network, alphas, strategies)
                 trace.write(
                     name="TMG Congested Transit Assignment",
@@ -809,6 +809,7 @@ class AssignTransit(_m.Tool()):
                         network = self._surface_transit_speed_update(scenario, parameters, network, 1)
                     self._update_volumes(network, lambdaK)
                     (average_impedance, cngap, crgap, norm_gap_difference, net_cost,) = self._compute_gaps(
+                        parameters,
                         assigned_total_demand,
                         lambdaK,
                         average_min_trip_impedance,
@@ -825,7 +826,7 @@ class AssignTransit(_m.Tool()):
                         )
                     if crgap < parameters["rel_gap"] or norm_gap_difference >= 0:
                         break
-        return (strategies, alphas)
+        return (strategies, alphas, network)
 
     def _run_spec_uncongested(
         self,
@@ -1701,8 +1702,8 @@ class AssignTransit(_m.Tool()):
         for link in network.links():
             link.volax = link.volax * alpha + link.aux_transit_volume * lambdaK
         for line in network.transit_lines():
-            # capacity = float(line.total_capacity)
-            # congested = False
+            capacity = float(line.total_capacity)
+            congested = False
             for segment in line.segments():
                 segment.voltr = segment.voltr * alpha + segment.transit_volume * lambdaK
                 segment.board = segment.board * alpha + segment.transit_boardings * lambdaK
@@ -1710,6 +1711,7 @@ class AssignTransit(_m.Tool()):
 
     def _compute_gaps(
         self,
+        parameters,
         assigned_total_demand,
         lambdaK,
         average_min_trip_impedance,
@@ -1717,13 +1719,29 @@ class AssignTransit(_m.Tool()):
         network,
     ):
         cngap = previous_average_min_trip_impedance - average_min_trip_impedance
-        net_costs = self._compute_network_costs(assigned_total_demand, lambdaK, network)
+        net_costs = self._compute_network_costs(parameters, assigned_total_demand, lambdaK, network)
         average_impedance = (
             lambdaK * average_min_trip_impedance + (1 - lambdaK) * previous_average_min_trip_impedance + net_costs
         )
         crgap = cngap / average_impedance
-        norm_gap_difference = (self.NormGap - cngap) * 100000.0
+        norm_gap_difference = (parameters["norm_gap"] - cngap) * 100000.0
         return (average_impedance, cngap, crgap, norm_gap_difference, net_costs)
+
+    def _compute_network_costs(self, parameters, assigned_total_demand, lambdaK, network):
+        value = 0.0
+        for line in network.transit_lines():
+            capacity = float(line.total_capacity)
+            for segment in line.segments():
+                assigned_volume = segment.current_voltr
+                cumulative_volume = segment.transit_volume
+                t0 = (segment.transit_time - segment.dwell_time) / (1 + segment.cost)
+                volume_difference = assigned_volume + lambdaK * (cumulative_volume - assigned_volume)
+                adjusted_volume = assigned_volume + lambdaK * (cumulative_volume - assigned_volume)
+                cost_difference = self._calculate_segment_cost(
+                    parameters, adjusted_volume, capacity, segment
+                ) - self._calculate_segment_cost(parameters, assigned_volume, capacity, segment)
+                value += t0 * cost_difference * volume_difference
+        return value / assigned_total_demand
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
