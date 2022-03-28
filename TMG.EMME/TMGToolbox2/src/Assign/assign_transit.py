@@ -69,6 +69,7 @@ _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 extended_assignment_tool = _MODELLER.tool("inro.emme.transit_assignment.extended_transit_assignment")
 matrix_calc_tool = _MODELLER.tool("inro.emme.matrix_calculation.matrix_calculator")
+matrix_results_tool = _MODELLER.tool("inro.emme.transit_assignment.extended.matrix_results")
 null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
 
@@ -231,6 +232,19 @@ class AssignTransit(_m.Tool()):
                                 impedance_matrix_list,
                                 walk_time_perception_attribute_list,
                             )
+                    self._extract_output_matrices(
+                        scenario,
+                        parameters,
+                        demand_matrix_list,
+                        walk_time_matrix_list,
+                        wait_time_matrix_list,
+                        penalty_matrix_list,
+                        in_vehicle_time_matrix_list,
+                        temp_in_vehicle_times_attribute,
+                        congestion_matrix_list,
+                        fare_matrix_list,
+                    )
+                    _MODELLER.desktop.refresh_needed(True)
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_atts(self, scenario, parameters):
@@ -1777,6 +1791,45 @@ class AssignTransit(_m.Tool()):
             scenario.set_attribute_values("TRANSIT_SEGMENT", ["@boardings", "@alightings"], data)
         strategies.data["alphas"] = alphas
         strategies._save_config()
+
+    def _extract_output_matrices(
+        self,
+        scenario,
+        parameters,
+        demand_matrix_list,
+        walk_time_matrix_list,
+        wait_time_matrix_list,
+        penalty_matrix_list,
+        in_vehicle_time_matrix_list,
+        temp_in_vehicle_times_attribute,
+        congestion_matrix_list,
+        fare_matrix_list,
+    ):
+        for i, transit_class in enumerate(parameters["transit_class"]):
+            if walk_time_matrix_list[i] or wait_time_matrix_list or penalty_matrix_list[i]:
+                self._extract_times_matrices(
+                    i, scenario, transit_class, wait_time_matrix_list, penalty_matrix_list, walk_time_matrix_list
+                )
+            if in_vehicle_time_matrix_list[i] is not None:
+                with _util.temp_extra_attribute_manager(scenario, "TRANSIT_SEGMENT") as temp_in_vehicle_times_attribute:
+                    if parameters["calculate_congested_ivtt_flag"] == True:
+                        self._extract_in_vehicle_times(temp_in_vehicle_times_attribute, True, i)
+                    else:
+                        self._extract_in_vehicle_times(temp_in_vehicle_times_attribute, False, i)
+            if parameters["congested_assignment"] == True:
+                if congestion_matrix_list[i] is not None:
+                    self._extract_congestion_matrix(congestion_matrix_list[i], i)
+            if fare_matrix_list[i]:
+                self._extract_cost_matrix(i)
+
+    def _extract_in_vehicle_times():
+        ...
+
+    def _extract_congestion_matrix():
+        ...
+
+    def _extract_cost_matrix():
+        ...
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
