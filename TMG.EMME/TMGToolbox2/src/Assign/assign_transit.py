@@ -1743,6 +1743,41 @@ class AssignTransit(_m.Tool()):
                 value += t0 * cost_difference * volume_difference
         return value / assigned_total_demand
 
+    def _save_results(self, scenario, parameters, network, alphas, strategies):
+        if scenario.extra_attribute("@ccost") is not None:
+            ccost = scenario.extra_attribute("@ccost")
+            scenario.delete_extra_attribute("@ccost")
+            network.delete_attribute(ccost.type, "@ccost")
+        type = "TRANSIT_SEGMENT"
+        congestion_attribute = scenario.create_extra_attribute(type, "@ccost")
+        congestion_attribute.description = "congestion cost"
+        network.create_attribute(type, "@ccost")
+        for line in network.transit_lines():
+            capacity = float(line.total_capacity)
+            i = 0
+            for segment in line.segments():
+                volume = float(segment.voltr)
+                congestion_term = self._calculate_segment_cost(parameters, volume, capacity, segment)
+                base_time = float(segment.uncongested_time) - float(line.segment(i + 1).base_dwell_time)
+                segment.transit_time = (base_time + float(line.segment(i + 1).dwell_time)) * (1 + congestion_term)
+                segment["@ccost"] = segment.transit_time - base_time
+                i += 1
+        attribute_mapping = self._attribute_mapping()
+        attribute_mapping["TRANSIT_SEGMENT"]["@ccost"] = "@ccost"
+        attribute_mapping["TRANSIT_SEGMENT"]["transit_time"] = "transit_time"
+        for type, mapping in attribute_mapping.items():
+            data = network.get_attribute_values(type, mapping.values())
+            scenario.set_attribute_values(type, mapping.keys(), data)
+        if parameters["surface_transit_speed"] == True:
+            data = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"])
+            network.set_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"], data)
+            net_edit.create_segment_alightings_attribute(network)
+            network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+            data = network.get_attribute_values("TRANSIT_SEGMENT", ["transit_boardings", "transit_alightings"])
+            scenario.set_attribute_values("TRANSIT_SEGMENT", ["@boardings", "@alightings"], data)
+        strategies.data["alphas"] = alphas
+        strategies._save_config()
+
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
         orig_ttf_values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"])
