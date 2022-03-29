@@ -70,6 +70,7 @@ network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calcul
 extended_assignment_tool = _MODELLER.tool("inro.emme.transit_assignment.extended_transit_assignment")
 matrix_calc_tool = _MODELLER.tool("inro.emme.matrix_calculation.matrix_calculator")
 matrix_results_tool = _MODELLER.tool("inro.emme.transit_assignment.extended.matrix_results")
+strategy_analysis_tool = _MODELLER.tool("inro.emme.transit_assignment.extended.strategy_based_analysis")
 null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
 
@@ -238,9 +239,8 @@ class AssignTransit(_m.Tool()):
                         demand_matrix_list,
                         walk_time_matrix_list,
                         wait_time_matrix_list,
-                        penalty_matrix_list,
+                        board_penalty_matrix_list,
                         in_vehicle_time_matrix_list,
-                        temp_in_vehicle_times_attribute,
                         congestion_matrix_list,
                         fare_matrix_list,
                     )
@@ -1785,7 +1785,7 @@ class AssignTransit(_m.Tool()):
         if parameters["surface_transit_speed"] == True:
             data = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"])
             network.set_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"], data)
-            net_edit.create_segment_alightings_attribute(network)
+            # net_edit.create_segment_alightings_attribute(network)
             network = self._surface_transit_speed_update(scenario, parameters, network, 1)
             data = network.get_attribute_values("TRANSIT_SEGMENT", ["transit_boardings", "transit_alightings"])
             scenario.set_attribute_values("TRANSIT_SEGMENT", ["@boardings", "@alightings"], data)
@@ -1799,51 +1799,186 @@ class AssignTransit(_m.Tool()):
         demand_matrix_list,
         walk_time_matrix_list,
         wait_time_matrix_list,
-        penalty_matrix_list,
+        board_penalty_matrix_list,
         in_vehicle_time_matrix_list,
-        temp_in_vehicle_times_attribute,
         congestion_matrix_list,
         fare_matrix_list,
     ):
-        for i, transit_class in enumerate(parameters["transit_class"]):
-            if walk_time_matrix_list[i] or wait_time_matrix_list or penalty_matrix_list[i]:
+        for i, transit_class in enumerate(parameters["transit_classes"]):
+            if walk_time_matrix_list[i] or wait_time_matrix_list or board_penalty_matrix_list[i]:
                 self._extract_times_matrices(
-                    i, scenario, transit_class, wait_time_matrix_list, penalty_matrix_list, walk_time_matrix_list
+                    i, scenario, transit_class, wait_time_matrix_list, board_penalty_matrix_list, walk_time_matrix_list
                 )
             if in_vehicle_time_matrix_list[i] is not None:
                 with _util.temp_extra_attribute_manager(scenario, "TRANSIT_SEGMENT") as temp_in_vehicle_times_attribute:
                     if parameters["calculate_congested_ivtt_flag"] == True:
-                        self._extract_in_vehicle_times(temp_in_vehicle_times_attribute, True, i)
+                        self._extract_in_vehicle_times(
+                            i,
+                            scenario,
+                            parameters,
+                            transit_class,
+                            temp_in_vehicle_times_attribute,
+                            demand_matrix_list,
+                            in_vehicle_time_matrix_list,
+                            True,
+                        )
                     else:
-                        self._extract_in_vehicle_times(temp_in_vehicle_times_attribute, False, i)
+                        self._extract_in_vehicle_times(
+                            i,
+                            scenario,
+                            parameters,
+                            transit_class,
+                            temp_in_vehicle_times_attribute,
+                            demand_matrix_list,
+                            in_vehicle_time_matrix_list,
+                            False,
+                        )
             if parameters["congested_assignment"] == True:
                 if congestion_matrix_list[i] is not None:
-                    self._extract_congestion_matrix(congestion_matrix_list[i], i)
+                    self._extract_congestion_matrix(
+                        i, scenario, transit_class, congestion_matrix_list[i], demand_matrix_list
+                    )
             if fare_matrix_list[i]:
-                self._extract_cost_matrix(i)
+                self._extract_cost_matrix(i, scenario, transit_class, demand_matrix_list, fare_matrix_list)
 
     def _extract_times_matrices(
-        self, i, scenario, transit_class, wait_time_matrix_list, penalty_matrix_list, walk_time_matrix_list
+        self, i, scenario, transit_class, wait_time_matrix_list, board_penalty_matrix_list, walk_time_matrix_list
     ):
         spec = {
             "by_mode_subset": {
                 "modes": ["*"],
                 "actual_aux_transit_times": wait_time_matrix_list[i],
-                "actual_total_boarding_times": penalty_matrix_list[i],
+                "actual_total_boarding_times": board_penalty_matrix_list[i],
             },
             "type": "EXTENDED_TRANSIT_MATRIX_RESULTS",
             "actual_total_waiting_times": walk_time_matrix_list[i],
         }
         self._tracker.run_tool(matrix_results_tool, spec, scenario=scenario, class_name=transit_class["name"])
 
-    def _extract_in_vehicle_times():
-        ...
+    def _extract_in_vehicle_times(
+        self,
+        i,
+        scenario,
+        parameters,
+        transit_class,
+        attribute,
+        demand_matrix_list,
+        in_vehicle_time_matrix_list,
+        congested,
+    ):
+        if congested == True or parameters["congested_assignment"] == False:
+            spec = {
+                "result": str(attribute.id),
+                "expression": "timtr",
+                "aggregation": None,
+                "selections": {"link": "all", "transit_line": "all"},
+                "type": "NETWORK_CALCULATION",
+            }
+            self._tracker.run_tool(network_calc_tool, spec, scenario=scenario)
+        else:
+            spec = {
+                "result": str(attribute.id),
+                "expression": "timtr-@ccost",
+                "aggregation": None,
+                "selections": {"link": "all", "transit_line": "all"},
+                "type": "NETWORK_CALCULATION",
+            }
+            self._tracker.run_tool(network_calc_tool, spec, scenario=scenario)
+        spec = {
+            "trip_components": {
+                "boarding": None,
+                "in_vehicle": str(attribute.id),
+                "aux_transit": None,
+                "alighting": None,
+            },
+            "sub_path_combination_operator": "+",
+            "sub_strategy_combination_operator": "average",
+            "selected_demand_and_transit_volumes": {
+                "sub_strategies_to_retain": "ALL",
+                "selection_threshold": {"lower": -999999, "upper": 999999},
+            },
+            "analyzed_demand": demand_matrix_list[i].id,
+            "constraint": None,
+            "results": {
+                "strategy_values": in_vehicle_time_matrix_list[i],
+                "selected_demand": None,
+                "transit_volumes": None,
+                "aux_transit_volumes": None,
+                "total_boardings": None,
+                "total_alightings": None,
+            },
+            "type": "EXTENDED_TRANSIT_STRATEGY_ANALYSIS",
+        }
+        self._tracker.run_tool(
+            strategy_analysis_tool,
+            spec,
+            scenario=scenario,
+            class_name=transit_class["name"],
+            num_processors=self.number_of_processors,
+        )
 
-    def _extract_congestion_matrix():
-        ...
+    def _extract_congestion_matrix(self, i, scenario, transit_class, congestion_matrix_id, demand_matrix_list):
+        spec = {
+            "trip_components": {"boarding": None, "in_vehicle": "@ccost", "aux_transit": None, "alighting": None},
+            "sub_path_combination_operator": "+",
+            "sub_strategy_combination_operator": "average",
+            "selected_demand_and_transit_volumes": {
+                "sub_strategies_to_retain": "ALL",
+                "selection_threshold": {"lower": -999999, "upper": 999999},
+            },
+            "analyzed_demand": demand_matrix_list[i].id,
+            "constraint": None,
+            "results": {
+                "strategy_values": congestion_matrix_id,
+                "selected_demand": None,
+                "transit_volumes": None,
+                "aux_transit_volumes": None,
+                "total_boardings": None,
+                "total_alightings": None,
+            },
+            "type": "EXTENDED_TRANSIT_STRATEGY_ANALYSIS",
+        }
+        self._tracker.run_tool(
+            strategy_analysis_tool,
+            spec,
+            scenario=scenario,
+            class_name=transit_class["name"],
+            num_processors=self.number_of_processors,
+        )
 
-    def _extract_cost_matrix():
-        ...
+    def _extract_cost_matrix(self, i, scenario, transit_class, demand_matrix_list, fare_matrix_list):
+        spec = {
+            "trip_components": {
+                "boarding": None,
+                "in_vehicle": transit_class["segment_fare_attribute"],
+                "aux_transit": transit_class["link_fare_attribute_id"],
+                "alighting": None,
+            },
+            "sub_path_combination_operator": "+",
+            "sub_strategy_combination_operator": "average",
+            "selected_demand_and_transit_volumes": {
+                "sub_strategies_to_retain": "ALL",
+                "selection_threshold": {"lower": -999999, "upper": 999999},
+            },
+            "analyzed_demand": demand_matrix_list[i].id,
+            "constraint": None,
+            "results": {
+                "strategy_values": fare_matrix_list[i],
+                "selected_demand": None,
+                "transit_volumes": None,
+                "aux_transit_volumes": None,
+                "total_boardings": None,
+                "total_alightings": None,
+            },
+            "type": "EXTENDED_TRANSIT_STRATEGY_ANALYSIS",
+        }
+        self._tracker.run_tool(
+            strategy_analysis_tool,
+            spec,
+            scenario=scenario,
+            class_name=transit_class["name"],
+            num_processors=self.number_of_processors,
+        )
 
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
