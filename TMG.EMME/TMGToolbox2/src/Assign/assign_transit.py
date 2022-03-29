@@ -248,12 +248,13 @@ class AssignTransit(_m.Tool()):
 
     # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_atts(self, scenario, parameters):
+        transit_classes = parameters["transit_classes"]
         atts = {
             "Scenario": "%s - %s" % (scenario, scenario.title),
             "Version": self.version,
-            "Wait Perception": [t_class["wait_time_perception"] for t_class in parameters["transit_classes"]],
-            "Fare Perception": [t_class["fare_perception"] for t_class in parameters["transit_classes"]],
-            "Boarding Perception": [t_class["board_penalty_perception"] for t_class in parameters["transit_classes"]],
+            "Wait Perception": [transit_class["wait_time_perception"] for transit_class in transit_classes],
+            "Fare Perception": [transit_class["fare_perception"] for transit_class in transit_classes],
+            "Boarding Perception": [transit_class["board_penalty_perception"] for transit_class in transit_classes],
             "Congestion": parameters["congested_assignment"],
             "self": self.__MODELLER_NAMESPACE__,
         }
@@ -1473,11 +1474,8 @@ class AssignTransit(_m.Tool()):
         link_fare_attribute_id,
     ):
 
-        if fare_perception == 0.0:
-            fare_perception = 0.0
-        else:
+        if fare_perception != 0.0:
             fare_perception = 60.0 / fare_perception
-
         base_spec = {
             "modes": [modes],
             "demand": demand_matrix_list[index].id,
