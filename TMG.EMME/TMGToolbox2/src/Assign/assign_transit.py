@@ -1051,7 +1051,7 @@ class AssignTransit(_m.Tool()):
     def _add_cong_term_to_func(self, scenario):
         used_functions = set()
         for segment in scenario.get_network().transit_segments():
-            if segment.transit_time_func == 0:
+            if segment.j_node is not None and segment.transit_time_func == 0:
                 raise Exception("Segment with id %s has a TTF of 0!" % segment.id)
             used_functions.add("ft" + str(segment.transit_time_func))
         return list(used_functions)
