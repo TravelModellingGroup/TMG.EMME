@@ -1052,7 +1052,7 @@ class AssignTransit(_m.Tool()):
         used_functions = set()
         for segment in scenario.get_network().transit_segments():
             if segment.transit_time_func == 0:
-                raise Exception("Segment with id %s have a TTF of 0!" % segment.id)
+                raise Exception("Segment with id %s has a TTF of 0!" % segment.id)
             used_functions.add("ft" + str(segment.transit_time_func))
         return list(used_functions)
 
