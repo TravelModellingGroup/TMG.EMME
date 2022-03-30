@@ -71,6 +71,7 @@ extended_assignment_tool = _MODELLER.tool("inro.emme.transit_assignment.extended
 matrix_calc_tool = _MODELLER.tool("inro.emme.matrix_calculation.matrix_calculator")
 matrix_results_tool = _MODELLER.tool("inro.emme.transit_assignment.extended.matrix_results")
 strategy_analysis_tool = _MODELLER.tool("inro.emme.transit_assignment.extended.strategy_based_analysis")
+net_edit = _MODELLER.module("tmg2.utilities.network_editing")
 null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
 
@@ -117,7 +118,6 @@ class AssignTransit(_m.Tool()):
 
     def run_xtmf(self, parameters):
         scenario = _util.load_scenario(parameters["scenario_number"])
-        # self._check_attributes_exist(scenario, parameters)
         try:
             self._execute(scenario, parameters)
         except Exception as e:
@@ -259,24 +259,6 @@ class AssignTransit(_m.Tool()):
             "self": self.__MODELLER_NAMESPACE__,
         }
         return atts
-
-    def _check_attributes_exist(self, scenario, parameters):
-        walk_att = "walk_time_perception_attribute"
-        seg_att = "segment_fare_attribute"
-        ehwy_att = "effective_headway_attribute"
-        hwy_att = "headway_fraction_attribute"
-        link_att = "link_fare_attribute_id"
-        for transit_class in parameters["transit_classes"]:
-            if scenario.extra_attribute(transit_class[walk_att]) is None:
-                raise Exception("Walk perception attribute %s does not exist" % walk_att)
-            if scenario.extra_attribute(transit_class[seg_att]) is None:
-                raise Exception("Segment fare attribute %s does not exist" % seg_att)
-            if scenario.extra_attribute(transit_class[link_att]) is None:
-                raise Exception("Link fare attribute %s does not exist" % link_att)
-        if scenario.extra_attribute(parameters[ehwy_att]) is None:
-            raise Exception("Effective headway attribute %s does not exist" % ehwy_att)
-        if scenario.extra_attribute(parameters[hwy_att]) is None:
-            raise Exception("Effective headway attribute %s does not exist" % hwy_att)
 
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     def _load_output_matrices(self, parameters, matrix_name=[]):
@@ -1349,7 +1331,6 @@ class AssignTransit(_m.Tool()):
             matrix_calc_spec = {
                 "type": "MATRIX_CALCULATION",
                 "expression": str(demand_matrix_list[i]) + " * (p.ne.q)",
-                # "expression": "mf10",
                 "aggregation": {"origins": "+", "destinations": "+"},
             }
             report = matrix_calc_tool(
@@ -1780,7 +1761,7 @@ class AssignTransit(_m.Tool()):
         if parameters["surface_transit_speed"] == True:
             data = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"])
             network.set_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"], data)
-            # net_edit.create_segment_alightings_attribute(network)
+            net_edit.create_segment_alightings_attribute(network)
             network = self._surface_transit_speed_update(scenario, parameters, network, 1)
             data = network.get_attribute_values("TRANSIT_SEGMENT", ["transit_boardings", "transit_alightings"])
             scenario.set_attribute_values("TRANSIT_SEGMENT", ["@boardings", "@alightings"], data)
