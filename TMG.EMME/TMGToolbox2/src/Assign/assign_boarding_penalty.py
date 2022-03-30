@@ -69,7 +69,7 @@ _m.InstanceType = object
 ##################################################################################
 
 
-class AssignVBoardingPenalties(_m.Tool()):
+class AssignBoardingPenalties(_m.Tool()):
 
     version = "1.2.0"
     tool_run_msg = ""

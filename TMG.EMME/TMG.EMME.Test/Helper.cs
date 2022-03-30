@@ -82,6 +82,32 @@ namespace TMG.Emme.Test
             }
         }
 
+        internal static void RunAssignBoardingPenalty(int[] scenarioNumbers)
+        {
+            Assert.IsTrue(
+               Helper.Modeller.Run(null, "tmg2.Assign.assign_boarding_penalty",
+               JSONParameterBuilder.BuildParameters(writer =>
+               {
+                   writer.WritePropertyName("scenario_numbers");
+                   writer.WriteStartArray();
+                   foreach (var s in scenarioNumbers)
+                   {
+                       writer.WriteNumberValue(s);
+                   }
+                   writer.WriteEndArray();
+                   writer.WritePropertyName("penalty_filter_string");
+                   writer.WriteStartArray();
+                   writer.WriteStartObject();
+                   writer.WriteString("label", "transit");
+                   writer.WriteString("filter", "mode=brqmsl");
+                   writer.WriteNumber("initial", 1.0);
+                   writer.WriteNumber("transfer", 1.0);
+                   writer.WriteNumber("ivttPerception", 1.0);
+                   writer.WriteEndObject();
+                   writer.WriteEndArray();
+               }), LogbookLevel.Standard));
+        }
+
         public static string ProjectFile { get; private set; }
         public static ModellerController Modeller { get; private set; }
 
@@ -154,13 +180,13 @@ namespace TMG.Emme.Test
                     writer.WriteNumber("fare_perception", 0.0f);
                     writer.WriteString("in_vehicle_time_matrix", "mf0");
                     writer.WriteString("impedance_matrix", "mf0");
-                    writer.WriteString("link_fare_attribute_id", "@lfare1");
+                    writer.WriteString("link_fare_attribute_id", "@lfare");
                     writer.WriteString("mode", "*");
                     writer.WriteString("perceived_travel_time_matrix", "mf0");
                     writer.WriteString("segment_fare_attribute", "@sfare1");
                     writer.WriteNumber("wait_time_perception", 0.0f);
                     writer.WriteString("wait_time_matrix", "mf0");
-                    writer.WriteString("walk_time_perception_attribute", "@walkp1");
+                    writer.WriteString("walk_time_perception_attribute", "@walkp");
                     writer.WriteString("walk_time_matrix", "mf0");
                     writer.WriteStartArray("walk_perceptions");
                     writer.WriteStartObject();

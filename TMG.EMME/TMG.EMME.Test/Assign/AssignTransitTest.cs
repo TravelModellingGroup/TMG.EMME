@@ -33,8 +33,9 @@ namespace TMG.Emme.Test.Assign
         public void AssignTransit()
         {
             Helper.ImportFrabitztownNetwork(2);
-            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
             Helper.RunAssignTraffic(2, "mf0");
+            Helper.RunAssignBoardingPenalty(new[] { 2 });
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
                 JSONParameterBuilder.BuildParameters(writer =>
@@ -44,11 +45,11 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("effective_headway_attribute", "@ehdw");
                     writer.WriteNumber("effective_headway_slope", 0.165f);
                     writer.WriteString("headway_fraction_attribute", "@frac");
-                    writer.WriteNumber("iterations", 100);
+                    writer.WriteNumber("iterations", 5);
                     writer.WriteNumber("norm_gap", 0.0f);
                     writer.WriteNumber("rel_gap", 0.0f);
                     writer.WriteNumber("scenario_number", 2);
-                    writer.WriteNumber("walk_speed", 0.0f);
+                    writer.WriteNumber("walk_speed", 4.0f);
                     writer.WriteStartArray("transit_classes");
                     writer.WriteStartObject();
                     writer.WriteString("name", "transit_class_1");
@@ -57,21 +58,21 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("congestion_matrix", "mf0");
                     writer.WriteString("demand_matrix", "mf10");
                     writer.WriteString("fare_matrix", "mf0");
-                    writer.WriteNumber("fare_perception", 0.0f);
+                    writer.WriteNumber("fare_perception", 20.0f);
                     writer.WriteString("in_vehicle_time_matrix", "mf0");
                     writer.WriteString("impedance_matrix", "mf0");
                     writer.WriteString("link_fare_attribute_id", "@lfare");
                     writer.WriteString("mode", "*");
                     writer.WriteString("perceived_travel_time_matrix", "mf0");
                     writer.WriteString("segment_fare_attribute", "@sfare");
-                    writer.WriteNumber("wait_time_perception", 0.0f);
+                    writer.WriteNumber("wait_time_perception", 2.3f);
                     writer.WriteString("wait_time_matrix", "mf0");
                     writer.WriteString("walk_time_perception_attribute", "@walkp");
                     writer.WriteString("walk_time_matrix", "mf0");
                     writer.WriteStartArray("walk_perceptions");
                     writer.WriteStartObject();
-                    writer.WriteString("filter", "i=10000,20000 or j=10000,20000 or i=97000,98000 or j=97000,98000");
-                    writer.WriteNumber("walk_perception_value", 1.8f);
+                    writer.WriteString("filter", "i=1,999999");
+                    writer.WriteNumber("walk_perception_value", 2.0f);
                     writer.WriteEndObject();
                     writer.WriteEndArray();
                     writer.WriteEndObject();
@@ -107,11 +108,11 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("congestion_exponent", "");
                     writer.WriteNumber("assignment_period", 3.0f);
                     writer.WriteString("name_string", "");
-                    writer.WriteString("congested_assignment", "");
+                    writer.WriteBoolean("congested_assignment", true);
                     writer.WriteString("csvfile", "");
                     writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
                     writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
-                    writer.WriteBoolean("surface_transit_speed", true);
+                    writer.WriteBoolean("surface_transit_speed", false);
                     writer.WriteBoolean("walk_all_way_flag", false);
                     writer.WriteString("xrow_ttf_range", "");
 
@@ -122,7 +123,7 @@ namespace TMG.Emme.Test.Assign
         public void AssignTransitModule()
         {
             Helper.ImportFrabitztownNetwork(2);
-            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
             Helper.RunAssignTraffic(2, "mf0");
 
             var walkPerceptions = new[]
@@ -205,19 +206,19 @@ namespace TMG.Emme.Test.Assign
                 EffectiveHeadwayAttributeId = Helper.CreateParameter("@ehdw"),
                 EffectiveHeadwaySlope = Helper.CreateParameter(0.165f),
                 HeadwayFractionAttributeId = Helper.CreateParameter("@frac"),
-                Iterations = Helper.CreateParameter(100),
+                Iterations = Helper.CreateParameter(5),
                 NormalizedGap = Helper.CreateParameter(0.0f),
                 RelativeGap = Helper.CreateParameter(0.0f),
                 ScenarioNumber = Helper.CreateParameter(2),
-                WalkSpeed = Helper.CreateParameter(0.0f),
+                WalkSpeed = Helper.CreateParameter(4.0f),
                 CongestionExponent = Helper.CreateParameter(""),
                 AssignmentPeriod = Helper.CreateParameter(3.0f),
                 NameString = Helper.CreateParameter(""),
-                CongestedAssignment = Helper.CreateParameter(""),
+                CongestedAssignment = Helper.CreateParameter(true),
                 CSVFile = Helper.CreateParameter(""),
                 OriginDistributionLogitScale = Helper.CreateParameter(0.0f),
                 WalkDistributionLogitScale = Helper.CreateParameter(0.0f),
-                SurfaceTransitSpeed = Helper.CreateParameter(true),
+                SurfaceTransitSpeed = Helper.CreateParameter(false),
                 WalkAllWayFlag = Helper.CreateParameter(false),
                 XRowTTFRange = Helper.CreateParameter(""),
                 TransitClasses = Helper.CreateParameters(transitClasses),
