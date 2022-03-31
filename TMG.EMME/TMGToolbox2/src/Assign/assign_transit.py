@@ -212,7 +212,7 @@ class AssignTransit(_m.Tool()):
                     )
                     self._tracker.complete_subtask()
                     self._assign_walk_perception(scenario, parameters)
-                    if parameters["node_logit_scale"] == True:
+                    if parameters["node_logit_scale"] != 1:
                         network = self._publish_efficient_connector_network(scenario)
                     else:
                         network = scenario.get_network()
@@ -926,20 +926,19 @@ class AssignTransit(_m.Tool()):
             "save_strategies": True,
             "type": "EXTENDED_TRANSIT_ASSIGNMENT",
         }
-        if use_logit_connector_choice:
-            base_spec["flow_distribution_at_origins"] = {
-                "choices_at_origins": {
-                    "choice_points": "ALL_ORIGINS",
-                    "choice_set": "ALL_CONNECTORS",
-                    "logit_parameters": {
-                        "scale": origin_distribution_logit_scale,
-                        "truncation": connector_logit_truncation,
-                    },
+        base_spec["flow_distribution_at_origins"] = {
+            "choices_at_origins": {
+                "choice_points": "ALL_ORIGINS",
+                "choice_set": "ALL_CONNECTORS",
+                "logit_parameters": {
+                    "scale": origin_distribution_logit_scale,
+                    "truncation": connector_logit_truncation,
                 },
-                "fixed_proportions_on_connectors": None,
-            }
+            },
+            "fixed_proportions_on_connectors": None,
+        }
         base_spec["performance_settings"] = {"number_of_processors": number_of_processors}
-        if node_logit_scale is not False:
+        if node_logit_scale != 1:
             base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                 "choices_at_regular_nodes": {
                     "choice_points": "ui1",
@@ -1178,18 +1177,17 @@ class AssignTransit(_m.Tool()):
                 }
             )
         for i in range(0, len(base_spec)):
-            if parameters["node_logit_scale"]:
-                base_spec[i]["flow_distribution_at_origins"] = {
-                    "choices_at_origins": {
-                        "choice_points": "ALL_ORIGINS",
-                        "choice_set": "ALL_CONNECTORS",
-                        "logit_parameters": {
-                            "scale": parameters["origin_distribution_logit_scale"],
-                            "truncation": connector_logit_truncation,
-                        },
+            base_spec[i]["flow_distribution_at_origins"] = {
+                "choices_at_origins": {
+                    "choice_points": "ALL_ORIGINS",
+                    "choice_set": "ALL_CONNECTORS",
+                    "logit_parameters": {
+                        "scale": parameters["origin_distribution_logit_scale"],
+                        "truncation": connector_logit_truncation,
                     },
-                    "fixed_proportions_on_connectors": None,
-                }
+                },
+                "fixed_proportions_on_connectors": None,
+            }
             base_spec[i]["performance_settings"] = {"number_of_processors": self.number_of_processors}
             if scenario.extra_attribute("@node_logit") != None:
                 base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
@@ -1489,20 +1487,19 @@ class AssignTransit(_m.Tool()):
             "save_strategies": True,
             "type": "EXTENDED_TRANSIT_ASSIGNMENT",
         }
-        if use_logit_connector_choice:
-            base_spec["flow_distribution_at_origins"] = {
-                "choices_at_origins": {
-                    "choice_points": "ALL_ORIGINS",
-                    "choice_set": "ALL_CONNECTORS",
-                    "logit_parameters": {
-                        "scale": origin_distribution_logit_scale,
-                        "truncation": connector_logit_truncation,
-                    },
+        base_spec["flow_distribution_at_origins"] = {
+            "choices_at_origins": {
+                "choice_points": "ALL_ORIGINS",
+                "choice_set": "ALL_CONNECTORS",
+                "logit_parameters": {
+                    "scale": origin_distribution_logit_scale,
+                    "truncation": connector_logit_truncation,
                 },
-                "fixed_proportions_on_connectors": None,
-            }
+            },
+            "fixed_proportions_on_connectors": None,
+        }
         base_spec["performance_settings"] = {"number_of_processors": number_of_processors}
-        if node_logit_scale is not False:
+        if node_logit_scale != 1:
             base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                 "choices_at_regular_nodes": {
                     "choice_points": "ui1",

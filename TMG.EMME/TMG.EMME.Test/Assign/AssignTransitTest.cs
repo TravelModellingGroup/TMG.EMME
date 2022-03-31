@@ -34,18 +34,18 @@ namespace TMG.Emme.Test.Assign
         {
             Helper.ImportFrabitztownNetwork(2);
             Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
-            Helper.RunAssignTraffic(2, "mf0");
+            Helper.RunAssignTraffic(2, "mf10");
             Helper.RunAssignBoardingPenalty(new[] { 2 });
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteBoolean("calculate_congested_ivtt_flag", true);
-                    writer.WriteBoolean("node_logit_scale", true);
+                    writer.WriteNumber("node_logit_scale", 1.0f);
                     writer.WriteString("effective_headway_attribute", "@ehdw");
                     writer.WriteNumber("effective_headway_slope", 0.165f);
                     writer.WriteString("headway_fraction_attribute", "@frac");
-                    writer.WriteNumber("iterations", 5);
+                    writer.WriteNumber("iterations", 100);
                     writer.WriteNumber("norm_gap", 0.0f);
                     writer.WriteNumber("rel_gap", 0.0f);
                     writer.WriteNumber("scenario_number", 2);
@@ -203,7 +203,7 @@ namespace TMG.Emme.Test.Assign
             var module = new Emme.Assign.AssignTransit()
             {
                 CalculateCongestedIvttFlag = Helper.CreateParameter(true),
-                NodeLogitScale = Helper.CreateParameter(true),
+                NodeLogitScale = Helper.CreateParameter(1.0f),
                 EffectiveHeadwayAttributeId = Helper.CreateParameter("@ehdw"),
                 EffectiveHeadwaySlope = Helper.CreateParameter(0.165f),
                 HeadwayFractionAttributeId = Helper.CreateParameter("@frac"),
