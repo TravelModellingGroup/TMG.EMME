@@ -112,7 +112,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("csvfile", "");
                     writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
                     writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
-                    writer.WriteBoolean("surface_transit_speed", false);
+                    writer.WriteBoolean("surface_transit_speed", true);
                     writer.WriteBoolean("walk_all_way_flag", false);
                     writer.WriteString("xrow_ttf_range", "");
 
@@ -125,6 +125,7 @@ namespace TMG.Emme.Test.Assign
             Helper.ImportFrabitztownNetwork(2);
             Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
             Helper.RunAssignTraffic(2, "mf0");
+            Helper.RunAssignBoardingPenalty(new[] { 2 });
 
             var walkPerceptions = new[]
             {
@@ -132,8 +133,8 @@ namespace TMG.Emme.Test.Assign
                 new Emme.Assign.AssignTransit.WalkPerceptions()
                 {
                     Name = "WalkPerceptions",
-                    Filter = Helper.CreateParameter("i=10000,20000 or j=10000,20000 or i=97000,98000 or j=97000,98000"),
-                    WalkPerceptionValue = Helper.CreateParameter(1.8f),
+                    Filter = Helper.CreateParameter("i=1,999999"),
+                    WalkPerceptionValue = Helper.CreateParameter(2.0f),
                 }
             };
 
@@ -147,14 +148,14 @@ namespace TMG.Emme.Test.Assign
                     CongestionMatrix = Helper.CreateParameter("mf0"),
                     DemandMatrix = Helper.CreateParameter("mf10"),
                     FareMatrix = Helper.CreateParameter("mf0"),
-                    FarePerception = Helper.CreateParameter(0.0f),
+                    FarePerception = Helper.CreateParameter(20.0f),
                     InVehicleTimeMatrix = Helper.CreateParameter("mf0"),
                     ImpedanceMatrix = Helper.CreateParameter("mf0"),
                     LinkFareAttributeId = Helper.CreateParameter("@lfare"),
                     Mode = Helper.CreateParameter("*"),
                     PerceivedTravelTimeMatrix = Helper.CreateParameter("mf0"),
                     SegmentFareAttributeId = Helper.CreateParameter("@sfare"),
-                    WaitTimePerception = Helper.CreateParameter(0.0f),
+                    WaitTimePerception = Helper.CreateParameter(3.254213f),
                     WaitTimeMatrix = Helper.CreateParameter("mf0"),
                     WalkTimePerceptionAttributeId = Helper.CreateParameter("@walkp"),
                     WalkTimeMatrix = Helper.CreateParameter("mf0"),
@@ -218,7 +219,7 @@ namespace TMG.Emme.Test.Assign
                 CSVFile = Helper.CreateParameter(""),
                 OriginDistributionLogitScale = Helper.CreateParameter(0.0f),
                 WalkDistributionLogitScale = Helper.CreateParameter(0.0f),
-                SurfaceTransitSpeed = Helper.CreateParameter(false),
+                SurfaceTransitSpeed = Helper.CreateParameter(true),
                 WalkAllWayFlag = Helper.CreateParameter(false),
                 XRowTTFRange = Helper.CreateParameter(""),
                 TransitClasses = Helper.CreateParameters(transitClasses),
