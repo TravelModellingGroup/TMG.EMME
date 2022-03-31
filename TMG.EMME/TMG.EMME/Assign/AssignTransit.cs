@@ -30,51 +30,51 @@ namespace TMG.Emme.Assign
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
     public class AssignTransit : BaseAction<ModellerController>
     {
-        [Parameter(Name = "Calculate Congested Ivtt Flag", Description = "",
+        [Parameter(Name = "Calculate Congested Ivtt Flag", Description = "Set to TRUE to extract the congestion matrix and add its weighted value to the in vehicle time (IVTT) matrix.",
             Index = 0)]
         public IFunction<bool> CalculateCongestedIvttFlag;
 
-        [Parameter(Name = "Node Logit Scale", Description = "",
+        [Parameter(Name = "Node Logit Scale", Description = "This is the scale parameter for the logit model at critical nodes. Set it to 1 to turn it off logit. Set it to 0 to ensure equal proportion on all connected auxiliary transfer links. Critical nodes are defined as the non centroid end of centroid connectors and nodes that have transit lines from more than one agency",
             Index = 1)]
         public IFunction<bool> NodeLogitScale;
 
-        [Parameter(Name = "Effective Headway Attribute Id", Description = "",
+        [Parameter(Name = "Effective Headway Attribute Id", Description = "The name of the attribute to use for the effective headway",
             Index = 2)]
         public IFunction<string> EffectiveHeadwayAttributeId;
 
-        [Parameter(Name = "Effective Headway Slope", Description = "",
+        [Parameter(Name = "Effective Headway Slope", Description = "Effective Headway Slope",
             Index = 3)]
         public IFunction<float> EffectiveHeadwaySlope;
 
-        [Parameter(Name = "Headway Fraction Attribute Id", Description = "",
+        [Parameter(Name = "Headway Fraction Attribute Id", Description = "The ID of the NODE extra attribute in which to store headway fraction. Should have a default value of 0.5.",
             Index = 4)]
         public IFunction<string> HeadwayFractionAttributeId;
 
-        [Parameter(Name = "Iterations", Description = "",
+        [Parameter(Name = "Iterations", Description = "Convergence criterion: The maximum number of iterations performed by the transit assignment.",
             Index = 5)]
         public IFunction<int> Iterations;
 
-        [Parameter(Name = "Norm Gap", Description = "",
+        [Parameter(Name = "Norm Gap", Description = "Convergence criterion.",
             Index = 6)]
         public IFunction<float> NormalizedGap;
 
-        [Parameter(Name = "Rel Gap", Description = "",
+        [Parameter(Name = "Rel Gap", Description = "Convergence criterion.",
             Index = 7)]
         public IFunction<float> RelativeGap;
 
-        [Parameter(Name = "Scenario Number", Description = "",
+        [Parameter(Name = "Scenario Number", Description = "Emme Scenario Number to execute against",
             Index = 8)]
         public IFunction<int> ScenarioNumber;
 
-        [Parameter(Name = "Walk Speed", Description = "",
+        [Parameter(Name = "Walk Speed", Description = "Walking speed in km/hr. Applied to all walk (aux. transit) modes in the Emme scenario.",
             Index = 9)]
         public IFunction<float> WalkSpeed;
 
-        [Parameter(Name = "Congestion Exponent", Description = "",
+        [Parameter(Name = "Congestion Exponent", Description = "The congestion exponent to apply to this TTF.",
             Index = 26)]
         public IFunction<string> CongestionExponent;
 
-        [Parameter(Name = "Assignment Period", Description = "",
+        [Parameter(Name = "Assignment Period", Description = "The congestion exponent to apply to this TTF.",
             Index = 27)]
         public IFunction<float> AssignmentPeriod;
 
@@ -102,7 +102,7 @@ namespace TMG.Emme.Assign
             Index = 33)]
         public IFunction<bool> SurfaceTransitSpeed;
 
-        [Parameter(Name = "Walk All Way Flag", Description = "",
+        [Parameter(Name = "Walk All Way Flag", Description = "Set to TRUE to allow walk all way in the assignment",
             Index = 34)]
         public IFunction<bool> WalkAllWayFlag;
 
@@ -261,31 +261,31 @@ namespace TMG.Emme.Assign
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
         public class SurfaceTransitSpeedModel : XTMF2.IModule
         {
-            [Parameter(Name = "Alighting Duration", Description = "",
+            [Parameter(Name = "Alighting Duration", Description = "The alighting duration in seconds per passenger to apply.",
                 Index = 0)]
             public IFunction<float> AlightingDuration;
 
-            [Parameter(Name = "Boarding Duration", Description = "",
+            [Parameter(Name = "Boarding Duration", Description = "The boarding duration in seconds per passenger to apply.",
                 Index = 1)]
             public IFunction<float> BoardingDuration;
 
-            [Parameter(Name = "Default Duration", Description = "",
+            [Parameter(Name = "Default Duration", Description = "The default duration in seconds per stop to apply.",
                 Index = 2)]
             public IFunction<float> DefaultDuration;
 
-            [Parameter(Name = "Global EROW Speed", Description = "",
+            [Parameter(Name = "Global EROW Speed", Description = "The speed to use in segments that have Exclusive Right of Way for transit and do not have @erow_speed defined. Note that the speed includes accelaration and decelaration time.",
                 Index = 3)]
             public IFunction<float> GlobalEROWSpeed;
 
-            [Parameter(Name = "Line Filter Expression", Description = "",
+            [Parameter(Name = "Line Filter Expression", Description = "he line filter that will be used to determing which lines will get surface transit speed applied to them. To select all lines, leave this and the line filter blank",
                 Index = 4)]
             public IFunction<string> LineFilterExpression;
 
-            [Parameter(Name = "Mode Filter Expression", Description = "",
+            [Parameter(Name = "Mode Filter Expression", Description = "The modes that will get surface transit speed updating applied to them. To select all lines, leave this and the line filter blank",
                 Index = 5)]
             public IFunction<string> ModeFilterExpression;
 
-            [Parameter(Name = "Transit Auto Correlation", Description = "",
+            [Parameter(Name = "Transit Auto Correlation", Description = "The multiplier to auto time to use to find transit time.",
                 Index = 6)]
             public IFunction<float> TransitAutoCorrelation;
             public string Name { get; set; }
@@ -313,15 +313,15 @@ namespace TMG.Emme.Assign
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
         public class TTFDefinition : XTMF2.IModule
         {
-            [Parameter(Name = "Congestion Exponent", Description = "",
+            [Parameter(Name = "Congestion Exponent", Description = "The congestion exponent to apply to this TTF.",
                 Index = 0)]
             public IFunction<float> CongestionExponent;
 
-            [Parameter(Name = "Congestion Perception", Description = "",
+            [Parameter(Name = "Congestion Perception", Description = "The congestion perception to apply to this TTF.",
                 Index = 1)]
             public IFunction<int> CongestionPerception;
 
-            [Parameter(Name = "TTF", Description = "",
+            [Parameter(Name = "TTF", Description = "The TTF number to assign to. 1 would mean TTF1.",
                 Index = 2)]
             public IFunction<int> TTF;
             public string Name { get; set; }
