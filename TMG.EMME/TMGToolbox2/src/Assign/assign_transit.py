@@ -403,18 +403,20 @@ class AssignTransit(_m.Tool()):
             baton = partial_network.get_attribute_values("MODE", ["speed"])
             scenario.set_attribute_values("MODE", ["speed"], baton)
 
-    def _create_walk_time_perception_attribute_list(self, scenario, parameters, temp_matrix_list):
+    def _create_walk_time_perception_attribute_list(self, scenario, parameters, temp_attribute_list):
         walk_time_perception_attribute_list = []
         for transit_class in parameters["transit_classes"]:
-            walk_time_perception_attribute = _util.create_temp_attribute(
-                scenario,
-                str(transit_class["walk_time_perception_attribute"]),
-                "LINK",
-                default_value=1.0,
-                assignment_type="transit",
-            )
+            walk_time_perception_attribute = scenario.extra_attribute(transit_class["walk_time_perception_attribute"])
+            if walk_time_perception_attribute is None:
+                walk_time_perception_attribute = _util.create_temp_attribute(
+                    scenario,
+                    str(transit_class["walk_time_perception_attribute"]),
+                    "LINK",
+                    default_value=1.0,
+                    assignment_type="transit",
+                )
+                temp_attribute_list.append(walk_time_perception_attribute)
             walk_time_perception_attribute_list.append(walk_time_perception_attribute)
-            temp_matrix_list.append(walk_time_perception_attribute)
         return walk_time_perception_attribute_list
 
     def _create_headway_attribute_list(
@@ -533,44 +535,47 @@ class AssignTransit(_m.Tool()):
         self._set_up_line_attributes(scenario, parameters, stsu_att)
         ttfs_xrow = self.process_ttfs_xrow(parameters)
         network = scenario.get_network()
+
         for line in network.transit_lines():
-            for stsu in parameters["surface_transit_speeds"]:
-                if line[stsu_att.id] <= 0.0:
+            # for stsu in parameters["surface_transit_speeds"]:
+            index = line[stsu_att.id]
+            if index <= 0.0:
+                continue
+            stsu = parameters["surface_transit_speeds"][int(index) - 1]
+            default_duration = stsu["default_duration"]
+            correlation = stsu["transit_auto_correlation"]
+            erow_speed_global = stsu["global_erow_speed"]
+            segments = line.segments()
+            number_of_segments = segments.__length_hint__()
+            for segment in segments:
+                if segment.allow_alightings == True and segment.allow_boardings == True:
+                    segment.dwell_time = 0.01
+                else:
+                    segment.dwell_time = 0.0
+                if segment.j_node is None:
                     continue
-                default_duration = stsu["default_duration"]
-                correlation = stsu["transit_auto_correlation"]
-                erow_speed_global = stsu["global_erow_speed"]
-                segments = line.segments()
-                number_of_segments = segments.__length_hint__()
-                for segment in segments:
-                    if segment.allow_alightings == True and segment.allow_boardings == True:
-                        segment.dwell_time = 0.01
-                    else:
-                        segment.dwell_time = 0.0
-                    if segment.j_node is None:
-                        continue
-                    segment_number = segment.number
-                    segment.transit_time_func = stsu_ttf_map[segment.transit_time_func]
-                    time = segment.link["auto_time"]
-                    if time > 0.0:
-                        if segment.transit_time_func in ttfs_xrow:
-                            if erow_defined == True and segment["@erow_speed"] > 0.0:
-                                segment.data1 = segment["@erow_speed"]
-                            else:
-                                segment.data1 = erow_speed_global
-                        else:
-                            segment.data1 = (segment.link.length * 60.0) / (time * correlation)
-                    if time <= 0.0:
+                segment_number = segment.number
+                segment.transit_time_func = stsu_ttf_map[segment.transit_time_func]
+                time = segment.link["auto_time"]
+                if time > 0.0:
+                    if segment.transit_time_func in ttfs_xrow:
                         if erow_defined == True and segment["@erow_speed"] > 0.0:
                             segment.data1 = segment["@erow_speed"]
                         else:
-                            if segment_number <= 1 or segment_number >= (number_of_segments - 1):
-                                segment.data1 = 20
-                            else:
-                                segment.data1 = erow_speed_global
-                    if segment_number == 0:
-                        continue
-                    segment.dwell_time = (segment["@tstop"] * default_duration) / 60
+                            segment.data1 = erow_speed_global
+                    else:
+                        segment.data1 = (segment.link.length * 60.0) / (time * correlation)
+                if time <= 0.0:
+                    if erow_defined == True and segment["@erow_speed"] > 0.0:
+                        segment.data1 = segment["@erow_speed"]
+                    else:
+                        if segment_number <= 1 or segment_number >= (number_of_segments - 1):
+                            segment.data1 = 20
+                        else:
+                            segment.data1 = erow_speed_global
+                if segment_number == 0:
+                    continue
+                segment.dwell_time = (segment["@tstop"] * default_duration) / 60
         data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"])
         scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"], data)
         ttfs_changed.append(True)
@@ -606,7 +611,6 @@ class AssignTransit(_m.Tool()):
         return erow_defined
 
     def _set_up_line_attributes(self, scenario, parameters, stsu_att):
-        stsu = []
         for i, sts in enumerate(parameters["surface_transit_speeds"]):
             spec = {
                 "type": "NETWORK_CALCULATION",
@@ -630,7 +634,6 @@ class AssignTransit(_m.Tool()):
                     % (i + 1)
                 )
             report = network_calc_tool(spec, scenario=scenario)
-        return stsu
 
     def _run_transit_assignment(
         self,
@@ -715,7 +718,7 @@ class AssignTransit(_m.Tool()):
                 walk_time_perception_attribute_list,
             )
         else:
-            for itr in range(0, parameters["iterations"]):
+            for itr in range(0, parameters["iterations"] + 1):
                 self._run_spec_uncongested(
                     scenario,
                     parameters,
@@ -953,9 +956,7 @@ class AssignTransit(_m.Tool()):
             base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                 "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
             }
-        # mode_list = []
         partial_network = scenario.get_partial_network(["MODE"], True)
-        # mode_list = partial_network.modes() if modes == "*" else modes
         base_spec["journey_levels"] = [
             {
                 "description": "Walking",
@@ -1005,7 +1006,7 @@ class AssignTransit(_m.Tool()):
                         )
                     else:
                         continue
-                    # prevVolume is used above for the previous segments volume, the first segment is always ignored.
+                    # prev_volume is used above for the previous segments volume, the first segment is always ignored.
                     prev_volume = segment.transit_volume
 
                     boarding = segment.transit_boardings / number_of_trips / number_of_door_pairs
@@ -1201,9 +1202,7 @@ class AssignTransit(_m.Tool()):
                 base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                     "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
                 }
-            # mode_list = []
             partial_network = scenario.get_partial_network(["MODE"], True)
-            # mode_list = partial_network.modes() if modes[i] == "*" else modes[i]
             base_spec[i]["journey_levels"] = [
                 {
                     "description": "Walking",

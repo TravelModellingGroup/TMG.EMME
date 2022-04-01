@@ -40,12 +40,12 @@ namespace TMG.Emme.Test.Assign
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
-                    writer.WriteBoolean("calculate_congested_ivtt_flag", true);
+                    writer.WriteBoolean("calculate_congested_ivtt_flag", false);
                     writer.WriteNumber("node_logit_scale", 1.0f);
                     writer.WriteString("effective_headway_attribute", "@ehdw");
                     writer.WriteNumber("effective_headway_slope", 0.165f);
                     writer.WriteString("headway_fraction_attribute", "@frac");
-                    writer.WriteNumber("iterations", 100);
+                    writer.WriteNumber("iterations", 0);
                     writer.WriteNumber("norm_gap", 0.0f);
                     writer.WriteNumber("rel_gap", 0.0f);
                     writer.WriteNumber("scenario_number", 2);
@@ -108,7 +108,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("congestion_exponent", "");
                     writer.WriteNumber("assignment_period", 3.0f);
                     writer.WriteString("name_string", "");
-                    writer.WriteBoolean("congested_assignment", true);
+                    writer.WriteBoolean("congested_assignment", false);
                     writer.WriteString("csvfile", "");
                     writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
                     writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
