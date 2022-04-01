@@ -848,7 +848,7 @@ class AssignTransit(_m.Tool()):
                 headway_fraction_attribute_list[i],
                 impedance_matrix_list[i],
                 transit_class["link_fare_attribute_id"],
-                [transit_class["mode"]],
+                transit_class["mode"],
                 parameters["node_logit_scale"],
                 self.number_of_processors,
                 parameters["origin_distribution_logit_scale"],
@@ -891,7 +891,7 @@ class AssignTransit(_m.Tool()):
         if fare_perception != 0.0:
             fare_perception = 60.0 / fare_perception
         base_spec = {
-            "modes": modes,
+            "modes": [modes],
             "demand": demand_matrix.id,
             "waiting_time": {
                 "headway_fraction": headway_fraction.id,
@@ -953,15 +953,14 @@ class AssignTransit(_m.Tool()):
             base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                 "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
             }
-
-        mode_list = []
+        # mode_list = []
         partial_network = scenario.get_partial_network(["MODE"], True)
-        mode_list = partial_network.modes() if modes == "*" else modes
+        # mode_list = partial_network.modes() if modes == "*" else modes
         base_spec["journey_levels"] = [
             {
                 "description": "Walking",
                 "destinations_reachable": walk_all_way_flag,
-                "transition_rules": self._create_journey_level_modes(mode_list, 0),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network),
                 "boarding_time": None,
                 "boarding_cost": None,
                 "waiting_time": None,
@@ -969,7 +968,7 @@ class AssignTransit(_m.Tool()):
             {
                 "description": "Transit",
                 "destinations_reachable": True,
-                "transition_rules": self._create_journey_level_modes(mode_list, 1),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network),
                 "boarding_time": None,
                 "boarding_cost": None,
                 "waiting_time": None,
@@ -1138,15 +1137,16 @@ class AssignTransit(_m.Tool()):
         consider_total_impedance=False,
     ):
         base_spec = []
-        modes = []
+        modes_list = []
         for i, transit_class in enumerate(parameters["transit_classes"]):
+            modes = transit_class["mode"]
             fare_perception = transit_class["fare_perception"]
-            modes.append(transit_class["mode"])
+            modes_list.append(modes)
             if fare_perception != 0.0:
                 fare_perception = 60.0 / fare_perception
             base_spec.append(
                 {
-                    "modes": [transit_class["mode"]],
+                    "modes": [modes],
                     "demand": demand_matrix_list[i].id,
                     "waiting_time": {
                         "headway_fraction": headway_fraction_attribute_list[i].id,
@@ -1201,14 +1201,14 @@ class AssignTransit(_m.Tool()):
                 base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                     "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
                 }
-            mode_list = []
+            # mode_list = []
             partial_network = scenario.get_partial_network(["MODE"], True)
-            mode_list = partial_network.modes() if modes[i] == "*" else modes[i]
+            # mode_list = partial_network.modes() if modes[i] == "*" else modes[i]
             base_spec[i]["journey_levels"] = [
                 {
                     "description": "Walking",
                     "destinations_reachable": parameters["walk_all_way_flag"],
-                    "transition_rules": self._create_journey_level_modes(mode_list, 0),
+                    "transition_rules": self._create_journey_level_modes(modes_list[i], partial_network),
                     "boarding_time": None,
                     "boarding_cost": None,
                     "waiting_time": None,
@@ -1216,7 +1216,7 @@ class AssignTransit(_m.Tool()):
                 {
                     "description": "Transit",
                     "destinations_reachable": True,
-                    "transition_rules": self._create_journey_level_modes(mode_list, 1),
+                    "transition_rules": self._create_journey_level_modes(modes_list[i], partial_network),
                     "boarding_time": None,
                     "boarding_cost": None,
                     "waiting_time": None,
@@ -1514,15 +1514,15 @@ class AssignTransit(_m.Tool()):
             base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                 "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
             }
-        mode_list = []
+        # mode_list = []
         partial_network = scenario.get_partial_network(["MODE"], True)
-        mode_list = partial_network.modes() if modes == "*" else modes
+        # mode_list = partial_network.modes() if modes == "*" else modes
         # if all modes are selected for class, get all transit modes for journey levels
         base_spec["journey_levels"] = [
             {
                 "description": "Walking",
                 "destinations_reachable": walk_all_way_flag,
-                "transition_rules": self._create_journey_level_modes(mode_list, 0),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network),
                 "boarding_time": {
                     "at_nodes": None,
                     "on_lines": {"penalty": "ut3", "perception_factor": board_penalty_perception},
@@ -1535,7 +1535,7 @@ class AssignTransit(_m.Tool()):
             {
                 "description": "Transit",
                 "destinations_reachable": True,
-                "transition_rules": self._create_journey_level_modes(mode_list, 1),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network),
                 "boarding_time": {
                     "at_nodes": None,
                     "on_lines": {"penalty": "ut2", "perception_factor": board_penalty_perception},
@@ -1671,15 +1671,13 @@ class AssignTransit(_m.Tool()):
                 value += t0 * cost_difference * volume_difference
         return value / assigned_total_demand
 
-    def _create_journey_level_modes(self, mode_list, level):
-        ret = []
-        for mode in mode_list:
-            if mode.type == "TRANSIT":
-                ret.append({"mode": mode.id, "next_journey_level": 1})
-            elif mode.type == "AUX_TRANSIT":
-                next_level = 1 if level >= 1 else 0
-                ret.append({"mode": mode.id, "next_journey_level": next_level})
-        return ret
+    def _create_journey_level_modes(self, modes, partial_network):
+        mode_list = []
+        if modes == "*":
+            for mode in partial_network.modes():
+                if mode.type == "TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": 1})
+        return mode_list
 
     def _update_volumes(self, network, lambdaK):
         alpha = 1 - lambdaK
