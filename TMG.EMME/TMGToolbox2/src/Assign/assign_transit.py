@@ -979,13 +979,14 @@ class AssignTransit(_m.Tool()):
     def _surface_transit_speed_update(self, scenario, parameters, network, lambdaK, stsu_att):
         if "transit_alightings" not in network.attributes("TRANSIT_SEGMENT"):
             network.create_attribute("TRANSIT_SEGMENT", "transit_alightings", 0.0)
+        number_of_trips = parameters["assignment_period"] * 60.0 / headway
         for line in network.transit_lines():
             prev_volume = 0.0
-            headway = line.headway
-            number_of_trips = parameters["assignment_period"] * 60.0 / headway
             index = line[stsu_att.id]
             if index <= 0.0:
                 continue
+            headway = line.headway
+
             stsu = parameters["surface_transit_speeds"][int(index) - 1]
             boarding_duration = stsu["boarding_duration"]
             alighting_duration = stsu["alighting_duration"]
@@ -999,7 +1000,7 @@ class AssignTransit(_m.Tool()):
             except:
                 number_of_door_pairs = 1.0
 
-            for segment in line.segments(include_hidden=True):
+            for segment in line.segments(include_hidden=False):
                 segment_number = segment.number
                 if segment_number > 0 and segment.j_node is not None:
                     segment.transit_alightings = max(
@@ -1022,9 +1023,7 @@ class AssignTransit(_m.Tool()):
                     + (segment["@tstop"] * default_duration)
                 )
                 # in minutes
-                segment_dwell_time /= 60
-                if segment_dwell_time >= 99.99:
-                    segment_dwell_time = 99.98
+                segment_dwell_time = min(segment_dwell_time / 60, 99.98)
                 alpha = 1 - lambdaK
                 segment.dwell_time = old_dwell * alpha + segment_dwell_time * lambdaK
         data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"])
