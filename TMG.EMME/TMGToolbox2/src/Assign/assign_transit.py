@@ -961,7 +961,7 @@ class AssignTransit(_m.Tool()):
             {
                 "description": "Walking",
                 "destinations_reachable": walk_all_way_flag,
-                "transition_rules": self._create_journey_level_modes(modes, partial_network),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 0),
                 "boarding_time": None,
                 "boarding_cost": None,
                 "waiting_time": None,
@@ -969,7 +969,7 @@ class AssignTransit(_m.Tool()):
             {
                 "description": "Transit",
                 "destinations_reachable": True,
-                "transition_rules": self._create_journey_level_modes(modes, partial_network),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 1),
                 "boarding_time": None,
                 "boarding_cost": None,
                 "waiting_time": None,
@@ -1207,7 +1207,7 @@ class AssignTransit(_m.Tool()):
                 {
                     "description": "Walking",
                     "destinations_reachable": parameters["walk_all_way_flag"],
-                    "transition_rules": self._create_journey_level_modes(modes_list[i], partial_network),
+                    "transition_rules": self._create_journey_level_modes(modes_list[i], partial_network, 0),
                     "boarding_time": None,
                     "boarding_cost": None,
                     "waiting_time": None,
@@ -1215,7 +1215,7 @@ class AssignTransit(_m.Tool()):
                 {
                     "description": "Transit",
                     "destinations_reachable": True,
-                    "transition_rules": self._create_journey_level_modes(modes_list[i], partial_network),
+                    "transition_rules": self._create_journey_level_modes(modes_list[i], partial_network, 1),
                     "boarding_time": None,
                     "boarding_cost": None,
                     "waiting_time": None,
@@ -1520,7 +1520,7 @@ class AssignTransit(_m.Tool()):
             {
                 "description": "Walking",
                 "destinations_reachable": walk_all_way_flag,
-                "transition_rules": self._create_journey_level_modes(modes, partial_network),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 0),
                 "boarding_time": {
                     "at_nodes": None,
                     "on_lines": {"penalty": "ut3", "perception_factor": board_penalty_perception},
@@ -1533,7 +1533,7 @@ class AssignTransit(_m.Tool()):
             {
                 "description": "Transit",
                 "destinations_reachable": True,
-                "transition_rules": self._create_journey_level_modes(modes, partial_network),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 1),
                 "boarding_time": {
                     "at_nodes": None,
                     "on_lines": {"penalty": "ut2", "perception_factor": board_penalty_perception},
