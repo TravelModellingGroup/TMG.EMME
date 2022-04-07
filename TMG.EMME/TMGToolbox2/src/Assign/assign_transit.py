@@ -533,7 +533,7 @@ class AssignTransit(_m.Tool()):
     def _set_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed):
         erow_defined = self._check_attributes_and_get_erow(scenario)
         self._set_up_line_attributes(scenario, parameters, stsu_att)
-        ttfs_xrow = self.process_ttfs_xrow(parameters)
+        ttfs_xrow = self._process_ttfs_xrow(parameters)
         network = scenario.get_network()
 
         for line in network.transit_lines():
@@ -580,7 +580,7 @@ class AssignTransit(_m.Tool()):
         scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"], data)
         ttfs_changed.append(True)
 
-    def process_ttfs_xrow(self, parameters):
+    def _process_ttfs_xrow(self, parameters):
         ttfs_xrow = set()
         parameter_xrow_range = parameters["xrow_ttf_range"].split()
         for ttf_range in parameter_xrow_range:
@@ -718,7 +718,7 @@ class AssignTransit(_m.Tool()):
                 walk_time_perception_attribute_list,
             )
         else:
-            for itr in range(0, parameters["iterations"] + 1):
+            for itr in range(0, parameters["iterations"]):
                 self._run_spec_uncongested(
                     scenario,
                     parameters,
@@ -1296,7 +1296,6 @@ class AssignTransit(_m.Tool()):
             "custom_status": True,
             "per_strat_attributes": {"TRANSIT_SEGMENT": ["transit_time"]},
         }
-        # mode_int_ids = scenario.get_attribute_values("MODE", [])[0]
 
         def format_modes(modes):
             if "*" in modes:
@@ -1513,9 +1512,9 @@ class AssignTransit(_m.Tool()):
             base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                 "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
             }
-        # mode_list = []
+
         partial_network = scenario.get_partial_network(["MODE"], True)
-        # mode_list = partial_network.modes() if modes == "*" else modes
+
         # if all modes are selected for class, get all transit modes for journey levels
         base_spec["journey_levels"] = [
             {
@@ -1670,12 +1669,21 @@ class AssignTransit(_m.Tool()):
                 value += t0 * cost_difference * volume_difference
         return value / assigned_total_demand
 
-    def _create_journey_level_modes(self, modes, partial_network):
+    def _create_journey_level_modes(self, modes, partial_network, level):
         mode_list = []
         if modes == "*":
             for mode in partial_network.modes():
                 if mode.type == "TRANSIT":
                     mode_list.append({"mode": mode.id, "next_journey_level": 1})
+                elif mode.type == "AUX_TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": level})
+        else:
+            for modechar in modes:
+                mode = partial_network.mode(modechar)
+                if mode.type == "TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": 1})
+                elif mode.type == "AUX_TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": level})
         return mode_list
 
     def _update_volumes(self, network, lambdaK):
@@ -1953,6 +1961,7 @@ class AssignTransit(_m.Tool()):
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
         orig_ttf_values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"])
+        ttfs_xrow = self._process_ttfs_xrow(parameters)
         ttfs_changed = []
         stsu_ttf_map = {}
         created = {}
@@ -1962,8 +1971,8 @@ class AssignTransit(_m.Tool()):
                 if scenario.emmebank.function(func) is None:
                     scenario.emmebank.create_function(func, "(length*60/us1)")
                     stsu_ttf_map[int(ttf["ttf"])] = int(func[2:])
-                    if str(ttf["ttf"]) in parameters["xrow_ttf_range"]:
-                        parameters["xrow_ttf_range"].add(int(func[2:]))
+                    if str(ttf["ttf"]) in ttfs_xrow:
+                        ttfs_xrow.add(int(func[2:]))
                     created[func] = True
                     break
         try:
