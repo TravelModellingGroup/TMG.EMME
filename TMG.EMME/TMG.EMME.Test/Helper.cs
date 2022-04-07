@@ -99,7 +99,7 @@ namespace TMG.Emme.Test
                    writer.WriteStartArray();
                    writer.WriteStartObject();
                    writer.WriteString("label", "transit");
-                   writer.WriteString("filter", "mode=brqmsl");
+                   writer.WriteString("filter", "brqmsl");
                    writer.WriteNumber("initial", 1.0);
                    writer.WriteNumber("transfer", 1.0);
                    writer.WriteNumber("ivttPerception", 1.0);

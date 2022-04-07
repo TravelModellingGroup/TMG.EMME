@@ -44,10 +44,10 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("node_logit_scale", 1.0f);
                     writer.WriteString("effective_headway_attribute", "@ehdw");
                     writer.WriteNumber("effective_headway_slope", 0.165f);
-                    writer.WriteString("headway_fraction_attribute", "@frac");
-                    writer.WriteNumber("iterations", 0);
-                    writer.WriteNumber("norm_gap", 0.0f);
-                    writer.WriteNumber("rel_gap", 0.0f);
+                    writer.WriteString("headway_fraction_attribute", "@hfrac");
+                    writer.WriteNumber("iterations", 100);
+                    writer.WriteNumber("norm_gap", 2.0f);
+                    writer.WriteNumber("rel_gap", 2.0f);
                     writer.WriteNumber("scenario_number", 2);
                     writer.WriteNumber("walk_speed", 4.0f);
                     writer.WriteStartArray("transit_classes");
@@ -65,7 +65,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("mode", "*");
                     writer.WriteString("perceived_travel_time_matrix", "mf0");
                     writer.WriteString("segment_fare_attribute", "@sfare");
-                    writer.WriteNumber("wait_time_perception", 2.3f);
+                    writer.WriteNumber("wait_time_perception", 2.299f);
                     writer.WriteString("wait_time_matrix", "mf0");
                     writer.WriteString("walk_time_perception_attribute", "@walkp");
                     writer.WriteString("walk_time_matrix", "mf0");
@@ -114,7 +114,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
                     writer.WriteBoolean("surface_transit_speed", true);
                     writer.WriteBoolean("walk_all_way_flag", false);
-                    writer.WriteString("xrow_ttf_range", "");
+                    writer.WriteString("xrow_ttf_range", "2");
 
                 }), LogbookLevel.Standard));
 
