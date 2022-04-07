@@ -537,7 +537,6 @@ class AssignTransit(_m.Tool()):
         network = scenario.get_network()
 
         for line in network.transit_lines():
-            # for stsu in parameters["surface_transit_speeds"]:
             index = line[stsu_att.id]
             if index <= 0.0:
                 continue
@@ -730,7 +729,7 @@ class AssignTransit(_m.Tool()):
                     walk_time_perception_attribute_list,
                 )
                 network = scenario.get_network()
-                network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+                network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
 
     def _run_congested_assignment(
         self,
@@ -770,7 +769,7 @@ class AssignTransit(_m.Tool()):
                     assigned_total_demand = sum(assigned_class_demand)
                     network = self._prepare_network(scenario, parameters, stsu_att)
                     if parameters["surface_transit_speed"] == True:
-                        network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+                        network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
                     average_min_trip_impedance = self._compute_min_trip_impedance(
                         scenario, demand_matrix_list, assigned_class_demand, impedance_matrix_list
                     )
@@ -806,7 +805,7 @@ class AssignTransit(_m.Tool()):
                     lambdaK = find_step_size[0]
                     alphas = find_step_size[1]
                     if parameters["surface_transit_speed"] == True:
-                        network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+                        network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
                     self._update_volumes(network, lambdaK)
                     (average_impedance, cngap, crgap, norm_gap_difference, net_cost,) = self._compute_gaps(
                         parameters,
@@ -977,54 +976,57 @@ class AssignTransit(_m.Tool()):
         ]
         return base_spec
 
-    def _surface_transit_speed_update(self, scenario, parameters, network, lambdaK):
+    def _surface_transit_speed_update(self, scenario, parameters, network, lambdaK, stsu_att):
         if "transit_alightings" not in network.attributes("TRANSIT_SEGMENT"):
             network.create_attribute("TRANSIT_SEGMENT", "transit_alightings", 0.0)
         for line in network.transit_lines():
             prev_volume = 0.0
             headway = line.headway
             number_of_trips = parameters["assignment_period"] * 60.0 / headway
-            for stsu in parameters["surface_transit_speeds"]:
-                boarding_duration = stsu["boarding_duration"]
-                alighting_duration = stsu["alighting_duration"]
-                default_duration = stsu["default_duration"]
-                try:
-                    doors = segment.line["@doors"]
-                    if doors == 0.0:
-                        number_of_door_pairs = 1.0
-                    else:
-                        number_of_door_pairs = doors / 2.0
-                except:
+            index = line[stsu_att.id]
+            if index <= 0.0:
+                continue
+            stsu = parameters["surface_transit_speeds"][int(index) - 1]
+            boarding_duration = stsu["boarding_duration"]
+            alighting_duration = stsu["alighting_duration"]
+            default_duration = stsu["default_duration"]
+            try:
+                doors = segment.line["@doors"]
+                if doors == 0.0:
                     number_of_door_pairs = 1.0
+                else:
+                    number_of_door_pairs = doors / 2.0
+            except:
+                number_of_door_pairs = 1.0
 
-                for segment in line.segments(include_hidden=True):
-                    segment_number = segment.number
-                    if segment_number > 0 and segment.j_node is not None:
-                        segment.transit_alightings = max(
-                            prev_volume + segment.transit_boardings - segment.transit_volume,
-                            0.0,
-                        )
-                    else:
-                        continue
-                    # prev_volume is used above for the previous segments volume, the first segment is always ignored.
-                    prev_volume = segment.transit_volume
-
-                    boarding = segment.transit_boardings / number_of_trips / number_of_door_pairs
-                    alighting = segment.transit_alightings / number_of_trips / number_of_door_pairs
-
-                    old_dwell = segment.dwell_time
-                    # in seconds
-                    segment_dwell_time = (
-                        (boarding_duration * boarding)
-                        + (alighting_duration * alighting)
-                        + (segment["@tstop"] * default_duration)
+            for segment in line.segments(include_hidden=True):
+                segment_number = segment.number
+                if segment_number > 0 and segment.j_node is not None:
+                    segment.transit_alightings = max(
+                        prev_volume + segment.transit_boardings - segment.transit_volume,
+                        0.0,
                     )
-                    # in minutes
-                    segment_dwell_time /= 60
-                    if segment_dwell_time >= 99.99:
-                        segment_dwell_time = 99.98
-                    alpha = 1 - lambdaK
-                    segment.dwell_time = old_dwell * alpha + segment_dwell_time * lambdaK
+                else:
+                    continue
+                # prev_volume is used above for the previous segments volume, the first segment is always ignored.
+                prev_volume = segment.transit_volume
+
+                boarding = segment.transit_boardings / number_of_trips / number_of_door_pairs
+                alighting = segment.transit_alightings / number_of_trips / number_of_door_pairs
+
+                old_dwell = segment.dwell_time
+                # in seconds
+                segment_dwell_time = (
+                    (boarding_duration * boarding)
+                    + (alighting_duration * alighting)
+                    + (segment["@tstop"] * default_duration)
+                )
+                # in minutes
+                segment_dwell_time /= 60
+                if segment_dwell_time >= 99.99:
+                    segment_dwell_time = 99.98
+                alpha = 1 - lambdaK
+                segment.dwell_time = old_dwell * alpha + segment_dwell_time * lambdaK
         data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"])
         scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"], data)
         return network
@@ -1735,7 +1737,7 @@ class AssignTransit(_m.Tool()):
                 value += t0 * cost_difference * volume_difference
         return value / assigned_total_demand
 
-    def _save_results(self, scenario, parameters, network, alphas, strategies):
+    def _save_results(self, scenario, parameters, network, alphas, strategies, stsu_att):
         if scenario.extra_attribute("@ccost") is not None:
             ccost = scenario.extra_attribute("@ccost")
             scenario.delete_extra_attribute("@ccost")
@@ -1764,7 +1766,7 @@ class AssignTransit(_m.Tool()):
             data = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"])
             network.set_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"], data)
             net_edit.create_segment_alightings_attribute(network)
-            network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+            network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
             data = network.get_attribute_values("TRANSIT_SEGMENT", ["transit_boardings", "transit_alightings"])
             scenario.set_attribute_values("TRANSIT_SEGMENT", ["@boardings", "@alightings"], data)
         strategies.data["alphas"] = alphas
