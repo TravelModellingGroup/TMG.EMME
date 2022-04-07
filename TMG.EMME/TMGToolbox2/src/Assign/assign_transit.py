@@ -979,14 +979,14 @@ class AssignTransit(_m.Tool()):
     def _surface_transit_speed_update(self, scenario, parameters, network, lambdaK, stsu_att):
         if "transit_alightings" not in network.attributes("TRANSIT_SEGMENT"):
             network.create_attribute("TRANSIT_SEGMENT", "transit_alightings", 0.0)
-        number_of_trips = parameters["assignment_period"] * 60.0 / headway
+
         for line in network.transit_lines():
             prev_volume = 0.0
             index = line[stsu_att.id]
             if index <= 0.0:
                 continue
             headway = line.headway
-
+            number_of_trips = parameters["assignment_period"] * 60.0 / headway
             stsu = parameters["surface_transit_speeds"][int(index) - 1]
             boarding_duration = stsu["boarding_duration"]
             alighting_duration = stsu["alighting_duration"]
@@ -1011,10 +1011,8 @@ class AssignTransit(_m.Tool()):
                     continue
                 # prev_volume is used above for the previous segments volume, the first segment is always ignored.
                 prev_volume = segment.transit_volume
-
                 boarding = segment.transit_boardings / number_of_trips / number_of_door_pairs
                 alighting = segment.transit_alightings / number_of_trips / number_of_door_pairs
-
                 old_dwell = segment.dwell_time
                 # in seconds
                 segment_dwell_time = (
