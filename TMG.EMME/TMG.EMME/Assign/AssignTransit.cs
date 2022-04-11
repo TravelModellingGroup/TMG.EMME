@@ -74,7 +74,8 @@ namespace TMG.Emme.Assign
             Index = 26)]
         public IFunction<string> CongestionExponent;
 
-        [Parameter(Name = "Assignment Period", Description = "The congestion exponent to apply to this TTF.",
+        [Parameter(Name = "Assignment Period", Description = "A multiplier applied to the demand matrix to scale it to match" +
+                    " the transit line capacity period. This is similar to the peak hour factor used in auto assignment.",
             Index = 27)]
         public IFunction<float> AssignmentPeriod;
 
@@ -82,7 +83,7 @@ namespace TMG.Emme.Assign
             Index = 28)]
         public IFunction<string> NameString;
 
-        [Parameter(Name = "Congested Assignment", Description = "",
+        [Parameter(Name = "Congested Assignment", Description = "Set this to false in order to not apply congestion during assignment.",
             Index = 29)]
         public IFunction<bool> CongestedAssignment;
 
@@ -98,7 +99,7 @@ namespace TMG.Emme.Assign
             Index = 32)]
         public IFunction<float> WalkDistributionLogitScale;
 
-        [Parameter(Name = "Surface Transit Speed", Description = "",
+        [Parameter(Name = "Surface Transit Speed", Description = "Set to TRUE to allow surface transit speed to be used in the assignment",
             Index = 33)]
         public IFunction<bool> SurfaceTransitSpeed;
 
@@ -106,18 +107,18 @@ namespace TMG.Emme.Assign
             Index = 34)]
         public IFunction<bool> WalkAllWayFlag;
 
-        [Parameter(Name = "Xrow TTF Range", Description = "",
+        [Parameter(Name = "Xrow TTF Range", Description = "Set this to the TTF, TTFs or range of TTFs (seperated by commas) that represent going in an exclusive right of way. This is for use in STSU",
             Index = 35)]
         public IFunction<string> XRowTTFRange;
 
-        [SubModule(Name = "Transit Classes", Description = "", Index = 36)]
+        [SubModule(Name = "Transit Classes", Description = "The classes for this multi-class assignment.", Index = 36)]
         public IFunction<TransitClass>[] TransitClasses;
 
-        [SubModule(Name = "Surface Transit Speed Model", Description = "",
+        [SubModule(Name = "Surface Transit Speed Model", Description = "Surface Transit Speed Model",
             Index = 37)]
         public IFunction<SurfaceTransitSpeedModel>[] SurfaceTransitSpeeds;
 
-        [SubModule(Name = "TTF Definitions", Description = "",
+        [SubModule(Name = "TTF Definitions", Description = "The TTF's to apply in the assignment.",
             Index = 38)]
         public IFunction<TTFDefinition>[] TTFDefinitions;
 
