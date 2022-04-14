@@ -26,7 +26,7 @@ using XTMF2;
 
 namespace TMG.Emme.Assign
 {
-    [Module(Name = "Assign Demand To Road Network", Description = "",
+    [Module(Name = "Assign Transit To Road Network", Description = "Runs a multi-class transit assignment which executes a congested transit assignment procedure for the GTAModel V4.0.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
     public class AssignTransit : BaseAction<ModellerController>
     {
@@ -79,7 +79,7 @@ namespace TMG.Emme.Assign
             Index = 27)]
         public IFunction<float> AssignmentPeriod;
 
-        [Parameter(Name = "Name String", Description = "",
+        [Parameter(Name = "Name String", Description = "Name String",
             Index = 28)]
         public IFunction<string> NameString;
 
@@ -87,17 +87,13 @@ namespace TMG.Emme.Assign
             Index = 29)]
         public IFunction<bool> CongestedAssignment;
 
-        [Parameter(Name = "CSV File", Description = "",
+        [Parameter(Name = "CSV File", Description = "A link to the csv file that will specify iterational information",
             Index = 30)]
         public IFunction<string> CSVFile;
 
-        [Parameter(Name = "Origin Distribution Logit Scale", Description = "",
+        [Parameter(Name = "Origin Distribution Logit Scale", Description = "Scale parameter for logit model at origin connectors.",
             Index = 31)]
         public IFunction<float> OriginDistributionLogitScale;
-
-        [Parameter(Name = "Walk Distribution Logit Scale", Description = "",
-            Index = 32)]
-        public IFunction<float> WalkDistributionLogitScale;
 
         [Parameter(Name = "Surface Transit Speed", Description = "Set to TRUE to allow surface transit speed to be used in the assignment",
             Index = 33)]
@@ -122,76 +118,76 @@ namespace TMG.Emme.Assign
             Index = 38)]
         public IFunction<TTFDefinition>[] TTFDefinitions;
 
-        [Module(Name = "Transit Class", Description = "",
+        [Module(Name = "Transit Class", Description = "The classes for this multi-class assignment.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
 
         public class TransitClass : XTMF2.IModule
         {
-            [Parameter(Name = "Board Penalty Matrix", Description = "",
+            [Parameter(Name = "Board Penalty Matrix", Description = "The number of the FULL matrix in which to save the applied boarding penalties.  Enter 0 to skip this matrix.",
                 Index = 0)]
             public IFunction<string> BoardPenaltyMatrix;
 
-            [Parameter(Name = "Board Penalty Perception", Description = "",
+            [Parameter(Name = "Board Penalty Perception", Description = "Perception factor applied to boarding penalty component.",
                 Index = 1)]
             public IFunction<float> BoardingPenaltyPerception;
 
-            [Parameter(Name = "Congestion Matrix", Description = "",
+            [Parameter(Name = "Congestion Matrix", Description = "The ID of the FULL matrix in which to save transit congestion. Enter 0 to skip saving this matrix",
                 Index = 2)]
             public IFunction<string> CongestionMatrix;
 
-            [Parameter(Name = "Demand Matrix", Description = "",
+            [Parameter(Name = "Demand Matrix", Description = "The ID of the full matrix containing transit demand ODs",
                 Index = 3)]
             public IFunction<string> DemandMatrix;
 
-            [Parameter(Name = "Fare Matrix", Description = "",
+            [Parameter(Name = "Fare Matrix", Description = "The ID of the FULL matrix in which to save transit fares. Enter 0 to skip saving this matrix",
                 Index = 4)]
             public IFunction<string> FareMatrix;
 
-            [Parameter(Name = "Fare Perception", Description = "",
+            [Parameter(Name = "Fare Perception", Description = "Perception factor applied to path transit fares, in $/hr.",
                 Index = 5)]
             public IFunction<float> FarePerception;
 
-            [Parameter(Name = "InVehicle Time Matrix", Description = "",
+            [Parameter(Name = "InVehicle Time Matrix", Description = "The ID of the FULL matrix in which to save in-vehicle travel time. Enter 0 to skip saving this matrix",
                 Index = 6)]
             public IFunction<string> InVehicleTimeMatrix;
 
-            [Parameter(Name = "Impedance Matrix", Description = "",
+            [Parameter(Name = "Impedance Matrix", Description = "The ID of the FULL matrix in which to save the impedance.",
             Index = 25)]
             public IFunction<string> ImpedanceMatrix;
 
-            [Parameter(Name = "Link Fare Attribute Id", Description = "",
+            [Parameter(Name = "Link Fare Attribute Id", Description = "The ID of the LINK extra attribute containing actual fare costs.",
                 Index = 7)]
             public IFunction<string> LinkFareAttributeId;
 
-            [Parameter(Name = "Mode", Description = "",
+            [Parameter(Name = "Mode", Description = "A character array of all the modes applied to this class. \'*\' selects all.",
                 Index = 8)]
             public IFunction<string> Mode;
 
-            [Parameter(Name = " Perceived Travel Time Matrix", Description = "",
+            [Parameter(Name = " Perceived Travel Time Matrix", Description = "The ID of the FULL matrix in which to save the incurred penalties. Enter 0 to skip saving this matrix",
                 Index = 9)]
             public IFunction<string> PerceivedTravelTimeMatrix;
 
-            [Parameter(Name = "Segment Fare Attribute Id", Description = "",
+            [Parameter(Name = "Segment Fare Attribute Id", Description = "The ID of the SEGMENT extra attribute containing actual fare costs.",
                 Index = 10)]
             public IFunction<string> SegmentFareAttributeId;
 
-            [Parameter(Name = "Wait Time Perception", Description = "",
+            [Parameter(Name = "Wait Time Perception", Description = "Perception factor applied to wait time component.",
                 Index = 11)]
             public IFunction<float> WaitTimePerception;
 
-            [Parameter(Name = "Wait Time Matrix", Description = "",
+            [Parameter(Name = "Wait Time Matrix", Description = "The ID of the FULL matrix in which to save total waiting time. Enter 0 to skip saving this matrix",
                 Index = 12)]
             public IFunction<string> WaitTimeMatrix;
 
-            [Parameter(Name = "Walk Time Perception Attribute Id", Description = "",
+            [Parameter(Name = "Walk Time Perception Attribute Id", Description = "The ID of the LINK extra attribute in which to store walk time perception. Should have a default value of 1.0.",
                 Index = 13)]
             public IFunction<string> WalkTimePerceptionAttributeId;
 
-            [Parameter(Name = "Walk Time Matrix", Description = "",
+            [Parameter(Name = "Walk Time Matrix", Description = "The ID of the FULL matrix in which to save total walk time. Enter 0 to skip saving this matrix",
                 Index = 14)]
             public IFunction<string> WalkTimeMatrix;
 
-            [SubModule(Name = "Walk Perceptions", Description = "", Index = 9, Required = false)]
+            [SubModule(Name = "Walk Perceptions", Description = "Contains the walk perception values fo this multi-class assignment", Index = 9, Required = false)]
             public IFunction<WalkPerceptions>[] WalkPerceptions;
 
             public string Name { get; set; }
@@ -235,11 +231,11 @@ namespace TMG.Emme.Assign
         DocumentationLink = "http://tzmg.utoronto.ca/doc/2.0")]
         public class WalkPerceptions : XTMF2.IModule
         {
-            [Parameter(Name = "Filter", Description = "",
+            [Parameter(Name = "Filter", Description = "The filter expression for links that the perception applies to e.g.: i=10000,20000 or j=10000,20000",
                 Index = 0)]
             public IFunction<string> Filter;
 
-            [Parameter(Name = "Walk Perception Value", Description = "",
+            [Parameter(Name = "Walk Perception Value", Description = "The walk perception on links.",
                 Index = 1)]
             public IFunction<float> WalkPerceptionValue;
 
@@ -258,7 +254,7 @@ namespace TMG.Emme.Assign
             }
         }
 
-        [Module(Name = "Surface Transit Speed Model", Description = "",
+        [Module(Name = "Surface Transit Speed Model", Description = "Model used to update surface transit speed",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
         public class SurfaceTransitSpeedModel : XTMF2.IModule
         {
@@ -310,7 +306,7 @@ namespace TMG.Emme.Assign
             }
         }
 
-        [Module(Name = "TTF Definitions", Description = "",
+        [Module(Name = "TTF Definitions", Description = "The TTF's to apply in the assignment.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
         public class TTFDefinition : XTMF2.IModule
         {
@@ -361,7 +357,6 @@ namespace TMG.Emme.Assign
                 writer.WriteBoolean("congested_assignment", CongestedAssignment.Invoke());
                 writer.WriteString("csvfile", CSVFile.Invoke());
                 writer.WriteNumber("origin_distribution_logit_scale", OriginDistributionLogitScale.Invoke());
-                writer.WriteNumber("walk_distribution_logit_scale", WalkDistributionLogitScale.Invoke());
                 writer.WriteBoolean("surface_transit_speed", SurfaceTransitSpeed.Invoke());
                 writer.WriteBoolean("walk_all_way_flag", WalkAllWayFlag.Invoke());
                 writer.WriteString("xrow_ttf_range", XRowTTFRange.Invoke());
