@@ -212,7 +212,7 @@ class AssignTransit(_m.Tool()):
                     )
                     self._tracker.complete_subtask()
                     self._assign_walk_perception(scenario, parameters)
-                    if parameters["node_logit_scale"] == True:
+                    if parameters["node_logit_scale"] != 1:
                         network = self._publish_efficient_connector_network(scenario)
                     else:
                         network = scenario.get_network()
@@ -403,18 +403,20 @@ class AssignTransit(_m.Tool()):
             baton = partial_network.get_attribute_values("MODE", ["speed"])
             scenario.set_attribute_values("MODE", ["speed"], baton)
 
-    def _create_walk_time_perception_attribute_list(self, scenario, parameters, temp_matrix_list):
+    def _create_walk_time_perception_attribute_list(self, scenario, parameters, temp_attribute_list):
         walk_time_perception_attribute_list = []
         for transit_class in parameters["transit_classes"]:
-            walk_time_perception_attribute = _util.create_temp_attribute(
-                scenario,
-                str(transit_class["walk_time_perception_attribute"]),
-                "LINK",
-                default_value=1.0,
-                assignment_type="transit",
-            )
+            walk_time_perception_attribute = scenario.extra_attribute(transit_class["walk_time_perception_attribute"])
+            if walk_time_perception_attribute is None:
+                walk_time_perception_attribute = _util.create_temp_attribute(
+                    scenario,
+                    str(transit_class["walk_time_perception_attribute"]),
+                    "LINK",
+                    default_value=1.0,
+                    assignment_type="transit",
+                )
+                temp_attribute_list.append(walk_time_perception_attribute)
             walk_time_perception_attribute_list.append(walk_time_perception_attribute)
-            temp_matrix_list.append(walk_time_perception_attribute)
         return walk_time_perception_attribute_list
 
     def _create_headway_attribute_list(
@@ -531,51 +533,56 @@ class AssignTransit(_m.Tool()):
     def _set_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed):
         erow_defined = self._check_attributes_and_get_erow(scenario)
         self._set_up_line_attributes(scenario, parameters, stsu_att)
-        ttfs_xrow = self.process_ttfs_xrow(parameters)
+        ttfs_xrow = self._process_ttfs_xrow(parameters)
+        # TODO: Added for debugging purpose
+        # stsu_debug = scenario.create_extra_attribute("TRANSIT_LINE", "@stsu_debug")
+        # self._set_up_line_attributes(scenario, parameters, stsu_debug)
         network = scenario.get_network()
+
         for line in network.transit_lines():
-            for stsu in parameters["surface_transit_speeds"]:
-                if line[stsu_att.id] <= 0.0:
+            index = line[stsu_att.id]
+            if index <= 0.0:
+                continue
+            stsu = parameters["surface_transit_speeds"][int(index) - 1]
+            default_duration = stsu["default_duration"]
+            correlation = stsu["transit_auto_correlation"]
+            erow_speed_global = stsu["global_erow_speed"]
+            segments = line.segments()
+            number_of_segments = segments.__length_hint__()
+            for segment in segments:
+                if segment.allow_alightings == True and segment.allow_boardings == True:
+                    segment.dwell_time = 0.01
+                else:
+                    segment.dwell_time = 0.0
+                if segment.j_node is None:
                     continue
-                default_duration = stsu["default_duration"]
-                correlation = stsu["transit_auto_correlation"]
-                erow_speed_global = stsu["global_erow_speed"]
-                segments = line.segments()
-                number_of_segments = segments.__length_hint__()
-                for segment in segments:
-                    if segment.allow_alightings == True and segment.allow_boardings == True:
-                        segment.dwell_time = 0.01
-                    else:
-                        segment.dwell_time = 0.0
-                    if segment.j_node is None:
-                        continue
-                    segment_number = segment.number
-                    segment.transit_time_func = stsu_ttf_map[segment.transit_time_func]
-                    time = segment.link["auto_time"]
-                    if time > 0.0:
-                        if segment.transit_time_func in ttfs_xrow:
-                            if erow_defined == True and segment["@erow_speed"] > 0.0:
-                                segment.data1 = segment["@erow_speed"]
-                            else:
-                                segment.data1 = erow_speed_global
-                        else:
-                            segment.data1 = (segment.link.length * 60.0) / (time * correlation)
-                    if time <= 0.0:
+                segment_number = segment.number
+                segment.transit_time_func = stsu_ttf_map[segment.transit_time_func]
+                time = segment.link["auto_time"]
+                if time > 0.0:
+                    if segment.transit_time_func in ttfs_xrow:
                         if erow_defined == True and segment["@erow_speed"] > 0.0:
                             segment.data1 = segment["@erow_speed"]
                         else:
-                            if segment_number <= 1 or segment_number >= (number_of_segments - 1):
-                                segment.data1 = 20
-                            else:
-                                segment.data1 = erow_speed_global
-                    if segment_number == 0:
-                        continue
-                    segment.dwell_time = (segment["@tstop"] * default_duration) / 60
+                            segment.data1 = erow_speed_global
+                    else:
+                        segment.data1 = (segment.link.length * 60.0) / (time * correlation)
+                if time <= 0.0:
+                    if erow_defined == True and segment["@erow_speed"] > 0.0:
+                        segment.data1 = segment["@erow_speed"]
+                    else:
+                        if segment_number <= 1 or segment_number >= (number_of_segments - 1):
+                            segment.data1 = 20
+                        else:
+                            segment.data1 = erow_speed_global
+                if segment_number == 0:
+                    continue
+                segment.dwell_time = (segment["@tstop"] * default_duration) / 60
         data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"])
         scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"], data)
         ttfs_changed.append(True)
 
-    def process_ttfs_xrow(self, parameters):
+    def _process_ttfs_xrow(self, parameters):
         ttfs_xrow = set()
         parameter_xrow_range = parameters["xrow_ttf_range"].split()
         for ttf_range in parameter_xrow_range:
@@ -606,7 +613,6 @@ class AssignTransit(_m.Tool()):
         return erow_defined
 
     def _set_up_line_attributes(self, scenario, parameters, stsu_att):
-        stsu = []
         for i, sts in enumerate(parameters["surface_transit_speeds"]):
             spec = {
                 "type": "NETWORK_CALCULATION",
@@ -630,7 +636,6 @@ class AssignTransit(_m.Tool()):
                     % (i + 1)
                 )
             report = network_calc_tool(spec, scenario=scenario)
-        return stsu
 
     def _run_transit_assignment(
         self,
@@ -675,7 +680,7 @@ class AssignTransit(_m.Tool()):
                         alphas = congested_assignment[1]
                         strategies = congested_assignment[0]
                         network = congested_assignment[2]
-                self._save_results(scenario, parameters, network, alphas, strategies)
+                self._save_results(scenario, parameters, network, alphas, strategies, stsu_att)
                 trace.write(
                     name="TMG Congested Transit Assignment",
                     attributes={"assign_end_time": scenario.transit_assignment_timestamp},
@@ -727,7 +732,7 @@ class AssignTransit(_m.Tool()):
                     walk_time_perception_attribute_list,
                 )
                 network = scenario.get_network()
-                network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+                network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
 
     def _run_congested_assignment(
         self,
@@ -767,7 +772,7 @@ class AssignTransit(_m.Tool()):
                     assigned_total_demand = sum(assigned_class_demand)
                     network = self._prepare_network(scenario, parameters, stsu_att)
                     if parameters["surface_transit_speed"] == True:
-                        network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+                        network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
                     average_min_trip_impedance = self._compute_min_trip_impedance(
                         scenario, demand_matrix_list, assigned_class_demand, impedance_matrix_list
                     )
@@ -802,8 +807,9 @@ class AssignTransit(_m.Tool()):
                     )
                     lambdaK = find_step_size[0]
                     alphas = find_step_size[1]
+                    print("iteration %s  lambdaK %s" % (iteration, lambdaK))
                     if parameters["surface_transit_speed"] == True:
-                        network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+                        network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
                     self._update_volumes(network, lambdaK)
                     (average_impedance, cngap, crgap, norm_gap_difference, net_cost,) = self._compute_gaps(
                         parameters,
@@ -848,7 +854,7 @@ class AssignTransit(_m.Tool()):
                 headway_fraction_attribute_list[i],
                 impedance_matrix_list[i],
                 transit_class["link_fare_attribute_id"],
-                [transit_class["mode"]],
+                transit_class["mode"],
                 parameters["node_logit_scale"],
                 self.number_of_processors,
                 parameters["origin_distribution_logit_scale"],
@@ -891,7 +897,7 @@ class AssignTransit(_m.Tool()):
         if fare_perception != 0.0:
             fare_perception = 60.0 / fare_perception
         base_spec = {
-            "modes": modes,
+            "modes": [modes],
             "demand": demand_matrix.id,
             "waiting_time": {
                 "headway_fraction": headway_fraction.id,
@@ -926,20 +932,19 @@ class AssignTransit(_m.Tool()):
             "save_strategies": True,
             "type": "EXTENDED_TRANSIT_ASSIGNMENT",
         }
-        if use_logit_connector_choice:
-            base_spec["flow_distribution_at_origins"] = {
-                "choices_at_origins": {
-                    "choice_points": "ALL_ORIGINS",
-                    "choice_set": "ALL_CONNECTORS",
-                    "logit_parameters": {
-                        "scale": origin_distribution_logit_scale,
-                        "truncation": connector_logit_truncation,
-                    },
+        base_spec["flow_distribution_at_origins"] = {
+            "choices_at_origins": {
+                "choice_points": "ALL_ORIGINS",
+                "choice_set": "ALL_CONNECTORS",
+                "logit_parameters": {
+                    "scale": origin_distribution_logit_scale,
+                    "truncation": connector_logit_truncation,
                 },
-                "fixed_proportions_on_connectors": None,
-            }
+            },
+            "fixed_proportions_on_connectors": None,
+        }
         base_spec["performance_settings"] = {"number_of_processors": number_of_processors}
-        if node_logit_scale is not False:
+        if node_logit_scale != 1:
             base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                 "choices_at_regular_nodes": {
                     "choice_points": "ui1",
@@ -954,15 +959,12 @@ class AssignTransit(_m.Tool()):
             base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                 "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
             }
-
-        mode_list = []
         partial_network = scenario.get_partial_network(["MODE"], True)
-        mode_list = partial_network.modes() if modes == "*" else modes
         base_spec["journey_levels"] = [
             {
                 "description": "Walking",
                 "destinations_reachable": walk_all_way_flag,
-                "transition_rules": self._create_journey_level_modes(mode_list, 0),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 0),
                 "boarding_time": None,
                 "boarding_cost": None,
                 "waiting_time": None,
@@ -970,7 +972,7 @@ class AssignTransit(_m.Tool()):
             {
                 "description": "Transit",
                 "destinations_reachable": True,
-                "transition_rules": self._create_journey_level_modes(mode_list, 1),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 1),
                 "boarding_time": None,
                 "boarding_cost": None,
                 "waiting_time": None,
@@ -978,54 +980,57 @@ class AssignTransit(_m.Tool()):
         ]
         return base_spec
 
-    def _surface_transit_speed_update(self, scenario, parameters, network, lambdaK):
+    def _surface_transit_speed_update(self, scenario, parameters, network, lambdaK, stsu_att):
         if "transit_alightings" not in network.attributes("TRANSIT_SEGMENT"):
             network.create_attribute("TRANSIT_SEGMENT", "transit_alightings", 0.0)
+
         for line in network.transit_lines():
             prev_volume = 0.0
+            index = line[stsu_att.id]
+            if index <= 0.0:
+                continue
             headway = line.headway
             number_of_trips = parameters["assignment_period"] * 60.0 / headway
-            for stsu in parameters["surface_transit_speeds"]:
-                boarding_duration = stsu["boarding_duration"]
-                alighting_duration = stsu["alighting_duration"]
-                default_duration = stsu["default_duration"]
-                try:
-                    doors = segment.line["@doors"]
-                    if doors == 0.0:
-                        number_of_door_pairs = 1.0
-                    else:
-                        number_of_door_pairs = doors / 2.0
-                except:
+            stsu = parameters["surface_transit_speeds"][int(index) - 1]
+            boarding_duration = stsu["boarding_duration"]
+            alighting_duration = stsu["alighting_duration"]
+            default_duration = stsu["default_duration"]
+            try:
+                doors = segment.line["@doors"]
+                if doors == 0.0:
                     number_of_door_pairs = 1.0
+                else:
+                    number_of_door_pairs = doors / 2.0
+            except:
+                number_of_door_pairs = 1.0
 
-                for segment in line.segments(include_hidden=True):
-                    segment_number = segment.number
-                    if segment_number > 0 and segment.j_node is not None:
-                        segment.transit_alightings = max(
-                            prev_volume + segment.transit_boardings - segment.transit_volume,
-                            0.0,
-                        )
-                    else:
-                        continue
-                    # prevVolume is used above for the previous segments volume, the first segment is always ignored.
-                    prev_volume = segment.transit_volume
-
-                    boarding = segment.transit_boardings / number_of_trips / number_of_door_pairs
-                    alighting = segment.transit_alightings / number_of_trips / number_of_door_pairs
-
-                    old_dwell = segment.dwell_time
-                    # in seconds
-                    segment_dwell_time = (
-                        (boarding_duration * boarding)
-                        + (alighting_duration * alighting)
-                        + (segment["@tstop"] * default_duration)
+            for segment in line.segments(include_hidden=True):
+                segment_number = segment.number
+                if segment_number > 0 and segment.j_node is not None:
+                    segment.transit_alightings = max(
+                        prev_volume + segment.transit_boardings - segment.transit_volume,
+                        0.0,
                     )
-                    # in minutes
-                    segment_dwell_time /= 60
-                    if segment_dwell_time >= 99.99:
-                        segment_dwell_time = 99.98
-                    alpha = 1 - lambdaK
-                    segment.dwell_time = old_dwell * alpha + segment_dwell_time * lambdaK
+                else:
+                    continue
+                # prev_volume is used above for the previous segments volume, the first segment is always ignored.
+                prev_volume = segment.transit_volume
+                boarding = segment.transit_boardings / number_of_trips / number_of_door_pairs
+                alighting = segment.transit_alightings / number_of_trips / number_of_door_pairs
+                old_dwell = segment.dwell_time
+                # in seconds
+                segment_dwell_time = (
+                    (boarding_duration * boarding)
+                    + (alighting_duration * alighting)
+                    + (segment["@tstop"] * default_duration)
+                )
+                # in minutes
+                # segment_dwell_time = min(segment_dwell_time / 60, 99.98)
+                segment_dwell_time /= 60  # minutes
+                if segment_dwell_time >= 99.99:
+                    segment_dwell_time = 99.98
+                alpha = 1 - lambdaK
+                segment.dwell_time = old_dwell * alpha + segment_dwell_time * lambdaK
         data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"])
         scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"], data)
         return network
@@ -1139,15 +1144,16 @@ class AssignTransit(_m.Tool()):
         consider_total_impedance=False,
     ):
         base_spec = []
-        modes = []
+        modes_list = []
         for i, transit_class in enumerate(parameters["transit_classes"]):
+            modes = transit_class["mode"]
             fare_perception = transit_class["fare_perception"]
-            modes.append(transit_class["mode"])
+            modes_list.append(modes)
             if fare_perception != 0.0:
                 fare_perception = 60.0 / fare_perception
             base_spec.append(
                 {
-                    "modes": [transit_class["mode"]],
+                    "modes": [modes],
                     "demand": demand_matrix_list[i].id,
                     "waiting_time": {
                         "headway_fraction": headway_fraction_attribute_list[i].id,
@@ -1178,18 +1184,17 @@ class AssignTransit(_m.Tool()):
                 }
             )
         for i in range(0, len(base_spec)):
-            if parameters["node_logit_scale"]:
-                base_spec[i]["flow_distribution_at_origins"] = {
-                    "choices_at_origins": {
-                        "choice_points": "ALL_ORIGINS",
-                        "choice_set": "ALL_CONNECTORS",
-                        "logit_parameters": {
-                            "scale": parameters["origin_distribution_logit_scale"],
-                            "truncation": connector_logit_truncation,
-                        },
+            base_spec[i]["flow_distribution_at_origins"] = {
+                "choices_at_origins": {
+                    "choice_points": "ALL_ORIGINS",
+                    "choice_set": "ALL_CONNECTORS",
+                    "logit_parameters": {
+                        "scale": parameters["origin_distribution_logit_scale"],
+                        "truncation": connector_logit_truncation,
                     },
-                    "fixed_proportions_on_connectors": None,
-                }
+                },
+                "fixed_proportions_on_connectors": None,
+            }
             base_spec[i]["performance_settings"] = {"number_of_processors": self.number_of_processors}
             if scenario.extra_attribute("@node_logit") != None:
                 base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
@@ -1203,14 +1208,12 @@ class AssignTransit(_m.Tool()):
                 base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                     "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
                 }
-            mode_list = []
             partial_network = scenario.get_partial_network(["MODE"], True)
-            mode_list = partial_network.modes() if modes[i] == "*" else modes[i]
             base_spec[i]["journey_levels"] = [
                 {
                     "description": "Walking",
                     "destinations_reachable": parameters["walk_all_way_flag"],
-                    "transition_rules": self._create_journey_level_modes(mode_list, 0),
+                    "transition_rules": self._create_journey_level_modes(modes_list[i], partial_network, 0),
                     "boarding_time": None,
                     "boarding_cost": None,
                     "waiting_time": None,
@@ -1218,7 +1221,7 @@ class AssignTransit(_m.Tool()):
                 {
                     "description": "Transit",
                     "destinations_reachable": True,
-                    "transition_rules": self._create_journey_level_modes(mode_list, 1),
+                    "transition_rules": self._create_journey_level_modes(modes_list[i], partial_network, 1),
                     "boarding_time": None,
                     "boarding_cost": None,
                     "waiting_time": None,
@@ -1299,7 +1302,6 @@ class AssignTransit(_m.Tool()):
             "custom_status": True,
             "per_strat_attributes": {"TRANSIT_SEGMENT": ["transit_time"]},
         }
-        # mode_int_ids = scenario.get_attribute_values("MODE", [])[0]
 
         def format_modes(modes):
             if "*" in modes:
@@ -1489,20 +1491,19 @@ class AssignTransit(_m.Tool()):
             "save_strategies": True,
             "type": "EXTENDED_TRANSIT_ASSIGNMENT",
         }
-        if use_logit_connector_choice:
-            base_spec["flow_distribution_at_origins"] = {
-                "choices_at_origins": {
-                    "choice_points": "ALL_ORIGINS",
-                    "choice_set": "ALL_CONNECTORS",
-                    "logit_parameters": {
-                        "scale": origin_distribution_logit_scale,
-                        "truncation": connector_logit_truncation,
-                    },
+        base_spec["flow_distribution_at_origins"] = {
+            "choices_at_origins": {
+                "choice_points": "ALL_ORIGINS",
+                "choice_set": "ALL_CONNECTORS",
+                "logit_parameters": {
+                    "scale": origin_distribution_logit_scale,
+                    "truncation": connector_logit_truncation,
                 },
-                "fixed_proportions_on_connectors": None,
-            }
+            },
+            "fixed_proportions_on_connectors": None,
+        }
         base_spec["performance_settings"] = {"number_of_processors": number_of_processors}
-        if node_logit_scale is not False:
+        if node_logit_scale != 1:
             base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                 "choices_at_regular_nodes": {
                     "choice_points": "ui1",
@@ -1517,15 +1518,15 @@ class AssignTransit(_m.Tool()):
             base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                 "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
             }
-        mode_list = []
+
         partial_network = scenario.get_partial_network(["MODE"], True)
-        mode_list = partial_network.modes() if modes == "*" else modes
+
         # if all modes are selected for class, get all transit modes for journey levels
         base_spec["journey_levels"] = [
             {
                 "description": "Walking",
                 "destinations_reachable": walk_all_way_flag,
-                "transition_rules": self._create_journey_level_modes(mode_list, 0),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 0),
                 "boarding_time": {
                     "at_nodes": None,
                     "on_lines": {"penalty": "ut3", "perception_factor": board_penalty_perception},
@@ -1538,7 +1539,7 @@ class AssignTransit(_m.Tool()):
             {
                 "description": "Transit",
                 "destinations_reachable": True,
-                "transition_rules": self._create_journey_level_modes(mode_list, 1),
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 1),
                 "boarding_time": {
                     "at_nodes": None,
                     "on_lines": {"penalty": "ut2", "perception_factor": board_penalty_perception},
@@ -1616,6 +1617,7 @@ class AssignTransit(_m.Tool()):
         grad2 += average_min_trip_impedance - average_impedance
         grad3 = self._compute_gradient(parameters, assigned_total_demand, approx3, network)
         grad3 += average_min_trip_impedance - average_impedance
+        print("m_step lambdak")
         for m_steps in range(0, 21):
             h1 = approx2 - approx1
             h2 = approx3 - approx2
@@ -1650,6 +1652,8 @@ class AssignTransit(_m.Tool()):
             grad1 = grad2
             grad2 = grad3
             grad3 = grad
+
+            print(m_steps, lambdaK)
         lambdaK = max(0.0, min(1.0, lambdaK))
         alphas = [a * (1 - lambdaK) for a in alphas]
         alphas.append(lambdaK)
@@ -1674,15 +1678,22 @@ class AssignTransit(_m.Tool()):
                 value += t0 * cost_difference * volume_difference
         return value / assigned_total_demand
 
-    def _create_journey_level_modes(self, mode_list, level):
-        ret = []
-        for mode in mode_list:
-            if mode.type == "TRANSIT":
-                ret.append({"mode": mode.id, "next_journey_level": 1})
-            elif mode.type == "AUX_TRANSIT":
-                next_level = 1 if level >= 1 else 0
-                ret.append({"mode": mode.id, "next_journey_level": next_level})
-        return ret
+    def _create_journey_level_modes(self, modes, partial_network, level):
+        mode_list = []
+        if modes == "*":
+            for mode in partial_network.modes():
+                if mode.type == "TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": 1})
+                elif mode.type == "AUX_TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": level})
+        else:
+            for modechar in modes:
+                mode = partial_network.mode(modechar)
+                if mode.type == "TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": 1})
+                elif mode.type == "AUX_TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": level})
+        return mode_list
 
     def _update_volumes(self, network, lambdaK):
         alpha = 1 - lambdaK
@@ -1733,7 +1744,7 @@ class AssignTransit(_m.Tool()):
                 value += t0 * cost_difference * volume_difference
         return value / assigned_total_demand
 
-    def _save_results(self, scenario, parameters, network, alphas, strategies):
+    def _save_results(self, scenario, parameters, network, alphas, strategies, stsu_att):
         if scenario.extra_attribute("@ccost") is not None:
             ccost = scenario.extra_attribute("@ccost")
             scenario.delete_extra_attribute("@ccost")
@@ -1762,7 +1773,7 @@ class AssignTransit(_m.Tool()):
             data = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"])
             network.set_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"], data)
             net_edit.create_segment_alightings_attribute(network)
-            network = self._surface_transit_speed_update(scenario, parameters, network, 1)
+            network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
             data = network.get_attribute_values("TRANSIT_SEGMENT", ["transit_boardings", "transit_alightings"])
             scenario.set_attribute_values("TRANSIT_SEGMENT", ["@boardings", "@alightings"], data)
         strategies.data["alphas"] = alphas
@@ -1959,6 +1970,7 @@ class AssignTransit(_m.Tool()):
     @contextmanager
     def _temp_stsu_ttfs(self, scenario, parameters):
         orig_ttf_values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"])
+        ttfs_xrow = self._process_ttfs_xrow(parameters)
         ttfs_changed = []
         stsu_ttf_map = {}
         created = {}
@@ -1968,8 +1980,8 @@ class AssignTransit(_m.Tool()):
                 if scenario.emmebank.function(func) is None:
                     scenario.emmebank.create_function(func, "(length*60/us1)")
                     stsu_ttf_map[int(ttf["ttf"])] = int(func[2:])
-                    if str(ttf["ttf"]) in parameters["xrow_ttf_range"]:
-                        parameters["xrow_ttf_range"].add(int(func[2:]))
+                    if str(ttf["ttf"]) in ttfs_xrow:
+                        ttfs_xrow.add(int(func[2:]))
                     created[func] = True
                     break
         try:
