@@ -123,7 +123,7 @@ namespace TMG.Emme.Assign
 
         public class TransitClass : XTMF2.IModule
         {
-            [Parameter(Name = "Board Penalty Matrix", Description = "The number of the FULL matrix in which to save the applied boarding penalties.  Enter 0 to skip this matrix.",
+            [Parameter(Name = "Board Penalty Matrix", Description = "The ID of the FULL matrix in which to save the applied boarding penalties.  Enter mf0 to skip this matrix.",
                 Index = 0)]
             public IFunction<string> BoardPenaltyMatrix;
 
@@ -131,7 +131,7 @@ namespace TMG.Emme.Assign
                 Index = 1)]
             public IFunction<float> BoardingPenaltyPerception;
 
-            [Parameter(Name = "Congestion Matrix", Description = "The ID of the FULL matrix in which to save transit congestion. Enter 0 to skip saving this matrix",
+            [Parameter(Name = "Congestion Matrix", Description = "The ID of the FULL matrix in which to save transit congestion. Enter mf0 to skip saving this matrix",
                 Index = 2)]
             public IFunction<string> CongestionMatrix;
 
@@ -139,7 +139,7 @@ namespace TMG.Emme.Assign
                 Index = 3)]
             public IFunction<string> DemandMatrix;
 
-            [Parameter(Name = "Fare Matrix", Description = "The ID of the FULL matrix in which to save transit fares. Enter 0 to skip saving this matrix",
+            [Parameter(Name = "Fare Matrix", Description = "The ID of the FULL matrix in which to save transit fares. Enter mf0 to skip saving this matrix",
                 Index = 4)]
             public IFunction<string> FareMatrix;
 
@@ -147,7 +147,7 @@ namespace TMG.Emme.Assign
                 Index = 5)]
             public IFunction<float> FarePerception;
 
-            [Parameter(Name = "InVehicle Time Matrix", Description = "The ID of the FULL matrix in which to save in-vehicle travel time. Enter 0 to skip saving this matrix",
+            [Parameter(Name = "InVehicle Time Matrix", Description = "The ID of the FULL matrix in which to save in-vehicle travel time. Enter mf0 to skip saving this matrix",
                 Index = 6)]
             public IFunction<string> InVehicleTimeMatrix;
 
@@ -163,7 +163,7 @@ namespace TMG.Emme.Assign
                 Index = 8)]
             public IFunction<string> Mode;
 
-            [Parameter(Name = " Perceived Travel Time Matrix", Description = "The ID of the FULL matrix in which to save the incurred penalties. Enter 0 to skip saving this matrix",
+            [Parameter(Name = " Perceived Travel Time Matrix", Description = "The ID of the FULL matrix in which to save the incurred penalties. Enter mf0 to skip saving this matrix",
                 Index = 9)]
             public IFunction<string> PerceivedTravelTimeMatrix;
 
@@ -175,7 +175,7 @@ namespace TMG.Emme.Assign
                 Index = 11)]
             public IFunction<float> WaitTimePerception;
 
-            [Parameter(Name = "Wait Time Matrix", Description = "The ID of the FULL matrix in which to save total waiting time. Enter 0 to skip saving this matrix",
+            [Parameter(Name = "Wait Time Matrix", Description = "The ID of the FULL matrix in which to save total waiting time. Enter mf0 to skip saving this matrix",
                 Index = 12)]
             public IFunction<string> WaitTimeMatrix;
 
@@ -183,7 +183,7 @@ namespace TMG.Emme.Assign
                 Index = 13)]
             public IFunction<string> WalkTimePerceptionAttributeId;
 
-            [Parameter(Name = "Walk Time Matrix", Description = "The ID of the FULL matrix in which to save total walk time. Enter 0 to skip saving this matrix",
+            [Parameter(Name = "Walk Time Matrix", Description = "The ID of the FULL matrix in which to save total walk time. Enter mf0 to skip saving this matrix",
                 Index = 14)]
             public IFunction<string> WalkTimeMatrix;
 
