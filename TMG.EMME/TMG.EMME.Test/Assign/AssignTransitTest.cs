@@ -105,7 +105,6 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("ttf", 1);
                     writer.WriteEndObject();
                     writer.WriteEndArray();
-                    writer.WriteString("congestion_exponent", "");
                     writer.WriteNumber("assignment_period", 3.0f);
                     writer.WriteString("name_string", "");
                     writer.WriteBoolean("congested_assignment", true);
@@ -211,7 +210,6 @@ namespace TMG.Emme.Test.Assign
                 RelativeGap = Helper.CreateParameter(0.0f),
                 ScenarioNumber = Helper.CreateParameter(2),
                 WalkSpeed = Helper.CreateParameter(4.0f),
-                CongestionExponent = Helper.CreateParameter(""),
                 AssignmentPeriod = Helper.CreateParameter(3.0f),
                 NameString = Helper.CreateParameter(""),
                 CongestedAssignment = Helper.CreateParameter(true),

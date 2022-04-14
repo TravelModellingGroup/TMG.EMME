@@ -70,10 +70,6 @@ namespace TMG.Emme.Assign
             Index = 9)]
         public IFunction<float> WalkSpeed;
 
-        [Parameter(Name = "Congestion Exponent", Description = "The congestion exponent to apply to this TTF.",
-            Index = 26)]
-        public IFunction<string> CongestionExponent;
-
         [Parameter(Name = "Assignment Period", Description = "A multiplier applied to the demand matrix to scale it to match" +
                     " the transit line capacity period. This is similar to the peak hour factor used in auto assignment.",
             Index = 27)]
@@ -351,7 +347,6 @@ namespace TMG.Emme.Assign
                 writer.WriteNumber("rel_gap", RelativeGap.Invoke());
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                 writer.WriteNumber("walk_speed", WalkSpeed.Invoke());
-                writer.WriteString("congestion_exponent", CongestionExponent.Invoke());
                 writer.WriteNumber("assignment_period", AssignmentPeriod.Invoke());
                 writer.WriteString("name_string", NameString.Invoke());
                 writer.WriteBoolean("congested_assignment", CongestedAssignment.Invoke());
