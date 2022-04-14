@@ -132,7 +132,7 @@ namespace TMG.Emme.Test
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteString("network_package_file", filePath);
-                    writer.WriteString("scenario_description", "Test Network");
+                    writer.WriteString("scenario_description", "toolbox2");
                     writer.WriteNumber("scenario_number", scenarioNumber);
                     writer.WriteString("conflict_option", "PRESERVE");
                 }), LogbookLevel.Standard));
