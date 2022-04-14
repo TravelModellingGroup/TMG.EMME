@@ -40,12 +40,12 @@ namespace TMG.Emme.Test.Assign
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
-                    writer.WriteBoolean("calculate_congested_ivtt_flag", false);
+                    writer.WriteBoolean("calculate_congested_ivtt_flag", true);
                     writer.WriteNumber("node_logit_scale", 1.0f);
                     writer.WriteString("effective_headway_attribute", "@ehdw");
                     writer.WriteNumber("effective_headway_slope", 0.165f);
                     writer.WriteString("headway_fraction_attribute", "@hfrac");
-                    writer.WriteNumber("iterations", 100);
+                    writer.WriteNumber("iterations", 11);
                     writer.WriteNumber("norm_gap", 2.0f);
                     writer.WriteNumber("rel_gap", 2.0f);
                     writer.WriteNumber("scenario_number", 2);
@@ -79,28 +79,28 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteEndArray();
                     writer.WriteStartArray("surface_transit_speeds");
                     writer.WriteStartObject();
-                    writer.WriteNumber("alighting_duration", 1.1219f);
-                    writer.WriteNumber("boarding_duration", 1.9577f);
-                    writer.WriteNumber("default_duration", 7.4331f);
-                    writer.WriteNumber("global_erow_speed", 35f);
+                    writer.WriteNumber("alighting_duration", 1.1f);
+                    writer.WriteNumber("boarding_duration", 1.9f);
+                    writer.WriteNumber("default_duration", 0.1f);
+                    writer.WriteNumber("global_erow_speed", 10f);
                     writer.WriteString("line_filter_expression", "");
                     writer.WriteString("mode_filter_expression", "b");
-                    writer.WriteNumber("transit_auto_correlation", 1.612f);
+                    writer.WriteNumber("transit_auto_correlation", 2.0f);
                     writer.WriteEndObject();
                     writer.WriteEndArray();
                     writer.WriteStartArray("ttf_definitions");
                     writer.WriteStartObject();
-                    writer.WriteNumber("congestion_exponent", 5.972385f);
+                    writer.WriteNumber("congestion_exponent", 1.9f);
                     writer.WriteNumber("congestion_perception", 1);
                     writer.WriteNumber("ttf", 4);
                     writer.WriteEndObject();
                     writer.WriteStartObject();
-                    writer.WriteNumber("congestion_exponent", 5.972385f);
+                    writer.WriteNumber("congestion_exponent", 1.9f);
                     writer.WriteNumber("congestion_perception", 1);
                     writer.WriteNumber("ttf", 2);
                     writer.WriteEndObject();
                     writer.WriteStartObject();
-                    writer.WriteNumber("congestion_exponent", 5.972385f);
+                    writer.WriteNumber("congestion_exponent", 1.9f);
                     writer.WriteNumber("congestion_perception", 1);
                     writer.WriteNumber("ttf", 1);
                     writer.WriteEndObject();
@@ -108,11 +108,11 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("congestion_exponent", "");
                     writer.WriteNumber("assignment_period", 3.0f);
                     writer.WriteString("name_string", "");
-                    writer.WriteBoolean("congested_assignment", false);
+                    writer.WriteBoolean("congested_assignment", true);
                     writer.WriteString("csvfile", "");
                     writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
                     writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
-                    writer.WriteBoolean("surface_transit_speed", true);
+                    writer.WriteBoolean("surface_transit_speed", false);
                     writer.WriteBoolean("walk_all_way_flag", false);
                     writer.WriteString("xrow_ttf_range", "2");
 

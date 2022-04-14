@@ -99,7 +99,7 @@ namespace TMG.Emme.Test
                    writer.WriteStartArray();
                    writer.WriteStartObject();
                    writer.WriteString("label", "transit");
-                   writer.WriteString("filter", "brqmsl");
+                   writer.WriteString("filter", "mode=brqmsl");
                    writer.WriteNumber("initial", 1.0);
                    writer.WriteNumber("transfer", 1.0);
                    writer.WriteNumber("ivttPerception", 1.0);
@@ -132,7 +132,7 @@ namespace TMG.Emme.Test
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteString("network_package_file", filePath);
-                    writer.WriteString("scenario_description", "Test Network");
+                    writer.WriteString("scenario_description", "toolbox2");
                     writer.WriteNumber("scenario_number", scenarioNumber);
                     writer.WriteString("conflict_option", "PRESERVE");
                 }), LogbookLevel.Standard));

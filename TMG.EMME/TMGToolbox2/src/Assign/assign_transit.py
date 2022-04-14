@@ -534,6 +534,9 @@ class AssignTransit(_m.Tool()):
         erow_defined = self._check_attributes_and_get_erow(scenario)
         self._set_up_line_attributes(scenario, parameters, stsu_att)
         ttfs_xrow = self._process_ttfs_xrow(parameters)
+        # TODO: Added for debugging purpose
+        # stsu_debug = scenario.create_extra_attribute("TRANSIT_LINE", "@stsu_debug")
+        # self._set_up_line_attributes(scenario, parameters, stsu_debug)
         network = scenario.get_network()
 
         for line in network.transit_lines():
@@ -677,7 +680,7 @@ class AssignTransit(_m.Tool()):
                         alphas = congested_assignment[1]
                         strategies = congested_assignment[0]
                         network = congested_assignment[2]
-                self._save_results(scenario, parameters, network, alphas, strategies)
+                self._save_results(scenario, parameters, network, alphas, strategies, stsu_att)
                 trace.write(
                     name="TMG Congested Transit Assignment",
                     attributes={"assign_end_time": scenario.transit_assignment_timestamp},
@@ -804,6 +807,7 @@ class AssignTransit(_m.Tool()):
                     )
                     lambdaK = find_step_size[0]
                     alphas = find_step_size[1]
+                    print("iteration %s  lambdaK %s" % (iteration, lambdaK))
                     if parameters["surface_transit_speed"] == True:
                         network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
                     self._update_volumes(network, lambdaK)
@@ -1000,7 +1004,7 @@ class AssignTransit(_m.Tool()):
             except:
                 number_of_door_pairs = 1.0
 
-            for segment in line.segments(include_hidden=False):
+            for segment in line.segments(include_hidden=True):
                 segment_number = segment.number
                 if segment_number > 0 and segment.j_node is not None:
                     segment.transit_alightings = max(
@@ -1021,7 +1025,10 @@ class AssignTransit(_m.Tool()):
                     + (segment["@tstop"] * default_duration)
                 )
                 # in minutes
-                segment_dwell_time = min(segment_dwell_time / 60, 99.98)
+                # segment_dwell_time = min(segment_dwell_time / 60, 99.98)
+                segment_dwell_time /= 60  # minutes
+                if segment_dwell_time >= 99.99:
+                    segment_dwell_time = 99.98
                 alpha = 1 - lambdaK
                 segment.dwell_time = old_dwell * alpha + segment_dwell_time * lambdaK
         data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"])
@@ -1610,6 +1617,7 @@ class AssignTransit(_m.Tool()):
         grad2 += average_min_trip_impedance - average_impedance
         grad3 = self._compute_gradient(parameters, assigned_total_demand, approx3, network)
         grad3 += average_min_trip_impedance - average_impedance
+        print("m_step lambdak")
         for m_steps in range(0, 21):
             h1 = approx2 - approx1
             h2 = approx3 - approx2
@@ -1644,6 +1652,8 @@ class AssignTransit(_m.Tool()):
             grad1 = grad2
             grad2 = grad3
             grad3 = grad
+
+            print(m_steps, lambdaK)
         lambdaK = max(0.0, min(1.0, lambdaK))
         alphas = [a * (1 - lambdaK) for a in alphas]
         alphas.append(lambdaK)
