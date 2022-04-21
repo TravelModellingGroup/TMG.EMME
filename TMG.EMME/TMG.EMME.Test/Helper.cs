@@ -131,7 +131,7 @@ namespace TMG.Emme.Test
                Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
-                    writer.WriteString("network_package_file", filePath);
+                    writer.WriteString("network_package_file", Path.GetFullPath(filePath));
                     writer.WriteString("scenario_description", "toolbox2");
                     writer.WriteNumber("scenario_number", scenarioNumber);
                     writer.WriteString("conflict_option", "PRESERVE");
