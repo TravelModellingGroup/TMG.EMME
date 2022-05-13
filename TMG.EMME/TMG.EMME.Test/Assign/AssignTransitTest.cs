@@ -34,7 +34,7 @@ namespace TMG.Emme.Test.Assign
         {
             Helper.ImportFrabitztownNetwork(2);
             Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
-            Helper.RunAssignTraffic(2, "mf10");
+            Helper.RunAssignTraffic(2, "mf10", 0);
             Helper.RunAssignBoardingPenalty(new[] { 2 });
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
@@ -122,7 +122,7 @@ namespace TMG.Emme.Test.Assign
         {
             Helper.ImportFrabitztownNetwork(2);
             Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
-            Helper.RunAssignTraffic(2, "mf0");
+            Helper.RunAssignTraffic(2, "mf0", 0);
             Helper.RunAssignBoardingPenalty(new[] { 2 });
 
             var walkPerceptions = new[]
