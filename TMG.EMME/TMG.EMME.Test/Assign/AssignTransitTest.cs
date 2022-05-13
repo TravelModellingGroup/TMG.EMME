@@ -36,7 +36,7 @@ namespace TMG.Emme.Test.Assign
             Helper.ImportNetwork(scenarioNumber, "TestFiles/AMTransit.nwp");
             Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/AMTransitMatrix.mtx"));
 
-            // Helper.ImportNetwork(scenarioNumber, "TestFiles/test.nwp");
+            // Helper.ImportNetwork(scenarioNumber, "TestFiles/test_ttf_1.nwp");
             // Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/Test.mtx"));
 
             Helper.RunAssignTraffic(scenarioNumber, "mf10", 11);
@@ -101,11 +101,11 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("ttf", 4);
                     writer.WriteEndObject();
 
-                    // writer.WriteStartObject();
-                    // writer.WriteNumber("congestion_exponent", 1.1f);
-                    // writer.WriteNumber("congestion_perception", 1);
-                    // writer.WriteNumber("ttf", 2);
-                    // writer.WriteEndObject();
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 1.1f);
+                    writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 2);
+                    writer.WriteEndObject();
 
                     writer.WriteStartObject();
                     writer.WriteNumber("congestion_exponent", 1.1f);
