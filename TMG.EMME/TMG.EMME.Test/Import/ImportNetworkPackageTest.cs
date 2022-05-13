@@ -39,8 +39,8 @@ namespace TMG.Emme.Test.Import
             var importModule = new Emme.Import.ImportNetworkPackage()
             {
                 Name = "Importer",
-                ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
-                NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.nwp"), "NWP File Name"),
+                ScenarioNumber = Helper.CreateParameter(3, "Const Number"),
+                NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/AMTransit.nwp"), "EROWNetwork"),
                 ScenarioDescription = Helper.CreateParameter("From XTMF","Description")
             };
             importModule.Invoke(Helper.Modeller);

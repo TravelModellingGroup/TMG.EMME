@@ -227,7 +227,7 @@ namespace TMG.Emme.Test
                 }), LogbookLevel.Standard));
         }
 
-        internal static void RunAssignTraffic(int scenarioNumber, string demandMatrixId)
+        internal static void RunAssignTraffic(int scenarioNumber, string demandMatrixId, int iteration)
         {
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_traffic",
@@ -235,7 +235,7 @@ namespace TMG.Emme.Test
                 {
                     writer.WriteBoolean("background_transit", true);
                     writer.WriteNumber("br_gap", 0);
-                    writer.WriteNumber("iterations", 100);
+                    writer.WriteNumber("iterations", iteration);
                     writer.WriteNumber("norm_gap", 0);
                     writer.WriteBoolean("performance_flag", true);
                     writer.WriteNumber("r_gap", 0);

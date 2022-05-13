@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2021 University of Toronto
+    Copyright 2022 University of Toronto
     This file is part of TMG.EMME for XTMF2.
     TMG.EMME for XTMF2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

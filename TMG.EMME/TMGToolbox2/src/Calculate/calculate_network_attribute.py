@@ -1,6 +1,6 @@
 # ---LICENSE----------------------
 """
-    Copyright 2021 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
