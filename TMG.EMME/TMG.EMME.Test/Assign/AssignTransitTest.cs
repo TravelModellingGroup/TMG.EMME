@@ -32,10 +32,10 @@ namespace TMG.Emme.Test.Assign
         [TestMethod]
         public void AssignTransit()
         {
-            Helper.ImportFrabitztownNetwork(2);
-            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
-            Helper.RunAssignTraffic(2, "mf10", 0);
-            Helper.RunAssignBoardingPenalty(new[] { 2 });
+            Helper.ImportFrabitztownNetwork(1);
+            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            Helper.RunAssignTraffic(1, "mf10", 100);
+            Helper.RunAssignBoardingPenalty(new[] { 1 });
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
                 JSONParameterBuilder.BuildParameters(writer =>
@@ -48,7 +48,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("iterations", 11);
                     writer.WriteNumber("norm_gap", 2.0f);
                     writer.WriteNumber("rel_gap", 2.0f);
-                    writer.WriteNumber("scenario_number", 2);
+                    writer.WriteNumber("scenario_number", 1);
                     writer.WriteNumber("walk_speed", 4.0f);
                     writer.WriteStartArray("transit_classes");
                     writer.WriteStartObject();
@@ -110,7 +110,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteBoolean("congested_assignment", true);
                     writer.WriteString("csvfile", "");
                     writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
-                    writer.WriteBoolean("surface_transit_speed", false);
+                    writer.WriteBoolean("surface_transit_speed", true);
                     writer.WriteBoolean("walk_all_way_flag", false);
                     writer.WriteString("xrow_ttf_range", "2");
 
@@ -120,10 +120,10 @@ namespace TMG.Emme.Test.Assign
         [TestMethod]
         public void AssignTransitModule()
         {
-            Helper.ImportFrabitztownNetwork(2);
-            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
-            Helper.RunAssignTraffic(2, "mf0", 0);
-            Helper.RunAssignBoardingPenalty(new[] { 2 });
+            Helper.ImportFrabitztownNetwork(1);
+            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            Helper.RunAssignTraffic(1, "mf0", 0);
+            Helper.RunAssignBoardingPenalty(new[] { 1 });
 
             var walkPerceptions = new[]
             {
@@ -208,7 +208,7 @@ namespace TMG.Emme.Test.Assign
                 Iterations = Helper.CreateParameter(5),
                 NormalizedGap = Helper.CreateParameter(0.0f),
                 RelativeGap = Helper.CreateParameter(0.0f),
-                ScenarioNumber = Helper.CreateParameter(2),
+                ScenarioNumber = Helper.CreateParameter(1),
                 WalkSpeed = Helper.CreateParameter(4.0f),
                 AssignmentPeriod = Helper.CreateParameter(3.0f),
                 NameString = Helper.CreateParameter(""),

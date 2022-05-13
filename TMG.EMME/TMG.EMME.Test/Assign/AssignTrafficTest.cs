@@ -33,7 +33,7 @@ namespace TMG.Emme.Test.Assign
         public void AssignTraffic()
         {
             Helper.ImportFrabitztownNetwork(1);
-            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
+            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_traffic",
                 JSONParameterBuilder.BuildParameters(writer =>
@@ -84,7 +84,7 @@ namespace TMG.Emme.Test.Assign
         public void AssignTrafficModule()
         {
             Helper.ImportFrabitztownNetwork(1);
-            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
+            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
 
             var pathAnalyses = new[]
             {
