@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2021 University of Toronto
+    Copyright 2022 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -48,7 +48,7 @@ namespace TMG.Emme.Assign
                     writer.WriteNumberValue(scenario);
                 }
                 writer.WriteEndArray();
-                
+
                 writer.WritePropertyName("penalty_filter_string");
                 writer.WriteStartArray();
                 foreach (var penaltyFilter in PenaltyFilterString.Invoke())
