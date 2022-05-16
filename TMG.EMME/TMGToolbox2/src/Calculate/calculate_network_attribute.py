@@ -47,124 +47,73 @@ from multiprocessing import cpu_count
 
 _MODELLER = _m.Modeller()  # Instatiate Modeller once.
 _network_calculation = _m.Modeller().tool("inro.emme.network_calculation.network_calculator")
+_util = _MODELLER.module("tmg2.utilities.general_utilities")
 
 
 class CalculateNetworkAttribute(_m.Tool()):
-    # ---Parameters---
-    scenario_number = _m.Attribute(int)
-    domain = _m.Attribute(int)
-    expression = _m.Attribute(str)
-    node_selection = _m.Attribute(str)
-    link_selection = _m.Attribute(str)
-    transit_line_selection = _m.Attribute(str)
-    result = _m.Attribute(str)
-
     def __init__(self):
         self.scenario = _MODELLER.scenario
 
-    def __call__(
-        self,
-        scenario_number,
-        domain,
-        expression,
-        node_selection,
-        link_selection,
-        transit_line_selection,
-        result,
-    ):
-
-        # self.scenario = _MODELLER.emmebank.scenario(scenario_number)
-        self.domain = domain
-        self.expression = expression
-        self._load_scenario(self.scenario_number)
-
-        self._process_parameters(result, link_selection, node_selection, transit_line_selection)
-
-        # self._report()
-        spec = self.network_calculator_spec()
-
-        report = _network_calculation(spec, self.scenario)
-
-        if "sum" in report:
-            return report["sum"]
-
-        return ""
+    def __call__(self, parameters):
+        scenario = _util.load_scenario(parameters["scenario_number"])
+        try:
+            self._execute(scenario, parameters)
+        except Exception as e:
+            raise Exception(_util.format_reverse_stack())
 
     def run_xtmf(self, parameters):
-        self.scenario_number = parameters["scenario_number"]
-        self.domain = parameters["domain"]
-        self.expression = parameters["expression"]
-        self.node_selection = parameters["node_selection"]
-        self.link_selection = parameters["link_selection"]
-        self.transit_line_selection = parameters["transit_line_selection"]
-        self.result = parameters["result"]
+        scenario = _util.load_scenario(parameters["scenario_number"])
+        try:
+            self._execute(scenario, parameters)
+        except Exception as e:
+            raise Exception(_util.format_reverse_stack())
 
-        # self.scenario = _MODELLER.emmebank.scenario(self.scenario_number)
+    def _execute(self, scenario, parameters):
 
-        self._load_scenario(self.scenario_number)
+        self._process_domains(parameters)
 
-        self._process_parameters(
-            self.result,
-            self.link_selection,
-            self.node_selection,
-            self.transit_line_selection,
-        )
-        spec = self.network_calculator_spec()
+        spec = self.network_calculator_spec(parameters)
 
-        report = _network_calculation(spec, self.scenario)
+        report = _network_calculation(spec, scenario)
 
         if "sum" in report:
             return report["sum"]
-
         return ""
 
-    def network_calculator_spec(self):
+    def network_calculator_spec(self, parameters):
+
         spec = {
-            "result": self.result,
-            "expression": self.expression,
+            "result": parameters["result"],
+            "expression": parameters["expression"],
             "aggregation": None,
             "type": "NETWORK_CALCULATION",
         }
-
         selections = {}
-        if self.node_selection is not None:
-            selections["node"] = self.node_selection
-        if self.link_selection is not None:
-            selections["link"] = self.link_selection
-        if self.transit_line_selection is not None:
-            selections["transit_line"] = self.transit_line_selection
+        if parameters["node_selection"] is not None:
+            selections["node"] = parameters["node_selection"]
+        if parameters["link_selection"] is not None:
+            selections["link"] = parameters["link_selection"]
+        if parameters["transit_line_selection"] is not None:
+            selections["transit_line"] = parameters["transit_line_selection"]
         if len(selections) == 0:
             selections["node"] = "all"
         spec["selections"] = selections
 
         return spec
 
-    def _load_scenario(self, scenario_number):
-        scenario = _MODELLER.emmebank.scenario(scenario_number)
-        if scenario is None:
-            raise Exception("Scenario %s was not found!" % scenario_number)
+    def _process_domains(self, parameters):
 
-        return scenario
+        if parameters["result"] is None or parameters["result"] == "None":
+            parameters["result"] = None
 
-    def _process_parameters(self, result, link_selection, node_selection, transit_line_selection):
-        if self.result is not None and self.result != "None":
-            self.result = result
-        else:
-            self.result = None
-
-        if self.domain == 0:  # Link
-            self.node_selection = None
-            self.link_selection = link_selection
-            self.transit_line_selection = None
-        elif self.domain == 1:  # Node
-            self.node_selection = node_selection
-            self.link_selection = None
-            self.transit_line_selection = None
-        elif self.domain == 2:  # transit line
-            self.node_selection = None
-            self.link_selection = None
-            self.transit_line_selection = transit_line_selection
-        elif self.domain == 3:  # transit segment
-            self.node_selection = None
-            self.link_selection = link_selection
-            self.transit_line_selection = transit_line_selection
+        if parameters["domain"] == 0:  # Link
+            parameters["node_selection"] = None
+            parameters["transit_line_selection"] = None
+        elif parameters["domain"] == 1:  # Node
+            parameters["link_selection"] = None
+            parameters["transit_line_selection"] = None
+        elif parameters["domain"] == 2:  # transit line
+            parameters["node_selection"] = None
+            parameters["link_selection"] = None
+        elif parameters["domain"] == 3:  # transit segment
+            parameters["node_selection"] = None
