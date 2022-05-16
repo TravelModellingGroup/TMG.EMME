@@ -34,7 +34,8 @@ namespace TMG.Emme.Test.Calculate
         public void CalculateNetworkAttributeLink()
         {
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute", JSONParameterBuilder.BuildParameters(writer =>
+                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute",
+                JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("scenario_number", 1);
                     writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.Link);
@@ -64,7 +65,8 @@ namespace TMG.Emme.Test.Calculate
         public void NetworkCalculatorNode()
         {
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute", JSONParameterBuilder.BuildParameters(writer =>
+                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute",
+                JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("scenario_number", 1);
                     writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.Node);
@@ -94,7 +96,8 @@ namespace TMG.Emme.Test.Calculate
         public void NetworkCalculatorTransitLine()
         {
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute", JSONParameterBuilder.BuildParameters(writer =>
+                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute",
+                JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("scenario_number", 1);
                     writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.TransitLine);
@@ -124,7 +127,8 @@ namespace TMG.Emme.Test.Calculate
         public void NetworkCalculatorTransitSegment()
         {
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute", JSONParameterBuilder.BuildParameters(writer =>
+                Helper.Modeller.Run(null, "tmg2.Calculate.calculate_network_attribute",
+                JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("scenario_number", 1);
                     writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.TransitSegment);
