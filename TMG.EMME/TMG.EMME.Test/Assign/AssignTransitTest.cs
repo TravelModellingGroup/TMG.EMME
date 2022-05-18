@@ -32,15 +32,11 @@ namespace TMG.Emme.Test.Assign
         [TestMethod]
         public void AssignTransit()
         {
-            const int scenarioNumber = 7;
-            Helper.ImportNetwork(scenarioNumber, "TestFiles/AMTransit.nwp");
-            Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/AMTransitMatrix.mtx"));
-
-            // Helper.ImportNetwork(scenarioNumber, "TestFiles/test_ttf_1.nwp");
-            // Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/Test.mtx"));
-
+            const int scenarioNumber = 2;
+            Helper.ImportNetwork(scenarioNumber, "TestFiles/Test.nwp");
+            Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
             Helper.RunAssignTraffic(scenarioNumber, "mf10", 11);
-            Helper.RunAssignBoardingPenalty(new[] { 4 });
+            Helper.RunAssignBoardingPenalty(new[] { scenarioNumber });
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
                 JSONParameterBuilder.BuildParameters(writer =>
@@ -98,7 +94,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteStartObject();
                     writer.WriteNumber("congestion_exponent", 1.1f);
                     writer.WriteNumber("congestion_perception", 1);
-                    writer.WriteNumber("ttf", 4);
+                    writer.WriteNumber("ttf", 1);
                     writer.WriteEndObject();
 
                     writer.WriteStartObject();
@@ -110,25 +106,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteStartObject();
                     writer.WriteNumber("congestion_exponent", 1.1f);
                     writer.WriteNumber("congestion_perception", 1);
-                    writer.WriteNumber("ttf", 1);
-                    writer.WriteEndObject();
-
-                    writer.WriteStartObject();
-                    writer.WriteNumber("congestion_exponent", 1.1f);
-                    writer.WriteNumber("congestion_perception", 1);
-                    writer.WriteNumber("ttf", 3);
-                    writer.WriteEndObject();
-
-                    writer.WriteStartObject();
-                    writer.WriteNumber("congestion_exponent", 1.1f);
-                    writer.WriteNumber("congestion_perception", 1);
-                    writer.WriteNumber("ttf", 5);
-                    writer.WriteEndObject();
-
-                    writer.WriteStartObject();
-                    writer.WriteNumber("congestion_exponent", 1.1f);
-                    writer.WriteNumber("congestion_perception", 1);
-                    writer.WriteNumber("ttf", 6);
+                    writer.WriteNumber("ttf", 4);
                     writer.WriteEndObject();
 
                     // writer.WriteStartObject();
