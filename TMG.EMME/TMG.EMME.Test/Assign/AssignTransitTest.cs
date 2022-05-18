@@ -29,16 +29,15 @@ namespace TMG.Emme.Test.Assign
     [TestClass]
     public class AssignTransitTest : TestBase
     {
-        [TestMethod]
-        public void AssignTransit()
+
+        private static void RunAssignTransitToolPipeline(string toolNamespace, int scenarioNumber)
         {
-            const int scenarioNumber = 2;
             Helper.ImportNetwork(scenarioNumber, "TestFiles/Test.nwp");
             Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
             Helper.RunAssignTraffic(scenarioNumber, "mf10", 11);
             Helper.RunAssignBoardingPenalty(new[] { scenarioNumber });
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
+                Helper.Modeller.Run(null, toolNamespace,
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteBoolean("calculate_congested_ivtt_flag", true);
@@ -109,18 +108,6 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("ttf", 4);
                     writer.WriteEndObject();
 
-                    // writer.WriteStartObject();
-                    // writer.WriteNumber("congestion_exponent", 1.1f);
-                    // writer.WriteNumber("congestion_perception", 1);
-                    // writer.WriteNumber("ttf", 14);
-                    // writer.WriteEndObject();
-
-                    // writer.WriteStartObject();
-                    // writer.WriteNumber("congestion_exponent", 1.1f);
-                    // writer.WriteNumber("congestion_perception", 1);
-                    // writer.WriteNumber("ttf", 12);
-                    // writer.WriteEndObject();
-
                     writer.WriteEndArray();
                     writer.WriteNumber("assignment_period", 3.0f);
                     writer.WriteString("name_string", "");
@@ -132,8 +119,15 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("xrow_ttf_range", "2,6");
 
                 }), LogbookLevel.Standard));
-
         }
+
+        [TestMethod]
+        public void AssignTransit()
+        {
+            RunAssignTransitToolPipeline("tmg2.Assign.assign_transit", 2);
+            RunAssignTransitToolPipeline("tmg2.Assign.assign_transit_old", 7);
+        }
+
         [TestMethod]
         public void AssignTransitModule()
         {

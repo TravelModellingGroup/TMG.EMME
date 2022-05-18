@@ -1,8 +1,6 @@
-from __future__ import print_function
-import re
-
+# ---LICENSE----------------------
 """
-    Copyright 2017 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -19,664 +17,367 @@ import re
     You should have received a copy of the GNU General Public License
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+# ---METADATA---------------------
+"""
+TMG Transit Assignment Tool
+    Executes a multi-class congested transit assignment procedure for GTAModel V4.0+. 
+
+    Hard-coded assumptions: 
+    -  Boarding penalties are assumed stored in UT3
+    -  The congestion term is stored in US3
+    -  In-vehicle time perception is 1.0
+    -  Unless specified, all available transit modes will be used.
+    
+    This tool is only compatible with Emme 4.2 and later versions
+
+    Authors: Eric Miller
+
+    Latest revision by: WilliamsDiogu
+    
+    Executes a transit assignment which allows for surface transit speed updating.
+    
+    V 1.0.0 
+
+    V 2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2021-12-15 by williamsDiogu   
+
+    V 2.0.1 Updated to receive JSON object parameters from XTMX2
+
+    V 2.0.2 Updated to receive JSON file parameters from Python API call
+"""
+import enum
+import math
 import traceback as _traceback
 import time as _time
-import math
-from contextlib import contextmanager
-from multiprocessing import cpu_count
-from re import split as _regex_split
-from json import loads as _parsedict
+import multiprocessing
+
+from numpy import percentile
 import inro.modeller as _m
 import csv
+from contextlib import contextmanager
 
-# import six library for python2 to python3 conversion
-import six
-
-
+_m.TupleType = object
+_m.ListType = list
+_m.InstanceType = object
 _trace = _m.logbook_trace
+_write = _m.logbook_write
 _MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
-_util = _MODELLER.module("tmg.common.utilities")
-_util2 = _MODELLER.module("tmg2.utilities.general_utilities")
-# initialize python3 types
-_util.initalizeModellerTypes(_m)
-_tmgTPB = _MODELLER.module("tmg.common.TMG_tool_page_builder")
-_netEdit = _MODELLER.module("tmg.common.network_editing")
-# congestedAssignmentTool = _MODELLER.tool('inro.emme.transit_assignment.congested_transit_assignment')
-_dbUtils = _MODELLER.module("inro.emme.utility.database_utilities")
-extendedAssignmentTool = _MODELLER.tool("inro.emme.transit_assignment.extended_transit_assignment")
-networkCalcTool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
-networkResultsTool = _MODELLER.tool("inro.emme.transit_assignment.extended.network_results")
-matrixResultsTool = _MODELLER.tool("inro.emme.transit_assignment.extended.matrix_results")
-strategyAnalysisTool = _MODELLER.tool("inro.emme.transit_assignment.extended.strategy_based_analysis")
-matrixCalcTool = _MODELLER.tool("inro.emme.matrix_calculation.matrix_calculator")
-NullPointerException = _util.NullPointerException
-EMME_VERSION = _util.getEmmeVersion(tuple)
+_util = _MODELLER.module("tmg2.utilities.general_utilities")
+_db_utils = _MODELLER.module("inro.emme.utility.database_utilities")
+_tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
+network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
+extended_assignment_tool = _MODELLER.tool("inro.emme.transit_assignment.extended_transit_assignment")
+matrix_calc_tool = _MODELLER.tool("inro.emme.matrix_calculation.matrix_calculator")
+matrix_results_tool = _MODELLER.tool("inro.emme.transit_assignment.extended.matrix_results")
+strategy_analysis_tool = _MODELLER.tool("inro.emme.transit_assignment.extended.strategy_based_analysis")
+net_edit = _MODELLER.module("tmg2.utilities.network_editing")
+null_pointer_exception = _util.null_pointer_exception
+EMME_VERSION = _util.get_emme_version(tuple)
 
 
-class TransitAssignmentTool(_m.Tool()):
-    version = "1.0.0"
+class AssignTransit(_m.Tool()):
+    version = "2.0.0"
     tool_run_msg = ""
     number_of_tasks = 15
 
-    WalkPerception = _m.Attribute(str)
-    Scenario = _m.Attribute(_m.InstanceType)
-    DemandMatrixList = _m.Attribute(_m.ListType)
-    ClassNames = _m.Attribute(list)
-    HeadwayFractionAttributeId = _m.Attribute(str)
-    EffectiveHeadwayAttributeId = _m.Attribute(str)
-    WalkSpeed = _m.Attribute(float)
-
-    # ---- class-specific inputs
-    # perception values
-    ClassWaitPerceptionList = _m.Attribute(list)
-    ClassBoardPerceptionList = _m.Attribute(list)
-    ClassFarePerceptionList = _m.Attribute(list)
-    WalkPerceptionList = _m.Attribute(list)
-
-    xtmf_ClassWaitPerceptionString = _m.Attribute(str)
-    xtmf_ClassBoardPerceptionString = _m.Attribute(str)
-    xtmf_ClassFarePerceptionString = _m.Attribute(str)
-    xtmf_WalkPerceptionString = _m.Attribute(str)
-
-    # attributes
-    LinkFareAttributeIdList = _m.Attribute(list)
-    SegmentFareAttributeIdList = _m.Attribute(list)
-    WalkAttributeIdList = _m.Attribute(list)
-
-    xtmf_LinkFareAttributeIdString = _m.Attribute(str)
-    xtmf_SegmentFareAttributeIdString = _m.Attribute(str)
-    xtmf_WalkPerceptionAttributeIdString = _m.Attribute(str)
-
-    # modes
-    xtmf_ClassModeList = _m.Attribute(str)
-    # -----
-
-    # ----LOS outputs (by class)
-    InVehicleTimeMatrixList = _m.Attribute(list)
-    WaitTimeMatrixList = _m.Attribute(list)
-    WalkTimeMatrixList = _m.Attribute(list)
-    FareMatrixList = _m.Attribute(list)
-    CongestionMatrixList = _m.Attribute(list)
-    PenaltyMatrixList = _m.Attribute(list)
-
-    xtmf_InVehicleTimeMatrixString = _m.Attribute(str)
-    xtmf_WaitTimeMatrixString = _m.Attribute(str)
-    xtmf_WalkTimeMatrixString = _m.Attribute(str)
-    xtmf_FareMatrixString = _m.Attribute(str)
-    xtmf_CongestionMatrixString = _m.Attribute(str)
-    xtmf_PenaltyMatrixString = _m.Attribute(str)
-    xtmf_ImpedanceMatrixString = _m.Attribute(str)
-
-    # -----
-
-    CalculateCongestedIvttFlag = _m.Attribute(bool)
-    CongestionExponentString = _m.Attribute(str)
-    EffectiveHeadwaySlope = _m.Attribute(float)
-    AssignmentPeriod = _m.Attribute(float)
-    Iterations = _m.Attribute(int)
-    NormGap = _m.Attribute(float)
-    RelGap = _m.Attribute(float)
-    xtmf_ScenarioNumber = _m.Attribute(int)
-    xtmf_DemandMatrixString = _m.Attribute(str)
-    xtmf_NameString = _m.Attribute(str)
-    xtmf_congestedAssignment = _m.Attribute(bool)
-    xtmf_CSVFile = _m.Attribute(str)
-
-    xtmf_OriginDistributionLogitScale = _m.Attribute(float)
-    xtmf_WalkDistributionLogitScale = _m.Attribute(float)
-
-    xtmf_SurfaceTransitSpeed = _m.Attribute(str)
-    xtmf_WalkAllWayFlag = _m.Attribute(str)
-
-    xtmf_XRowTTFRange = _m.Attribute(str)
-    xtmf_NodeLogitScale = _m.Attribute(float)
-
-    if EMME_VERSION >= (4, 1):
-        NumberOfProcessors = _m.Attribute(int)
-
     def __init__(self):
-        self.TRACKER = _util.ProgressTracker(self.number_of_tasks)
-        self.Scenario = _MODELLER.scenario
-        self.DemandMatrixList = [_bank.matrix("mf91")]
-        self.ClassNames = [""]
-
-        # attribute IDs
-        self.LinkFareAttributeIdList = ["@lfare"]
-        self.SegmentFareAttributeIdList = ["@sfare"]
-        self.HeadwayFractionAttributeId = "@frac"
-        self.EffectiveHeadwayAttributeId = "@ehdw"
-        self.WalkAttributeIdList = ["@walkp"]
-
-        self.CalculateCongestedIvttFlag = True
-        self.WalkPerception = "1.8:i=10000,20000 or j=10000,20000 or i=97000,98000 or j=97000,98000 \n3.534:i=20000,90000 or j=20000,90000 \n1.14:type=101\n2.26:i=0,1000 or j=0,1000\n1.12:i=1000,7000 or j=1000,7000\n1:mode=t and i=97000,98000 and j=97000,98000\n0:i=9700,10000 or j=9700,10000"
-        self.WalkSpeed = 4
-
-        # class-specific inputs
-        self.ClassWaitPerceptionList = [3.534]
-        self.ClassBoardPerceptionList = [1.0]
-        self.ClassFarePerceptionList = [10.694]
-        self.ClassModeList = []
-
-        lines = ["1: 0.41: 1.62", "2: 0.41: 1.62", "3: 0.41: 1.62", "4: 0.41: 1.62", "5: 0.41: 1.62"]
-        self.CongestionExponentString = "\n".join(lines)
-        self.EffectiveHeadwaySlope = 0.2
-        self.AssignmentPeriod = 3.00
-        self.NormGap = 0
-        self.RelGap = 0
-        self.Iterations = 5
-        if EMME_VERSION >= (4, 1):
-            self.NumberOfProcessors = cpu_count()
-        self._useLogitConnectorChoice = True
-        self.xtmf_OriginDistributionLogitScale = 0.2
-        self._connectorLogitTruncation = 0.05
-        self._useLogitAuxTrChoice = False
-        self.xtmf_WalkDistributionLogitScale = 0.2
-        self._auxTrLogitTruncation = 0.05
-        self._useMultiCore = False
-        self._congestionFunctionType = "CONICAL"
-        self._considerTotalImpedance = True
+        self._tracker = _util.progress_tracker(self.number_of_tasks)
+        self.number_of_processors = multiprocessing.cpu_count()
+        self.connector_logit_truncation = 0.05
+        self.consider_total_impedance = True
+        self.use_logit_connector_choice = True
 
     def page(self):
         if EMME_VERSION < (4, 1, 5):
             raise ValueError("Tool not compatible. Please upgrade to version 4.1.5+")
-        pb = _tmgTPB.TmgToolPageBuilder(
+        pb = _tmg_tpb.TmgToolPageBuilder(
             self,
             title="Multi-Class Transit Assignment v%s" % self.version,
             description="Executes a congested transit assignment procedure\
-                                        for GTAModel V4.0.\
-                                        <br><br><b>Cannot be called from Modeller.</b>\
-                                        <br><br>Hard-coded assumptions:\
-                                        <ul><li> Boarding penalties are assumed stored in <b>UT3</b></li>\
-                                        <li> The congestion term is stored in <b>US3</b></li>\
-                                        <li> In-vehicle time perception is 1.0</li>\
-                                        <li> All available transit modes will be used.</li>\
-                                        </ul>\
-                                        <font color='red'>This tool is only compatible with Emme 4.1.5 and later versions</font>",
+                        for GTAModel V4.0.\
+                        <br><br><b>Cannot be called from Modeller.</b>\
+                        <br><br>Hard-coded assumptions:\
+                        <ul><li> Boarding penalties are assumed stored in <b>UT3</b></li>\
+                        <li> The congestion term is stored in <b>US3</b></li>\
+                        <li> In-vehicle time perception is 1.0</li>\
+                        <li> All available transit modes will be used.</li>\
+                        </ul>\
+                        <font color='red'>This tool is only compatible with Emme 4.1.5 and later versions</font>",
             runnable=False,
             branding_text="- TMG Toolbox",
         )
-
         return pb.render()
 
-    def run(self):
-        raise Exception("This tool can not be called from Modeller.")
-        self.tool_run_msg = _m.PageBuilder.format_info("Can not be executed from modeller.")
-
-
-    def create_parameter_list_string(self, parameters, outer_name, inner_name):
-        '''
-        DELETE ME AFTER FINISHING THE CONVERSION
-        '''
-        acc = None
-        for c in parameters[outer_name]:
-            acc = (acc + "," + str(c[inner_name])) if acc is not None else str(c[inner_name])
-        return acc if acc is not None else ""
-
-    def create_walk_perception_string(self, parameters):
-        '''
-        DELETE ME AFTER FINISHING THE CONVERSION
-        '''
-        '''
-        From XTMF1
-        walkPerception = string.Join(";", walkPerception, string.Join("::", c.WalkPerceptions.Select(walk => Controller.ToEmmeFloat(walk.WalkValue) + ":" + walk.LineFilter)));
-        '''
-        acc = None
-        for c in parameters["transit_classes"]:
-            inner_acc = None
-            for w in c["walk_perceptions"]:
-                inner_acc = (inner_acc + "::" + str(w["walk_perception_value"]) + ":" + w["filter"]) if inner_acc is not None else \
-                     str(w["walk_perception_value"]) + ":" + w["filter"]
-                
-            acc = (acc + ";" + inner_acc) if acc is not None else inner_acc
-        return "\"" + acc + "\""
-
-    def create_congestion_exponent_string(self, parameters):
-        '''
-        DELETE ME AFTER FINISHING THE CONVERSION
-        '''
-        acc = None
-        def extract_ttf(ttf):
-            return str(ttf["ttf"]) + ":" + str(ttf["congestion_perception"]) + ":" + str(ttf["congestion_exponent"])
-        for ttf in parameters["ttf_definitions"]:
-            acc = (acc + "," + extract_ttf(ttf)) if acc is not None else extract_ttf(ttf)
-        return acc if acc is not None else ""
-
-    def create_surface_transit_speed(self, parameters):
-        acc = None
-        def extract_stsu(stsu):
-            return str(stsu["boarding_duration"]) + ":" \
-                + str(stsu["alighting_duration"]) + ":" \
-                + str(stsu["default_duration"])  + ":" \
-                + str(stsu["transit_auto_correlation"]) + ":" \
-                + stsu["mode_filter_expression"] + ":" \
-                + stsu["line_filter_expression"] + ":" \
-                + str(stsu["global_erow_speed"])
-        for stsu in parameters["surface_transit_speeds"]:
-            acc = (acc + "," + extract_stsu(stsu) if acc is not None else extract_stsu(stsu))
-        return acc if acc is not None else "False"
-
+    def __call__(self, parameters):
+        scenario = _util.load_scenario(parameters["scenario_number"])
+        try:
+            self._execute(scenario, parameters)
+        except Exception as e:
+            raise Exception(_util.format_reverse_stack())
 
     def run_xtmf(self, parameters):
+        scenario = _util.load_scenario(parameters["scenario_number"])
         try:
-            # Convert the parameters and call into the XTMF1 logic
-            self.__call__(parameters["scenario_number"],
-                         self.create_parameter_list_string(parameters, "transit_classes", "demand_matrix"),
-                         self.create_parameter_list_string(parameters, "transit_classes", "name"),
-                         parameters["walk_speed"],
-                         self.create_walk_perception_string(parameters),
-                         self.create_parameter_list_string(parameters, "transit_classes", "walk_time_perception_attribute"), # xtmf_WalkPerceptionAttributeIdString
-                         self.create_parameter_list_string(parameters, "transit_classes", "wait_time_perception"), #xtmf_ClassWaitPerceptionString,
-                         self.create_parameter_list_string(parameters, "transit_classes", "board_penalty_perception"),#xtmf_ClassBoardPerceptionString,
-                         self.create_parameter_list_string(parameters, "transit_classes", "fare_perception"),#xtmf_ClassFarePerceptionString,
-                         self.create_parameter_list_string(parameters, "transit_classes", "mode"),#xtmf_ClassModeList,
-                         parameters["headway_fraction_attribute"],#HeadwayFractionAttributeId,
-                         self.create_parameter_list_string(parameters, "transit_classes", "link_fare_attribute_id"),#xtmf_LinkFareAttributeIdString,
-                         self.create_parameter_list_string(parameters, "transit_classes", "segment_fare_attribute"),#xtmf_SegmentFareAttributeIdString,
-                         parameters["effective_headway_attribute"],#EffectiveHeadwayAttributeId,
-                         parameters["effective_headway_slope"],#EffectiveHeadwaySlope,
-                         parameters["assignment_period"],#AssignmentPeriod,
-                         parameters["iterations"],#Iterations,
-                         parameters["norm_gap"],#NormGap,
-                         parameters["rel_gap"],#RelGap,
-                         self.create_parameter_list_string(parameters, "transit_classes", "in_vehicle_time_matrix"),#xtmf_InVehicleTimeMatrixString,
-                         self.create_parameter_list_string(parameters, "transit_classes", "wait_time_matrix"),#xtmf_WaitTimeMatrixString,
-                         self.create_parameter_list_string(parameters, "transit_classes", "walk_time_matrix"),#xtmf_WalkTimeMatrixString,
-                         self.create_parameter_list_string(parameters, "transit_classes", "fare_matrix"),#xtmf_FareMatrixString,
-                         self.create_parameter_list_string(parameters, "transit_classes", "congestion_matrix"),#xtmf_CongestionMatrixString,
-                         self.create_parameter_list_string(parameters, "transit_classes", "board_penalty_matrix"),#xtmf_PenaltyMatrixString,
-                         self.create_parameter_list_string(parameters, "transit_classes", "impedance_matrix"),#xtmf_ImpedanceMatrixString,
-                         parameters["origin_distribution_logit_scale"],#xtmf_OriginDistributionLogitScale,
-                         parameters["congested_assignment"],#CalculateCongestedIvttFlag,
-                         self.create_congestion_exponent_string(parameters),#CongestionExponentString,
-                         parameters["congested_assignment"], #xtmf_congestedAssignment,
-                         parameters["csvfile"] if parameters["csvfile"] != "" else "none", #xtmf_CSVFile,
-                         self.create_surface_transit_speed(parameters) ,#xtmf_SurfaceTransitSpeed,
-                         str(parameters["walk_all_way_flag"]), #xtmf_WalkAllWayFlag,
-                         parameters["xrow_ttf_range"], #xtmf_XRowTTFRange,
-                          parameters["node_logit_scale"], #xtmf_NodeLogitScale,
-                         )
+            self._execute(scenario, parameters)
         except Exception as e:
-            raise Exception(_util2.format_reverse_stack())
+            raise Exception(_util.format_reverse_stack())
 
-    def __call__(
-        self,
-        xtmf_ScenarioNumber,
-        xtmf_DemandMatrixString,
-        xtmf_NameString,
-        WalkSpeed,
-        xtmf_WalkPerceptionString,
-        xtmf_WalkPerceptionAttributeIdString,
-        xtmf_ClassWaitPerceptionString,
-        xtmf_ClassBoardPerceptionString,
-        xtmf_ClassFarePerceptionString,
-        xtmf_ClassModeList,
-        HeadwayFractionAttributeId,
-        xtmf_LinkFareAttributeIdString,
-        xtmf_SegmentFareAttributeIdString,
-        EffectiveHeadwayAttributeId,
-        EffectiveHeadwaySlope,
-        AssignmentPeriod,
-        Iterations,
-        NormGap,
-        RelGap,
-        xtmf_InVehicleTimeMatrixString,
-        xtmf_WaitTimeMatrixString,
-        xtmf_WalkTimeMatrixString,
-        xtmf_FareMatrixString,
-        xtmf_CongestionMatrixString,
-        xtmf_PenaltyMatrixString,
-        xtmf_ImpedanceMatrixString,
-        xtmf_OriginDistributionLogitScale,
-        CalculateCongestedIvttFlag,
-        CongestionExponentString,
-        xtmf_congestedAssignment,
-        xtmf_CSVFile,
-        xtmf_SurfaceTransitSpeed,
-        xtmf_WalkAllWayFlag,
-        xtmf_XRowTTFRange,
-        xtmf_NodeLogitScale,
-    ):
-        print(xtmf_ScenarioNumber)
-        print(xtmf_DemandMatrixString)
-        print(xtmf_NameString)
-        print(WalkSpeed)
-        print(xtmf_WalkPerceptionString)
-        print(xtmf_WalkPerceptionAttributeIdString)
-        print(xtmf_ClassWaitPerceptionString)
-        print(xtmf_ClassBoardPerceptionString)
-        print(xtmf_ClassFarePerceptionString)
-        print(xtmf_ClassModeList)
-        print(HeadwayFractionAttributeId)
-        print(xtmf_LinkFareAttributeIdString)
-        print(xtmf_SegmentFareAttributeIdString)
-        print(EffectiveHeadwayAttributeId)
-        print(EffectiveHeadwaySlope)
-        print(AssignmentPeriod)
-        print(Iterations)
-        print(NormGap)
-        print(RelGap)
-        print(xtmf_InVehicleTimeMatrixString)
-        print(xtmf_WaitTimeMatrixString)
-        print(xtmf_WalkTimeMatrixString)
-        print(xtmf_FareMatrixString)
-        print(xtmf_CongestionMatrixString)
-        print(xtmf_PenaltyMatrixString)
-        print(xtmf_ImpedanceMatrixString)
-        print(xtmf_OriginDistributionLogitScale)
-        print(CalculateCongestedIvttFlag)
-        print(CongestionExponentString)
-        print(xtmf_congestedAssignment)
-        print(xtmf_CSVFile)
-        print(xtmf_SurfaceTransitSpeed)
-        print(xtmf_WalkAllWayFlag)
-        print(xtmf_XRowTTFRange)
-        print(xtmf_NodeLogitScale)
-
-        if EMME_VERSION < (4, 1, 5):
-            raise Exception("Tool not compatible. Please upgrade to version 4.1.5+")
-
-        self.EffectiveHeadwayAttributeId = EffectiveHeadwayAttributeId
-        self.HeadwayFractionAttributeId = HeadwayFractionAttributeId
-        self.CalculateCongestedIvttFlag = CalculateCongestedIvttFlag
-        self.EffectiveHeadwaySlope = EffectiveHeadwaySlope
-        self.CongestionExponentString = CongestionExponentString
-        self.xtmf_OriginDistributionLogitScale = xtmf_OriginDistributionLogitScale
-        self.AssignmentPeriod = AssignmentPeriod
-        self.Iterations = Iterations
-        self.NormGap = NormGap
-        self.RelGap = RelGap
-        self.xtmf_congestedAssignment = xtmf_congestedAssignment
-        self.ClassNames = [x for x in xtmf_NameString.split(",")]
-
-        if xtmf_SurfaceTransitSpeed.lower() == "false" or xtmf_SurfaceTransitSpeed == "":
-            self.SurfaceTransitSpeed = False
-        else:
-            self.SurfaceTransitSpeed = [x for x in xtmf_SurfaceTransitSpeed.split(",")]
-
-        if str(xtmf_WalkAllWayFlag).lower() == "true":
-            self.WalkAllWayFlag = True
-        else:
-            self.WalkAllWayFlag = False
-
-        # class-specific inputs
-        self.ClassWaitPerceptionList = [
-            float(x.strip("'").strip('"')) for x in xtmf_ClassWaitPerceptionString.split(",")
-        ]
-        self.ClassBoardPerceptionList = [
-            float(x.strip("'").strip('"')) for x in xtmf_ClassBoardPerceptionString.split(",")
-        ]
-        self.ClassFarePerceptionList = [
-            float(x.strip("'").strip('"')) for x in xtmf_ClassFarePerceptionString.split(",")
-        ]
-
-        self.ttfs_xrow = set()
-        xtmf_XRowTTFRange = xtmf_XRowTTFRange.split(",")
-        for ttf_range in xtmf_XRowTTFRange:
-            if "-" in ttf_range:
-                ttf_range = ttf_range.split("-")
-                for i in range(int(ttf_range[0]), int(ttf_range[1]) + 1):
-                    self.ttfs_xrow.add(int(i))
-            else:
-                self.ttfs_xrow.add(int(ttf_range))
-
-        self.LinkFareAttributeIdList = xtmf_LinkFareAttributeIdString.split(",")
-        self.SegmentFareAttributeIdList = xtmf_SegmentFareAttributeIdString.split(",")
-
-        xtmf_WalkPerceptionString = xtmf_WalkPerceptionString.strip("'").strip('"')
-
-        if xtmf_WalkPerceptionString is not None:
-            xtmf_WalkPerceptionString = xtmf_WalkPerceptionString.replace("::", "\n")
-            self.WalkPerceptionList = xtmf_WalkPerceptionString.split(";")
-        if xtmf_WalkPerceptionAttributeIdString is not None:
-            self.WalkAttributeIdList = xtmf_WalkPerceptionAttributeIdString.split(",")
-
-        self.Scenario = _bank.scenario(xtmf_ScenarioNumber)
-        if self.Scenario is None:
-            raise Exception("Scenario %s was not found!" % xtmf_ScenarioNumber)
-
-        aux_mode_chars = ""
-        for mode in self.Scenario.modes():
-            if mode.type == "AUX_TRANSIT":
-                aux_mode_chars += mode.id
-
-        self.ClassModeList = [
-            ["*"] if "*" in x else list(set(x + aux_mode_chars)) for x in xtmf_ClassModeList.split(",")
-        ]
-
-        self.DemandMatrixList = []
-        for demandMatrix in xtmf_DemandMatrixString.split(","):
-            if _bank.matrix(demandMatrix) is None:
-                raise Exception("Matrix %s was not found!" % demandMatrix)
-            else:
-                self.DemandMatrixList.append(_bank.matrix(demandMatrix))
-
-        for walk in self.WalkAttributeIdList:
-            if self.Scenario.extra_attribute(walk) is None:
-                raise Exception("Walk perception attribute %s does not exist" % walk)
-        if self.Scenario.extra_attribute(self.HeadwayFractionAttributeId) is None:
-            raise Exception("Headway fraction attribute %s does not exist" % self.HeadwayFractionAttributeId)
-        if self.Scenario.extra_attribute(self.EffectiveHeadwayAttributeId) is None:
-            raise Exception("Effective headway attribute %s does not exist" % self.EffectiveHeadwayAttributeId)
-        for id in self.LinkFareAttributeIdList:
-            if self.Scenario.extra_attribute(id) is None:
-                raise Exception("Link fare attribute %s does not exist" % id)
-        for id in self.SegmentFareAttributeIdList:
-            if self.Scenario.extra_attribute(id) is None:
-                raise Exception("Segment fare attribute %s does not exist" % id)
-        if xtmf_InVehicleTimeMatrixString:
-            self.InVehicleTimeMatrixList = xtmf_InVehicleTimeMatrixString.split(",")
-        if xtmf_WaitTimeMatrixString:
-            self.WaitTimeMatrixList = xtmf_WaitTimeMatrixString.split(",")
-        if xtmf_WalkTimeMatrixString:
-            self.WalkTimeMatrixList = xtmf_WalkTimeMatrixString.split(",")
-        if xtmf_FareMatrixString:
-            self.FareMatrixList = xtmf_FareMatrixString.split(",")
-        if xtmf_CongestionMatrixString:
-            self.CongestionMatrixList = xtmf_CongestionMatrixString.split(",")
-        if xtmf_PenaltyMatrixString:
-            self.PenaltyMatrixList = xtmf_PenaltyMatrixString.split(",")
-        if xtmf_ImpedanceMatrixString:
-            self.ImpedanceMatrixList = xtmf_ImpedanceMatrixString.split(",")
-
-        if float(xtmf_NodeLogitScale) == 1:
-            self.NodeLogitScale = False
-        else:
-            self.NodeLogitScale = float(xtmf_NodeLogitScale)
-
-        if xtmf_CSVFile.lower() == "none":
-            self.CSVFile = None
-        else:
-            self.CSVFile = xtmf_CSVFile
-        print("Starting Transit Assignment")
-        try:
-            self._Execute()
-        except Exception as e:
-            raise Exception(_util.formatReverseStack())
-        print("Finished Transit Assignment")
-
-    def _Execute(self):
+    def _execute(self, scenario, parameters):
+        load_input_matrix_list = self._load_input_matrices(parameters, "demand_matrix")
+        load_output_matrix_dict = self._load_output_matrices(
+            parameters,
+            matrix_name=[
+                "in_vehicle_time_matrix",
+                "congestion_matrix",
+                "walk_time_matrix",
+                "wait_time_matrix",
+                "fare_matrix",
+                "board_penalty_matrix",
+            ],
+        )
         with _trace(
-            name="{classname} v{version}".format(classname=self.__class__.__name__, version=self.version),
-            attributes=self._GetAtts(),
+            name="(%s v%s)" % (self.__class__.__name__, self.version),
+            attributes=self._load_atts(scenario, parameters),
         ):
-            self._InitMatrices()
-            self._ChangeWalkSpeed()
-            with self._getImpendenceMatrices():
-                self.TRACKER.startProcess(5)
-                self._AssignHeadwayFraction()
-                self.TRACKER.completeSubtask()
-                self._AssignEffectiveHeadway()
-                self.TRACKER.completeSubtask()
-                for i in range(0, len(self.ClassNames)):
-                    WalkPerceptionArray = self._ParsePerceptionString(i)
-                    self._AssignWalkPerception(WalkPerceptionArray, self.WalkAttributeIdList[i])
-                self.TRACKER.completeSubtask()
-                if self.NodeLogitScale is not False:
-                    network = self.Scenario.get_network()
-                    for node in network.regular_nodes():
-                        node.data1 = 0
-                        agency_counter = 0
-                        agencies = set()
-                        if node.number > 99999:
-                            continue
-                        for link in node.incoming_links():
-                            if link.i_node.is_centroid is True:
-                                node.data1 = -1
-                            if link.i_node.number > 99999:
-                                agency_counter += 1
-                        for link in node.outgoing_links():
-                            if link.j_node.is_centroid is True:
-                                node.data1 = -1
-                            """if link.j_node.number > 99999:
-                                agency_counter += 1"""
-                        if agency_counter > 1:
-                            node.data1 = -1
-                            for link in node.incoming_links():
-                                if link.i_node.number > 99999:
-                                    link.i_node.data1 = -1
-                            for link in node.outgoing_links():
-                                if link.j_node.number > 99999:
-                                    link.j_node.data1 = -1
-                    self.Scenario.publish_network(network)
-                with _util.tempExtraAttributeMANAGER(
-                    self.Scenario, "TRANSIT_LINE"
-                ) as stsu_att, self._tempStsuTTFs() as ttf_map:
-                    if self.SurfaceTransitSpeed != False:
-                        self._GenerateBaseSpeed(stsu_att)
-                    if self.xtmf_congestedAssignment == True:
-                        self.usedFunctions = self._AddCongTermToFunc()
-                        with _trace(
-                            name="TMG Congested Transit Assignment", attributes=self._GetAttsCongested()
-                        ) as trace:
-                            with _dbUtils.congested_transit_temp_funcs(self.Scenario, self.usedFunctions, False, "us3"):
-                                with _dbUtils.backup_and_restore(self.Scenario, {"TRANSIT_SEGMENT": ["data3"]}):
-                                    self.ttfDict = self._ParseExponentString()
-                                    for iteration in range(0, self.Iterations + 1):
-                                        with _trace("Iteration %d" % iteration):
-                                            print("Starting Iteration %d" % iteration)
-                                            if iteration == 0:
-                                                self._PrepStrategyFiles()
-                                                zeroes = [0.0] * _bank.dimensions["transit_segments"]
-                                                setattr(self.Scenario._net.segment, "data3", zeroes)
-                                                self._RunExtendedTransitAssignment(iteration)
-                                                self.alphas = [1.0]
-                                                assignedClassDemand = self._ComputeAssignedClassDemand()
-                                                assignedTotalDemand = sum(assignedClassDemand)
-                                                network = self._PrepareNetwork(stsu_att)
-                                                if self.SurfaceTransitSpeed != False:
-                                                    network = self._SurfaceTransitSpeedUpdate(
-                                                        network, 1, stsu_att, False
-                                                    )
-                                                averageMinTripImpedence = self._ComputeMinTripImpedence(
-                                                    assignedClassDemand
-                                                )
-                                                congestionCosts = self._GetCongestionCosts(network, assignedTotalDemand)
-                                                previousAverageMinTripImpedence = averageImpedence = (
-                                                    averageMinTripImpedence + congestionCosts
-                                                )
-                                                if self.CSVFile is not None:
-                                                    self._WriteCSVFiles(iteration, network, "", "", "")
-                                            else:
-                                                excessKM = self._ComputeSegmentCosts(network)
-                                                self._RunExtendedTransitAssignment(iteration)
-                                                network = self._UpdateNetwork(network)
-                                                averageMinTripImpedence = self._ComputeMinTripImpedence(
-                                                    assignedClassDemand
-                                                )
-                                                lambdaK = self._FindStepSize(
-                                                    network,
-                                                    averageMinTripImpedence,
-                                                    averageImpedence,
-                                                    assignedTotalDemand,
-                                                )
-                                                if self.SurfaceTransitSpeed != False:
-                                                    network = self._SurfaceTransitSpeedUpdate(
-                                                        network, lambdaK, stsu_att, False
-                                                    )
-                                                self._UpdateVolumes(network, lambdaK)
-                                                (
-                                                    averageImpedence,
-                                                    cngap,
-                                                    crgap,
-                                                    normGapDifference,
-                                                    netCosts,
-                                                ) = self._ComputeGaps(
-                                                    assignedTotalDemand,
-                                                    lambdaK,
-                                                    averageMinTripImpedence,
-                                                    averageImpedence,
-                                                    network,
-                                                )
-                                                previousAverageMinTripImpedence = averageImpedence
-                                                if self.CSVFile is not None:
-                                                    self._WriteCSVFiles(
-                                                        iteration, network, cngap, crgap, normGapDifference
-                                                    )
-                                                if crgap < self.RelGap or normGapDifference >= 0:
-                                                    break
-                            self._SaveResults(network, stsu_att)
-                            trace.write(
-                                name="TMG Congested Transit Assignment",
-                                attributes={"assign_end_time": self.Scenario.transit_assignment_timestamp},
-                            )
+            self._tracker.reset()
+            with _util.temporary_matrix_manager() as temp_matrix_list:
+                # Initialize matrices with matrix ID = "mf0" not loaded in load_input_matrix_list
+                demand_matrix_list = self._init_input_matrices(load_input_matrix_list, temp_matrix_list)
+                in_vehicle_time_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="in_vehicle_time_matrix",
+                    description="Transit in-vehicle travel times.",
+                )
+                congestion_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="congestion_matrix",
+                    description="Transit in-vehicle congestion.",
+                )
+                walk_time_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="walk_time_matrix",
+                    description="Transit total walk times.",
+                )
+                wait_time_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="wait_time_matrix",
+                    description="Transit total wait times.",
+                )
+                fare_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="fare_matrix",
+                    description="Transit total fares",
+                )
+                board_penalty_matrix_list = self._init_output_matrices(
+                    load_output_matrix_dict,
+                    temp_matrix_list,
+                    matrix_name="board_penalty_matrix",
+                    description="Transit total boarding penalties",
+                )
+                impedance_matrix_list = self._get_impedance_matrices(parameters, temp_matrix_list)
+                self._change_walk_speed(scenario, parameters["walk_speed"])
+                with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
+                    effective_headway_attribute_list = self._create_headway_attribute_list(
+                        scenario,
+                        "TRANSIT_LINE",
+                        temp_attribute_list,
+                        default_value=0.0,
+                        hdw_att_name=parameters["effective_headway_attribute"],
+                    )
+                    headway_fraction_attribute_list = self._create_headway_attribute_list(
+                        scenario,
+                        "NODE",
+                        temp_attribute_list,
+                        default_value=0.5,
+                        hdw_att_name=parameters["headway_fraction_attribute"],
+                    )
+                    walk_time_perception_attribute_list = self._create_walk_time_perception_attribute_list(
+                        scenario, parameters, temp_attribute_list
+                    )
+                    self._tracker.start_process(5)
+                    self._assign_effective_headway(
+                        scenario,
+                        parameters,
+                        effective_headway_attribute_list[0].id,
+                    )
+                    self._tracker.complete_subtask()
+                    self._assign_walk_perception(scenario, parameters)
+                    if parameters["node_logit_scale"] != 1:
+                        network = self._publish_efficient_connector_network(scenario)
                     else:
-                        if self.SurfaceTransitSpeed is False:
-                            for i in range(0, len(self.ClassNames)):
-                                specUncongested = self._GetBaseAssignmentSpecUncongested(i)
-                                self.TRACKER.runTool(
-                                    extendedAssignmentTool,
-                                    specification=specUncongested,
-                                    class_name=self.ClassNames[i],
-                                    scenario=self.Scenario,
-                                    add_volumes=(i != 0),
-                                )
-                        else:
-                            for iterations in range(0, self.Iterations):
-                                for i in range(0, len(self.ClassNames)):
-                                    specUncongested = self._GetBaseAssignmentSpecUncongested(i)
-                                    self.TRACKER.runTool(
-                                        extendedAssignmentTool,
-                                        specification=specUncongested,
-                                        class_name=self.ClassNames[i],
-                                        scenario=self.Scenario,
-                                        add_volumes=(i != 0),
-                                    )
-                                network = self.Scenario.get_network()
-                                network = self._SurfaceTransitSpeedUpdate(network, 1, stsu_att, True)
+                        network = scenario.get_network()
+                    with _util.temp_extra_attribute_manager(scenario, "TRANSIT_LINE") as stsu_att:
+                        with self._temp_stsu_ttfs(scenario, parameters) as temp_stsu_ttf:
+                            stsu_ttf_map = temp_stsu_ttf[0]
+                            ttfs_changed = temp_stsu_ttf[1]
+                            if parameters["surface_transit_speed"] == True:
+                                self._set_base_speed(scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed)
+                            self._run_transit_assignment(
+                                scenario,
+                                parameters,
+                                network,
+                                stsu_att,
+                                demand_matrix_list,
+                                effective_headway_attribute_list,
+                                headway_fraction_attribute_list,
+                                impedance_matrix_list,
+                                walk_time_perception_attribute_list,
+                            )
+                    self._extract_output_matrices(
+                        scenario,
+                        parameters,
+                        demand_matrix_list,
+                        walk_time_matrix_list,
+                        wait_time_matrix_list,
+                        board_penalty_matrix_list,
+                        in_vehicle_time_matrix_list,
+                        congestion_matrix_list,
+                        fare_matrix_list,
+                    )
+                    _MODELLER.desktop.refresh_needed(True)
 
-                self._ExtractOutputMatrices()
-                _MODELLER.desktop.refresh_needed(True)
-
-    def _GetAtts(self):
+    # ---LOAD - SUB FUNCTIONS -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    def _load_atts(self, scenario, parameters):
+        transit_classes = parameters["transit_classes"]
         atts = {
-            "Scenario": "%s - %s" % (self.Scenario, self.Scenario.title),
+            "Scenario": "%s - %s" % (scenario, scenario.title),
             "Version": self.version,
-            "Wait Perception": self.ClassWaitPerceptionList,
-            "Fare Perception": self.ClassFarePerceptionList,
-            "Boarding Perception": self.ClassBoardPerceptionList,
-            "Congestion": self.xtmf_congestedAssignment,
+            "Wait Perception": [transit_class["wait_time_perception"] for transit_class in transit_classes],
+            "Fare Perception": [transit_class["fare_perception"] for transit_class in transit_classes],
+            "Boarding Perception": [transit_class["board_penalty_perception"] for transit_class in transit_classes],
+            "Congestion": parameters["congested_assignment"],
             "self": self.__MODELLER_NAMESPACE__,
         }
         return atts
 
-    def _HealTravelTimeFunction(self, ttfNumber):
-        function = _bank.function("ft" + str(ttfNumber))
+    # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    def _load_output_matrices(self, parameters, matrix_name=[]):
+        """
+        This loads all (into a dictionary) output matrices by matrix_name list provided but
+        assigns None to all zero matrices for later initialization
+        """
+        mtx_dict = {}
+        transit_classes = parameters["transit_classes"]
+        for i in range(0, len(matrix_name)):
+            mtx_dict[matrix_name[i]] = [transit_class[matrix_name[i]] for transit_class in transit_classes]
+        for mtx_name, mtx_ids in mtx_dict.items():
+            mtx = [None if id == "mf0" else _bank.matrix(id) for id in mtx_ids]
+            mtx_dict[mtx_name] = mtx
+        return mtx_dict
+
+    def _load_input_matrices(self, parameters, matrix_name):
+        """
+        Load input matrices creates and loads all (input) matrix into a list based on
+        matrix_name supplied. E.g of matrix_name: "demand_matrix" and matrix_id: "mf2"
+        """
+
+        def exception(mtx_id):
+            raise Exception("Matrix %s was not found!" % mtx_id)
+
+        transit_classes = parameters["transit_classes"]
+        mtx_list = [
+            _bank.matrix(transit_class[matrix_name])
+            if transit_class[matrix_name] == "mf0" or _bank.matrix(transit_class[matrix_name]) is not None
+            else exception(transit_class[matrix_name])
+            for transit_class in transit_classes
+        ]
+        return mtx_list
+
+    def _init_input_matrices(self, load_input_matrix_list, temp_matrix_list):
+        input_matrix_list = []
+        for mtx in load_input_matrix_list:
+            if mtx == None:
+                mtx = _util.initialize_matrix(matrix_type="FULL")
+                input_matrix_list.append(_bank.matrix(mtx.id))
+                temp_matrix_list.append(mtx)
+            else:
+                input_matrix_list.append(mtx)
+        return input_matrix_list
+
+    def _get_impedance_matrices(self, parameters, temp_matrix_list):
+        """
+        Creates temporary matrix for matrices with id = "mf0"
+        """
+        impedance_matrix_list = []
+        transit_classes = parameters["transit_classes"]
+        for transit_class in transit_classes:
+            matrix_id = transit_class["impedance_matrix"]
+            if matrix_id != "mf0":
+                _util.initialize_matrix(
+                    id=matrix_id,
+                    description="Transit Perceived Travel times for %s" % transit_class["name"],
+                )
+                impedance_matrix_list.append(matrix)
+            else:
+                _write("Creating temporary Impedance Matrix for class %s" % transit_class["name"])
+                matrix = _util.initialize_matrix(
+                    default=0.0,
+                    description="Temporary Impedance for class %s" % transit_class["name"],
+                    matrix_type="FULL",
+                )
+                impedance_matrix_list.append(matrix)
+                temp_matrix_list.append(matrix)
+        return impedance_matrix_list
+
+    def _init_output_matrices(
+        self,
+        load_output_matrix_dict,
+        temp_matrix_list,
+        matrix_name="",
+        description="",
+    ):
+        """
+        Initializes all output matrices provided.
+        """
+        output_matrix_list = []
+        desc = "TRANSIT %s FOR CLASS" % (matrix_name.upper())
+        if matrix_name in load_output_matrix_dict.keys():
+            for mtx in load_output_matrix_dict[matrix_name]:
+                if mtx != None:
+                    matrix = _util.initialize_matrix(
+                        name=matrix_name,
+                        description=description if description != "" else desc,
+                    )
+                    output_matrix_list.append(matrix)
+                else:
+                    if matrix_name == "impedance_matrix":
+                        _write('Creating Temporary Impedance Matrix "%s"', matrix_name)
+                        matrix = _util.initialize_matrix(
+                            default=0.0,
+                            description=description if description != "" else desc,
+                            matrix_type="FULL",
+                        )
+                        output_matrix_list.append(matrix)
+                        temp_matrix_list.append(matrix)
+                    else:
+                        output_matrix_list.append(mtx)
+        else:
+            raise Exception('Output matrix name "%s" provided does not exist', matrix_name)
+        return output_matrix_list
+
+    def _heal_travel_time_function(self, ttf):
+        function = _bank.function("ft" + str(ttf))
         if function is None:
-            raise Exception("The Transit Time Function ft" + str(ttfNumber) + " is not defined!")
-        cleanedExpression = function.expression.replace(" ", "")
-        if "us3" in cleanedExpression:
-            if cleanedExpression.endswith("*(1+us3)"):
-                index = cleanedExpression.find("*(1+us3)")
-                newExpression = cleanedExpression[:index]
-                function.expression = newExpression
+            raise Exception("The Transit Time Function ft" + str(ttf) + " is not defined!")
+        cleaned_expression = function.expression.replace(" ", "")
+        if "us3" in cleaned_expression:
+            if cleaned_expression.endswith("*(1+us3)"):
+                index = cleaned_expression.find("*(1+us3)")
+                new_expression = cleaned_expression[:index]
+                function.expression = new_expression
                 print("Detected function %s with existing congestion term." % function)
-                print("Original expression= '%s'" % cleanedExpression)
-                print("Healed expression= '%s'" % newExpression)
+                print("Original expression= '%s'" % cleaned_expression)
+                print("Healed expression= '%s'" % new_expression)
                 print("")
-                _m.logbook_write("Detected function %s with existing congestion term." % function)
-                _m.logbook_write("Original expression= '%s'" % cleanedExpression)
-                _m.logbook_write("Healed expression= '%s'" % newExpression)
+                _write("Detected function %s with existing congestion term." % function)
+                _write("Original expression= '%s'" % cleaned_expression)
+                _write("Healed expression= '%s'" % new_expression)
                 return True
             else:
                 raise Exception(
@@ -686,158 +387,157 @@ class TransitAssignmentTool(_m.Tool()):
                 )
         return False
 
-    def _InitMatrices(self):
-        for i in range(0, len(self.DemandMatrixList)):
-            if self.InVehicleTimeMatrixList[i] != "mf0":
-                _util.initializeMatrix(
-                    id=self.InVehicleTimeMatrixList[i],
-                    description="Transit in-vehicle travel times for %s" % self.ClassNames[-1],
-                )
-            else:
-                self.InVehicleTimeMatrixList[i] = None
-            if self.CongestionMatrixList[i] != "mf0":
-                _util.initializeMatrix(
-                    id=self.CongestionMatrixList[i],
-                    description="Transit in-vehicle congestion for %s" % self.ClassNames[-1],
-                )
-            else:
-                self.CongestionMatrixList[i] = None
-            if self.WalkTimeMatrixList[i] != "mf0":
-                _util.initializeMatrix(
-                    id=self.WalkTimeMatrixList[i], description="Transit total walk times for %s" % self.ClassNames[-1]
-                )
-            else:
-                self.WalkTimeMatrixList[i] = None
-            if self.WaitTimeMatrixList[i] != "mf0":
-                _util.initializeMatrix(
-                    id=self.WaitTimeMatrixList[i], description="Transit total wait times for %s" % self.ClassNames[-1]
-                )
-            else:
-                self.WaitTimeMatrixList[i] = None
-            if self.FareMatrixList[i] != "mf0":
-                _util.initializeMatrix(
-                    id=self.FareMatrixList[i], description="Transit total fares for %s" % self.ClassNames[-1]
-                )
-            else:
-                self.FareMatrixList[i] = None
-            if self.PenaltyMatrixList[i] != "mf0":
-                _util.initializeMatrix(
-                    id=self.PenaltyMatrixList[i],
-                    description="Transit total boarding penalties for %s" % self.ClassNames[-1],
-                )
-            else:
-                self.PenaltyMatrixList[i] = None
-            if self.ImpedanceMatrixList[i] != "mf0":
-                _util.initializeMatrix(
-                    id=self.ImpedanceMatrixList[i],
-                    description="Transit Perceived Travel times for %s" % self.ClassNames[-1],
-                )
-            else:
-                self.ImpedanceMatrixList[i] = None
+    def _change_walk_speed(self, scenario, walk_speed):
+        with _trace("Setting walk speeds to %s" % walk_speed):
+            partial_network = scenario.get_partial_network(["MODE"], True)
+            for mode in partial_network.modes():
+                if mode.type != "AUX_TRANSIT":
+                    continue
+                mode.speed = walk_speed
+                _write("Changed mode %s" % mode.id)
+            baton = partial_network.get_attribute_values("MODE", ["speed"])
+            scenario.set_attribute_values("MODE", ["speed"], baton)
 
-    def _ChangeWalkSpeed(self):
-        with _trace("Setting walk speeds to %s" % self.WalkSpeed):
-            if EMME_VERSION >= (4, 1):
-                self._ChangeWalkSpeed4p1()
-            else:
-                self._ChangeWalkSpeed4p0()
+    def _create_walk_time_perception_attribute_list(self, scenario, parameters, temp_attribute_list):
+        walk_time_perception_attribute_list = []
+        for transit_class in parameters["transit_classes"]:
+            walk_time_perception_attribute = scenario.extra_attribute(transit_class["walk_time_perception_attribute"])
+            if walk_time_perception_attribute is None:
+                walk_time_perception_attribute = _util.create_temp_attribute(
+                    scenario,
+                    str(transit_class["walk_time_perception_attribute"]),
+                    "LINK",
+                    default_value=1.0,
+                    assignment_type="transit",
+                )
+                temp_attribute_list.append(walk_time_perception_attribute)
+            walk_time_perception_attribute_list.append(walk_time_perception_attribute)
+        return walk_time_perception_attribute_list
 
-    def _ChangeWalkSpeed4p0(self):
-        changeModeTool = _MODELLER.tool("inro.emme.data.network.mode.change_mode")
-        for mode in self.Scenario.modes():
-            if mode.type != "AUX_TRANSIT":
-                continue
-            changeModeTool(mode, mode_speed=self.WalkSpeed, scenario=self.Scenario)
+    def _create_headway_attribute_list(
+        self,
+        scenario,
+        attribute_type,
+        temp_matrix_list,
+        default_value=0.0,
+        hdw_att_name="",
+    ):
+        headway_attribute_list = []
+        headway_attribute = _util.create_temp_attribute(
+            scenario,
+            str(hdw_att_name),
+            str(attribute_type),
+            default_value=default_value,
+            assignment_type="transit",
+        )
+        headway_attribute_list.append(headway_attribute)
+        temp_matrix_list.append(headway_attribute)
+        return headway_attribute_list
 
-    def _ChangeWalkSpeed4p1(self):
-        partialNetwork = self.Scenario.get_partial_network(["MODE"], True)
-        for mode in partialNetwork.modes():
-            if mode.type != "AUX_TRANSIT":
-                continue
-            mode.speed = self.WalkSpeed
-            _m.logbook_write("Changed mode %s" % mode.id)
-
-        baton = partialNetwork.get_attribute_values("MODE", ["speed"])
-        self.Scenario.set_attribute_values("MODE", ["speed"], baton)
-
-    def _AssignHeadwayFraction(self):
-        exatt = self.Scenario.extra_attribute(self.HeadwayFractionAttributeId)
-        exatt.initialize(0.5)
-
-    def _AssignEffectiveHeadway(self):
-        exatt = self.Scenario.extra_attribute(self.EffectiveHeadwayAttributeId)
-        exatt.initialize(0.0)
-        smallHeadwaySpec = {
-            "result": self.EffectiveHeadwayAttributeId,
+    def _assign_effective_headway(self, scenario, parameters, effective_headway_attribute_id):
+        small_headway_spec = {
+            "result": effective_headway_attribute_id,
             "expression": "hdw",
             "aggregation": None,
             "selections": {"transit_line": "hdw=0,15"},
             "type": "NETWORK_CALCULATION",
         }
-        largeHeadwaySpec = {
-            "result": self.EffectiveHeadwayAttributeId,
-            "expression": "15+2*" + str(self.EffectiveHeadwaySlope) + "*(hdw-15)",
+        large_headway_spec = {
+            "result": effective_headway_attribute_id,
+            "expression": "15+2*" + str(parameters["effective_headway_slope"]) + "*(hdw-15)",
             "aggregation": None,
             "selections": {"transit_line": "hdw=15,999"},
             "type": "NETWORK_CALCULATION",
         }
-        networkCalcTool(smallHeadwaySpec, self.Scenario)
-        networkCalcTool(largeHeadwaySpec, self.Scenario)
+        network_calc_tool(small_headway_spec, scenario)
+        network_calc_tool(large_headway_spec, scenario)
 
-    def _AssignWalkPerception(self, perceptionArray, WalkAttributeId):
-        exatt = self.Scenario.extra_attribute(WalkAttributeId)
-        exatt.initialize(1.0)
+    def _assign_walk_perception(self, scenario, parameters):
+        transit_classes = parameters["transit_classes"]
+        for transit_class in transit_classes:
+            walk_time_perception_attribute = transit_class["walk_time_perception_attribute"]
+            ex_att = scenario.extra_attribute(walk_time_perception_attribute)
+            ex_att.initialize(1.0)
 
-        def applySelection(val, selection):
+        def apply_selection(val, selection):
             spec = {
-                "result": WalkAttributeId,
+                "result": walk_time_perception_attribute,
                 "expression": str(val),
                 "aggregation": None,
                 "selections": {"link": selection},
                 "type": "NETWORK_CALCULATION",
             }
-            networkCalcTool(spec, self.Scenario)
+            network_calc_tool(spec, scenario)
 
         with _trace("Assigning perception factors"):
-            for i in range(0, len(perceptionArray)):
-                applySelection(perceptionArray[i][0], perceptionArray[i][1])
+            for transit_class in transit_classes:
+                for wp in transit_class["walk_perceptions"]:
+                    selection = str(wp["filter"])
+                    value = str(wp["walk_perception_value"])
+                    apply_selection(value, selection)
 
-    def _GetAttsCongested(self):
-        attributes = {
-            "Scenario": "%s - %s" % (self.Scenario, self.Scenario.title),
-            "Assignment Period": self.AssignmentPeriod,
-            "Iterations": self.Iterations,
-            "Normalized Gap": self.NormGap,
-            "Relative Gap": self.RelGap,
-            "congestion function": self._GetFuncSpec(),
-            "spec": self._GetBaseAssignmentSpec(),
-        }
-        return attributes
+    def _publish_efficient_connector_network(self, scenario):
+        """
+        Creates a network that completely replaces the scenario network in memory/disk, with
+        one that allows for the use of a logit distribution at specified choice points.
 
-    def _GenerateBaseSpeed(self, stsu_att):
-        if self.Scenario.extra_attribute("@doors") is None:
-            print(
-                "No Transit Vehicle door information is present in the network. Default assumption will be 2 doors per surface vehicle."
-            )
-        if self.Scenario.extra_attribute("@boardings") is None:
-            self.Scenario.create_extra_attribute("TRANSIT_SEGMENT", "@boardings")
-        if self.Scenario.extra_attribute("@alightings") is None:
-            self.Scenario.create_extra_attribute("TRANSIT_SEGMENT", "@alightings")
-        if self.Scenario.extra_attribute("@erow_speed") is None:
-            erow_defined = False
-            print(
-                "No segment specific exclusive ROW speed attribute is defined in the network. Global erow speed will be used."
-            )
-        else:
-            erow_defined = True
-        self.models = self._SetUpLineAttributes(stsu_att)
-        network = self.Scenario.get_network()
+        Run:
+            - set "node_logit_scale" parameter = TRUE, to run Logit Discrete Choice Model
+            - set "node_logit_scale" parameter = FALSE, to run Optimal Strategy Transit Assignment
+
+            ** This method only runs when node logit scale is not FALSE
+
+        Args:
+            - scenario: The Emme Scenario object to load network from and to
+
+        Implementation Notes:
+            - Regular nodes that are centroids are used as choice points:
+
+                ** Node attributes are set to -1 to apply logit distribution to efficient connectors
+                   (connectors that bring travellers closer to destination) only. Setting node attributes
+                   to 1 apply same to all connectors.
+
+                    *** Outgoing link connector attributes must be set to -1 to override flow connectors with fixed proportions.
+        """
+        network = scenario.get_network()
+        for node in network.regular_nodes():
+            node.data1 = 0
+        for node in network.regular_nodes():
+            agency_counter = 0
+            if node.number > 99999:
+                continue
+            for link in node.incoming_links():
+                if link.i_node.is_centroid is True:
+                    node.data1 = -1
+                if link.i_node.number > 99999:
+                    agency_counter += 1
+            for link in node.outgoing_links():
+                if link.j_node.is_centroid is True:
+                    node.data1 = -1
+            if agency_counter > 1:
+                node.data1 = -1
+                for link in node.incoming_links():
+                    if link.i_node.number > 99999:
+                        link.i_node.data1 = -1
+                for link in node.outgoing_links():
+                    if link.j_node.number > 99999:
+                        link.j_node.data1 = -1
+        scenario.publish_network(network)
+        return network
+
+    def _set_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed):
+        erow_defined = self._check_attributes_and_get_erow(scenario)
+        self._set_up_line_attributes(scenario, parameters, stsu_att)
+        ttfs_xrow = self._process_ttfs_xrow(parameters)
+        network = scenario.get_network()
         for line in network.transit_lines():
+            # index = line[stsu_att.id]
             if line[stsu_att.id] != 0.0:
                 index = int(line[str(stsu_att.id)]) - 1
-                default_duration = self.models[index]["default_duration"]
-                correlation = self.models[index]["correlation"]
-                erow_speed_global = self.models[index]["erow_speed"]
+                stsu = parameters["surface_transit_speeds"][index]
+                default_duration = stsu["default_duration"]
+                correlation = stsu["transit_auto_correlation"]
+                erow_speed_global = stsu["global_erow_speed"]
             else:
                 continue
             segments = line.segments()
@@ -847,23 +547,19 @@ class TransitAssignmentTool(_m.Tool()):
                     segment.dwell_time = 0.01
                 else:
                     segment.dwell_time = 0.0
-
                 if segment.j_node is None:
                     continue
-
                 segment_number = segment.number
-                segment.transit_time_func = self.stsu_ttf_map[segment.transit_time_func]
+                segment.transit_time_func = stsu_ttf_map[segment.transit_time_func]
                 time = segment.link["auto_time"]
-
                 if time > 0.0:
-                    if segment.transit_time_func in self.ttfs_xrow:
+                    if segment.transit_time_func in ttfs_xrow:
                         if erow_defined == True and segment["@erow_speed"] > 0.0:
                             segment.data1 = segment["@erow_speed"]
                         else:
                             segment.data1 = erow_speed_global
                     else:
                         segment.data1 = (segment.link.length * 60.0) / (time * correlation)
-
                 if time <= 0.0:
                     if erow_defined == True and segment["@erow_speed"] > 0.0:
                         segment.data1 = segment["@erow_speed"]
@@ -876,23 +572,719 @@ class TransitAssignmentTool(_m.Tool()):
                     continue
                 segment.dwell_time = (segment["@tstop"] * default_duration) / 60
         data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"])
-        self.Scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"], data)
-        self.ttfs_changed = True
+        scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func", "data1"], data)
+        ttfs_changed.append(True)
 
-    def _AddCongTermToFunc(self):
-        usedFunctions = set()
-        anyNonZero = False
-        for segment in self.Scenario.get_network().transit_segments():
+    def _process_ttfs_xrow(self, parameters):
+        ttfs_xrow = set()
+        parameter_xrow_range = parameters["xrow_ttf_range"].split(",")
+        for ttf_range in parameter_xrow_range:
+            if "-" in ttf_range:
+                ttf_range = ttf_range.split("-")
+                for i in range(int(ttf_range[0]), int(ttf_range[1]) + 1):
+                    ttfs_xrow.add(i)
+            else:
+                ttfs_xrow.add(int(ttf_range))
+        return ttfs_xrow
+
+    def _check_attributes_and_get_erow(self, scenario):
+        if scenario.extra_attribute("@doors") is None:
+            print(
+                "No Transit Vehicle door information is present in the network. Default assumption will be 2 doors per surface vehicle."
+            )
+        if scenario.extra_attribute("@boardings") is None:
+            scenario.create_extra_attribute("TRANSIT_SEGMENT", "@boardings")
+        if scenario.extra_attribute("@alightings") is None:
+            scenario.create_extra_attribute("TRANSIT_SEGMENT", "@alightings")
+        if scenario.extra_attribute("@erow_speed") is None:
+            erow_defined = False
+            print(
+                "No segment specific exclusive ROW speed attribute is defined in the network. Global erow speed will be used."
+            )
+        else:
+            erow_defined = True
+        return erow_defined
+
+    def _set_up_line_attributes(self, scenario, parameters, stsu_att):
+        for i, sts in enumerate(parameters["surface_transit_speeds"]):
+            spec = {
+                "type": "NETWORK_CALCULATION",
+                "result": str(stsu_att.id),
+                "expression": str(i + 1),
+                "selections": {"transit_line": "mode = " + sts["mode_filter_expression"]},
+            }
+            if sts["line_filter_expression"] == "" and sts["mode_filter_expression"] != "":
+                spec["selections"]["transit_line"] = "mode = " + sts["mode_filter_expression"]
+            elif sts["line_filter_expression"] != "" and sts["mode_filter_expression"] != "":
+                spec["selections"]["transit_line"] = (
+                    sts["line_filter_expression"] + " and mode = " + sts["mode_filter_expression"]
+                )
+            elif sts["line_filter_expression"] != "" and sts["mode_filter_expression"] == "":
+                spec["selections"]["transit_line"] = sts["line_filter_expression"]
+            elif sts["line_filter_expression"] == "" and sts["mode_filter_expression"] == "":
+                spec["selections"]["transit_line"] = "all"
+            else:
+                raise Exception(
+                    "Please enter a correct mode filter and/or line filter in Surface Transit Speed parameters %d"
+                    % (i + 1)
+                )
+            report = network_calc_tool(spec, scenario=scenario)
+
+    def _run_transit_assignment(
+        self,
+        scenario,
+        parameters,
+        network,
+        stsu_att,
+        demand_matrix_list,
+        effective_headway_attribute_list,
+        headway_fraction_attribute_list,
+        impedance_matrix_list,
+        walk_time_perception_attribute_list,
+    ):
+        if parameters["congested_assignment"] == True:
+            used_functions = self._add_cong_term_to_func(scenario)
+            with _trace(
+                name="TMG Congested Transit Assignment",
+                attributes=self._get_atts_congested(
+                    scenario,
+                    parameters,
+                    demand_matrix_list,
+                    self.connector_logit_truncation,
+                    headway_fraction_attribute_list,
+                    effective_headway_attribute_list,
+                    walk_time_perception_attribute_list,
+                    impedance_matrix_list,
+                ),
+            ) as trace:
+                with _db_utils.congested_transit_temp_funcs(scenario, used_functions, False, "us3"):
+                    with _db_utils.backup_and_restore(scenario, {"TRANSIT_SEGMENT": ["data3"]}):
+                        for ttf_def in parameters["ttf_definitions"]:
+                            self._heal_travel_time_function(ttf_def["ttf"])
+                        congested_assignment = self._run_congested_assignment(
+                            scenario,
+                            parameters,
+                            network,
+                            demand_matrix_list,
+                            impedance_matrix_list,
+                            stsu_att,
+                            headway_fraction_attribute_list,
+                            effective_headway_attribute_list,
+                            walk_time_perception_attribute_list,
+                        )
+                    alphas = congested_assignment[1]
+                    strategies = congested_assignment[0]
+                    network = congested_assignment[2]
+            self._save_results(scenario, parameters, network, alphas, strategies, stsu_att)
+            trace.write(
+                name="TMG Congested Transit Assignment",
+                attributes={"assign_end_time": scenario.transit_assignment_timestamp},
+            )
+        else:
+            self._run_uncongested_assignment(
+                scenario,
+                parameters,
+                stsu_att,
+                demand_matrix_list,
+                effective_headway_attribute_list,
+                headway_fraction_attribute_list,
+                impedance_matrix_list,
+                walk_time_perception_attribute_list,
+            )
+
+    def _run_uncongested_assignment(
+        self,
+        scenario,
+        parameters,
+        stsu_att,
+        demand_matrix_list,
+        effective_headway_attribute_list,
+        headway_fraction_attribute_list,
+        impedance_matrix_list,
+        walk_time_perception_attribute_list,
+    ):
+        if parameters["surface_transit_speed"] == False:
+            self._run_spec_uncongested(
+                scenario,
+                parameters,
+                demand_matrix_list,
+                effective_headway_attribute_list,
+                headway_fraction_attribute_list,
+                impedance_matrix_list,
+                walk_time_perception_attribute_list,
+            )
+        else:
+            for itr in range(0, parameters["iterations"]):
+                self._run_spec_uncongested(
+                    scenario,
+                    parameters,
+                    demand_matrix_list,
+                    effective_headway_attribute_list,
+                    headway_fraction_attribute_list,
+                    impedance_matrix_list,
+                    walk_time_perception_attribute_list,
+                )
+                network = scenario.get_network()
+                network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
+
+    def _run_congested_assignment(
+        self,
+        scenario,
+        parameters,
+        network,
+        demand_matrix_list,
+        impedance_matrix_list,
+        stsu_att,
+        headway_fraction_attribute_list,
+        effective_headway_attribute_list,
+        walk_time_perception_attribute_list,
+    ):
+        for iteration in range(0, parameters["iterations"] + 1):
+            with _trace("Iteration %d" % iteration):
+                print("Starting iteration %d" % iteration)
+
+                if iteration == 0:
+                    strategies = self._prep_strategy_files(scenario, parameters, demand_matrix_list)
+                    zeroes = [0.0] * _bank.dimensions["transit_segments"]
+                    setattr(scenario._net.segment, "data3", zeroes)
+                    self._run_extended_transit_assignment(
+                        scenario,
+                        parameters,
+                        iteration,
+                        strategies,
+                        demand_matrix_list,
+                        headway_fraction_attribute_list,
+                        effective_headway_attribute_list,
+                        walk_time_perception_attribute_list,
+                        impedance_matrix_list,
+                    )
+                    alphas = [1.0]
+                    assigned_class_demand = self._compute_assigned_class_demand(
+                        scenario, demand_matrix_list, self.number_of_processors
+                    )
+                    assigned_total_demand = sum(assigned_class_demand)
+                    network = self._prepare_network(scenario, parameters, stsu_att)
+                    if parameters["surface_transit_speed"] == True:
+                        network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
+                    average_min_trip_impedance = self._compute_min_trip_impedance(
+                        scenario, demand_matrix_list, assigned_class_demand, impedance_matrix_list
+                    )
+                    congestion_costs = self._get_congestion_costs(parameters, network, assigned_total_demand)
+                    average_impedance = average_min_trip_impedance + congestion_costs
+                    if parameters["csvfile"].lower() is not "":
+                        self._write_csv_files(iteration, network, "", "", "")
+                else:
+                    excess_km = self._compute_segment_costs(scenario, parameters, network)
+                    self._run_extended_transit_assignment(
+                        scenario,
+                        parameters,
+                        iteration,
+                        strategies,
+                        demand_matrix_list,
+                        headway_fraction_attribute_list,
+                        effective_headway_attribute_list,
+                        walk_time_perception_attribute_list,
+                        impedance_matrix_list,
+                    )
+                    network = self._update_network(scenario, network)
+                    average_min_trip_impedance = self._compute_min_trip_impedance(
+                        scenario, demand_matrix_list, assigned_class_demand, impedance_matrix_list
+                    )
+                    find_step_size = self._find_step_size(
+                        parameters,
+                        network,
+                        average_min_trip_impedance,
+                        average_impedance,
+                        assigned_total_demand,
+                        alphas,
+                    )
+                    lambdaK = find_step_size[0]
+                    alphas = find_step_size[1]
+                    print("iteration %s  lambdaK %s" % (iteration, lambdaK))
+                    if parameters["surface_transit_speed"] == True:
+                        network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
+                    self._update_volumes(network, lambdaK)
+                    (average_impedance, cngap, crgap, norm_gap_difference, net_cost,) = self._compute_gaps(
+                        parameters,
+                        assigned_total_demand,
+                        lambdaK,
+                        average_min_trip_impedance,
+                        average_impedance,
+                        network,
+                    )
+                    if parameters["csvfile"].lower() is not "":
+                        self._write_csv_files(
+                            iteration,
+                            network,
+                            cngap,
+                            crgap,
+                            norm_gap_difference,
+                        )
+                    if crgap < parameters["rel_gap"] or norm_gap_difference >= 0:
+                        break
+        return (strategies, alphas, network)
+
+    def _run_spec_uncongested(
+        self,
+        scenario,
+        parameters,
+        demand_matrix_list,
+        effective_headway_attribute_list,
+        headway_fraction_attribute_list,
+        impedance_matrix_list,
+        walk_time_perception_attribute_list,
+    ):
+        for i, transit_class in enumerate(parameters["transit_classes"]):
+            spec_uncongested = self._get_base_assignment_spec_uncongested(
+                scenario,
+                transit_class["board_penalty_perception"],
+                self.connector_logit_truncation,
+                self.consider_total_impedance,
+                demand_matrix_list[i],
+                effective_headway_attribute_list[i],
+                transit_class["fare_perception"],
+                headway_fraction_attribute_list[i],
+                impedance_matrix_list[i],
+                transit_class["link_fare_attribute_id"],
+                transit_class["mode"],
+                parameters["node_logit_scale"],
+                self.number_of_processors,
+                parameters["origin_distribution_logit_scale"],
+                transit_class["segment_fare_attribute"],
+                transit_class["wait_time_perception"],
+                parameters["walk_all_way_flag"],
+                walk_time_perception_attribute_list[i],
+            )
+            self._tracker.run_tool(
+                extended_assignment_tool,
+                specification=spec_uncongested,
+                class_name=transit_class["name"],
+                scenario=scenario,
+                add_volumes=(i != 0),
+            )
+
+    def _get_base_assignment_spec_uncongested(
+        self,
+        scenario,
+        board_perception,
+        connector_logit_truncation,
+        consider_total_impedance,
+        demand_matrix,
+        effective_headway,
+        fare_perception,
+        headway_fraction,
+        impedance_matrix,
+        link_fare_attribute,
+        modes,
+        node_logit_scale,
+        number_of_processors,
+        origin_distribution_logit_scale,
+        segment_fare,
+        wait_perception,
+        walk_all_way_flag,
+        walk_attribute,
+    ):
+        if fare_perception != 0.0:
+            fare_perception = 60.0 / fare_perception
+        base_spec = {
+            "modes": [modes],
+            "demand": demand_matrix.id,
+            "waiting_time": {
+                "headway_fraction": headway_fraction.id,
+                "effective_headways": effective_headway.id,
+                "spread_factor": 1,
+                "perception_factor": wait_perception,
+            },
+            "boarding_time": {
+                "at_nodes": None,
+                "on_lines": {
+                    "penalty": "ut3",
+                    "perception_factor": board_perception,
+                },
+            },
+            "boarding_cost": {
+                "at_nodes": {"penalty": 0, "perception_factor": 1},
+                "on_lines": None,
+            },
+            "in_vehicle_time": {"perception_factor": "us2"},
+            "in_vehicle_cost": {
+                "penalty": segment_fare,
+                "perception_factor": fare_perception,
+            },
+            "aux_transit_time": {"perception_factor": walk_attribute.id},
+            "aux_transit_cost": {
+                "penalty": link_fare_attribute,
+                "perception_factor": fare_perception,
+            },
+            "connector_to_connector_path_prohibition": None,
+            "od_results": {"total_impedance": impedance_matrix.id},
+            "flow_distribution_between_lines": {"consider_total_impedance": consider_total_impedance},
+            "save_strategies": True,
+            "type": "EXTENDED_TRANSIT_ASSIGNMENT",
+        }
+        base_spec["flow_distribution_at_origins"] = {
+            "choices_at_origins": {
+                "choice_points": "ALL_ORIGINS",
+                "choice_set": "ALL_CONNECTORS",
+                "logit_parameters": {
+                    "scale": origin_distribution_logit_scale,
+                    "truncation": connector_logit_truncation,
+                },
+            },
+            "fixed_proportions_on_connectors": None,
+        }
+        base_spec["performance_settings"] = {"number_of_processors": number_of_processors}
+        if node_logit_scale != 1:
+            base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                "choices_at_regular_nodes": {
+                    "choice_points": "ui1",
+                    "aux_transit_choice_set": "ALL_POSSIBLE_LINKS",
+                    "logit_parameters": {
+                        "scale": node_logit_scale,
+                        "truncation": connector_logit_truncation,
+                    },
+                }
+            }
+        else:
+            base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
+            }
+        partial_network = scenario.get_partial_network(["MODE"], True)
+        base_spec["journey_levels"] = [
+            {
+                "description": "Walking",
+                "destinations_reachable": walk_all_way_flag,
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 0),
+                "boarding_time": None,
+                "boarding_cost": None,
+                "waiting_time": None,
+            },
+            {
+                "description": "Transit",
+                "destinations_reachable": True,
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 1),
+                "boarding_time": None,
+                "boarding_cost": None,
+                "waiting_time": None,
+            },
+        ]
+        return base_spec
+
+    def _surface_transit_speed_update(self, scenario, parameters, network, lambdaK, stsu_att):
+        if "transit_alightings" not in network.attributes("TRANSIT_SEGMENT"):
+            network.create_attribute("TRANSIT_SEGMENT", "transit_alightings", 0.0)
+
+        for line in network.transit_lines():
+            prev_volume = 0.0
+            index = line[stsu_att.id]
+            if index <= 0.0:
+                continue
+            headway = line.headway
+            number_of_trips = parameters["assignment_period"] * 60.0 / headway
+            stsu = parameters["surface_transit_speeds"][int(index) - 1]
+            boarding_duration = stsu["boarding_duration"]
+            alighting_duration = stsu["alighting_duration"]
+            default_duration = stsu["default_duration"]
+            try:
+                doors = segment.line["@doors"]
+                if doors == 0.0:
+                    number_of_door_pairs = 1.0
+                else:
+                    number_of_door_pairs = doors / 2.0
+            except:
+                number_of_door_pairs = 1.0
+
+            for segment in line.segments(include_hidden=True):
+                segment_number = segment.number
+                if segment_number > 0 and segment.j_node is not None:
+                    segment.transit_alightings = max(
+                        prev_volume + segment.transit_boardings - segment.transit_volume,
+                        0.0,
+                    )
+                else:
+                    continue
+                # prev_volume is used above for the previous segments volume, the first segment is always ignored.
+                prev_volume = segment.transit_volume
+                boarding = segment.transit_boardings / number_of_trips / number_of_door_pairs
+                alighting = segment.transit_alightings / number_of_trips / number_of_door_pairs
+                old_dwell = segment.dwell_time
+                # in seconds
+                segment_dwell_time = (
+                    (boarding_duration * boarding)
+                    + (alighting_duration * alighting)
+                    + (segment["@tstop"] * default_duration)
+                )
+                # in minutes
+                segment_dwell_time /= 60  # minutes
+                if segment_dwell_time >= 99.99:
+                    segment_dwell_time = 99.98
+                alpha = 1 - lambdaK
+                segment.dwell_time = old_dwell * alpha + segment_dwell_time * lambdaK
+        data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"])
+        scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"], data)
+        return network
+
+    def _add_cong_term_to_func(self, scenario):
+        used_functions = set()
+        any_non_zero = False
+        for segment in scenario.get_network().transit_segments():
             if segment.transit_time_func != 0:
-                usedFunctions.add("ft" + str(segment.transit_time_func))
-                anyNonZero = True
-        if not anyNonZero:
+                used_functions.add("ft" + str(segment.transit_time_func))
+                any_non_zero = True
+        if not any_non_zero:
             raise Exception("All segments have a TTF of 0!")
-        return list(usedFunctions)
+        return list(used_functions)
 
-    def _PrepStrategyFiles(self):
-        # TODO: Investigate this code
-        strategies = self.Scenario.transit_strategies
+    def _get_atts_congested(
+        self,
+        scenario,
+        parameters,
+        demand_matrix_list,
+        connector_logit_truncation,
+        headway_fraction_attribute_list,
+        effective_headway_attribute_list,
+        walk_time_perception_attribute_list,
+        impedance_matrix_list,
+    ):
+        attributes = {
+            "Scenario": "%s - %s" % (scenario, scenario.title),
+            "Assignment Period": parameters["assignment_period"],
+            "Iterations": parameters["iterations"],
+            "Normalized Gap": parameters["norm_gap"],
+            "Relative Gap": parameters["rel_gap"],
+            "congestion function": self._get_func_spec(parameters),
+            "spec": self._get_base_assignment_spec(
+                scenario,
+                parameters,
+                demand_matrix_list,
+                connector_logit_truncation,
+                headway_fraction_attribute_list,
+                effective_headway_attribute_list,
+                walk_time_perception_attribute_list,
+                impedance_matrix_list,
+                consider_total_impedance=True,
+            ),
+        }
+        return attributes
+
+    def _get_func_spec(self, parameters):
+        partial_spec = (
+            "import math \ndef calc_segment_cost(transit_volume, capacity, segment):\n    cap_period = "
+            + str(parameters["assignment_period"])
+        )
+        i = 0
+        for ttf_def in parameters["ttf_definitions"]:
+            ttf = ttf_def["ttf"]
+            alpha = ttf_def["congestion_exponent"]
+            beta = (2 * alpha - 1) / (2 * alpha - 2)
+            alpha_square = alpha ** 2
+            beta_square = beta ** 2
+            perception = ttf_def["congestion_perception"]
+            if i == 0:
+                partial_spec += (
+                    "\n    if segment.transit_time_func == "
+                    + f"{ttf}"
+                    + ": \n        return max(0,("
+                    + f"{perception}"
+                    + " * (1 + math.sqrt("
+                    + str(alpha_square)
+                    + " * \n            (1 - transit_volume / capacity) ** 2 + "
+                    + str(beta_square)
+                    + ") - "
+                    + str(alpha)
+                    + " \n            * (1 - transit_volume / capacity) - "
+                    + str(beta)
+                    + ")))"
+                )
+            else:
+                partial_spec += (
+                    "\n    elif segment.transit_time_func == "
+                    + f"{ttf}"
+                    + ": \n        return max(0,("
+                    + f"{perception}"
+                    + " * (1 + math.sqrt("
+                    + str(alpha_square)
+                    + " *  \n            (1 - transit_volume / capacity) ** 2 + "
+                    + str(beta_square)
+                    + ") - "
+                    + str(alpha)
+                    + " \n            * (1 - transit_volume / capacity) - "
+                    + str(beta)
+                    + ")))"
+                )
+            i += 1
+        partial_spec += '\n    else: \n        raise Exception("ttf=%s congestion values not defined in input" %s segment.transit_time_func)'
+        func_spec = {
+            "type": "CUSTOM",
+            "assignment_period": parameters["assignment_period"],
+            "orig_func": False,
+            "congestion_attribute": "us3",
+            "python_function": partial_spec,
+        }
+        return func_spec
+
+    def _get_base_assignment_spec(
+        self,
+        scenario,
+        parameters,
+        demand_matrix_list,
+        connector_logit_truncation,
+        headway_fraction_attribute_list,
+        effective_headway_attribute_list,
+        walk_time_perception_attribute_list,
+        impedance_matrix_list,
+        consider_total_impedance=False,
+    ):
+        base_spec = []
+        modes_list = []
+        for i, transit_class in enumerate(parameters["transit_classes"]):
+            modes = transit_class["mode"]
+            fare_perception = transit_class["fare_perception"]
+            modes_list.append(modes)
+            if fare_perception != 0.0:
+                fare_perception = 60.0 / fare_perception
+            base_spec.append(
+                {
+                    "modes": [modes],
+                    "demand": demand_matrix_list[i].id,
+                    "waiting_time": {
+                        "headway_fraction": headway_fraction_attribute_list[i].id,
+                        "effective_headways": effective_headway_attribute_list[i].id,
+                        "spread_factor": 1,
+                        "perception_factor": transit_class["wait_time_perception"],
+                    },
+                    "boarding_time": {
+                        "at_nodes": None,
+                        "on_lines": {"penalty": "ut3", "perception_factor": transit_class["board_penalty_perception"]},
+                    },
+                    "boarding_cost": {"at_nodes": {"penalty": 0, "perception_factor": 1}, "on_lines": None},
+                    "in_vehicle_time": {"perception_factor": "us2"},
+                    "in_vehicle_cost": {
+                        "penalty": transit_class["segment_fare_attribute"],
+                        "perception_factor": transit_class["segment_fare_attribute"],
+                    },
+                    "aux_transit_time": {"perception_factor": walk_time_perception_attribute_list[i].id},
+                    "aux_transit_cost": {
+                        "penalty": transit_class["link_fare_attribute_id"],
+                        "perception_factor": fare_perception,
+                    },
+                    "connector_to_connector_path_prohibition": None,
+                    "od_results": {"total_impedance": impedance_matrix_list[i].id},
+                    "flow_distribution_between_lines": {"consider_total_impedance": consider_total_impedance},
+                    "save_strategies": True,
+                    "type": "EXTENDED_TRANSIT_ASSIGNMENT",
+                }
+            )
+        for i in range(0, len(base_spec)):
+            base_spec[i]["flow_distribution_at_origins"] = {
+                "choices_at_origins": {
+                    "choice_points": "ALL_ORIGINS",
+                    "choice_set": "ALL_CONNECTORS",
+                    "logit_parameters": {
+                        "scale": parameters["origin_distribution_logit_scale"],
+                        "truncation": connector_logit_truncation,
+                    },
+                },
+                "fixed_proportions_on_connectors": None,
+            }
+            base_spec[i]["performance_settings"] = {"number_of_processors": self.number_of_processors}
+            if scenario.extra_attribute("@node_logit") != None:
+                base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                    "choices_at_regular_nodes": {
+                        "choice_points": "@node_logit",
+                        "aux_transit_choice_set": "ALL_POSSIBLE_LINKS",
+                        "logit_parameters": {"scale": 0.2, "truncation": 0.05},
+                    }
+                }
+            else:
+                base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                    "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
+                }
+            partial_network = scenario.get_partial_network(["MODE"], True)
+            base_spec[i]["journey_levels"] = [
+                {
+                    "description": "Walking",
+                    "destinations_reachable": parameters["walk_all_way_flag"],
+                    "transition_rules": self._create_journey_level_modes(modes_list[i], partial_network, 0),
+                    "boarding_time": None,
+                    "boarding_cost": None,
+                    "waiting_time": None,
+                },
+                {
+                    "description": "Transit",
+                    "destinations_reachable": True,
+                    "transition_rules": self._create_journey_level_modes(modes_list[i], partial_network, 1),
+                    "boarding_time": None,
+                    "boarding_cost": None,
+                    "waiting_time": None,
+                },
+            ]
+        return base_spec
+
+    def _run_extended_transit_assignment(
+        self,
+        scenario,
+        parameters,
+        iteration,
+        strategies,
+        demand_matrix_list,
+        headway_fraction_attribute_list,
+        effective_headway_attribute_list,
+        walk_time_perception_attribute_list,
+        impedance_matrix_list,
+    ):
+        if iteration == 0:
+            msg = "Prepare Initial Assignment"
+        else:
+            msg = "Prepare Transit Assignment"
+        assignment_tool = extended_assignment_tool
+        assignment_tool.iterative_transit_assignment = True
+        with _trace(msg):
+            for index, transit_class in enumerate(parameters["transit_classes"]):
+                spec = self._get_transit_assignment_spec(
+                    scenario,
+                    index,
+                    transit_class["fare_perception"],
+                    transit_class["mode"],
+                    demand_matrix_list,
+                    headway_fraction_attribute_list,
+                    effective_headway_attribute_list,
+                    walk_time_perception_attribute_list,
+                    impedance_matrix_list,
+                    transit_class["wait_time_perception"],
+                    self.consider_total_impedance,
+                    parameters["origin_distribution_logit_scale"],
+                    self.connector_logit_truncation,
+                    self.number_of_processors,
+                    parameters["node_logit_scale"],
+                    parameters["walk_all_way_flag"],
+                    transit_class["board_penalty_perception"],
+                    transit_class["segment_fare_attribute"],
+                    transit_class["link_fare_attribute_id"],
+                )
+                if index == 0:
+                    self._tracker.run_tool(
+                        assignment_tool,
+                        specification=spec,
+                        scenario=scenario,
+                        add_volumes=False,
+                    )
+                else:
+                    self._tracker.run_tool(
+                        assignment_tool,
+                        specification=spec,
+                        scenario=scenario,
+                        add_volumes=True,
+                    )
+                strategies_name = "Iteration %s %s" % (iteration, transit_class["name"])
+                strategies_file = strategies.add_strat_file(strategies_name)
+                classData = _db_utils.get_multi_class_strat(strategies, transit_class["name"])
+                classData["strat_files"].append(strategies_name)
+                values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time"])
+                strategies_file.add_attr_values("TRANSIT_SEGMENT", "transit_time", values[1])
+
+    def _prep_strategy_files(self, scenario, parameters, demand_matrix_list):
+        strategies = scenario.transit_strategies
         strategies.clear()
         _time.sleep(0.05)
         data = {
@@ -901,187 +1293,89 @@ class TransitAssignmentTool(_m.Tool()):
             "custom_status": True,
             "per_strat_attributes": {"TRANSIT_SEGMENT": ["transit_time"]},
         }
-        mode_int_ids = self.Scenario.get_attribute_values("MODE", [])[0]
+        scenario.get_attribute_values("MODE", [])[0]
 
         def format_modes(modes):
             if "*" in modes:
-                modes = [m for m in self.Scenario.modes() if m.type in ("TRANSIT", "AUX_TRANSIT")]
+                modes = [m for m in scenario.modes() if m.type in ("TRANSIT", "AUX_TRANSIT")]
             modes = [str(m) for m in modes]
             return "".join(modes)
 
-        classData = []
-        for i in range(0, len(self.ClassNames)):
-            name = self.ClassNames[i]
-            demand = _MODELLER.matrix_snapshot(_bank.matrix(self.DemandMatrixList[i]))
-            modes = self.ClassModeList[i]
-            classData.append({"name": name, "modes": format_modes(modes), "demand": demand, "strat_files": []})
-        data["classes"] = classData
+        class_data = []
+        for i, transit_class in enumerate(parameters["transit_classes"]):
+            name = transit_class["name"]
+            demand = _MODELLER.matrix_snapshot(_bank.matrix(demand_matrix_list[i]))
+            modes = transit_class["mode"]
+            class_data.append(
+                {
+                    "name": name,
+                    "modes": format_modes(modes),
+                    "demand": demand,
+                    "strat_files": [],
+                }
+            )
+        data["classes"] = class_data
         data["multi_class"] = True
         strategies.data = data
-        self.strategies = strategies
+        return strategies
 
-    def _GetTransitAssignmentSpec(self, index):
-        if self.ClassFarePerceptionList[index] == 0.0:
-            farePerception = 0.0
-        else:
-            farePerception = 60.0 / self.ClassFarePerceptionList[index]
-        baseSpec = {
-            "modes": self.ClassModeList[index],
-            "demand": self.DemandMatrixList[index].id,
-            "waiting_time": {
-                "headway_fraction": self.HeadwayFractionAttributeId,
-                "effective_headways": self.EffectiveHeadwayAttributeId,
-                "spread_factor": 1,
-                "perception_factor": self.ClassWaitPerceptionList[index],
-            },
-            "boarding_time": {
-                "at_nodes": None,
-                "on_lines": None,
-                "global": {"penalty": 0, "perception_factor": 1},
-            },
-            "boarding_cost": {
-                "at_nodes": None,
-                "on_lines": None,
-                "global": {"penalty": 0, "perception_factor": 1},
-            },
-            "in_vehicle_time": {"perception_factor": "us2"},
-            "in_vehicle_cost": {"penalty": self.SegmentFareAttributeIdList[index], "perception_factor": farePerception},
-            "aux_transit_time": {"perception_factor": self.WalkAttributeIdList[index]},
-            "aux_transit_cost": {"penalty": self.LinkFareAttributeIdList[index], "perception_factor": farePerception},
-            "connector_to_connector_path_prohibition": None,
-            "od_results": {"total_impedance": self.ImpedenceMatrices[index].id},
-            "flow_distribution_between_lines": {"consider_total_impedance": self._considerTotalImpedance},
-            "save_strategies": True,
-            "type": "EXTENDED_TRANSIT_ASSIGNMENT",
-        }
-        if self._useLogitConnectorChoice:
-            baseSpec["flow_distribution_at_origins"] = {
-                "choices_at_origins": {
-                    "choice_points": "ALL_ORIGINS",
-                    "choice_set": "ALL_CONNECTORS",
-                    "logit_parameters": {
-                        "scale": self.xtmf_OriginDistributionLogitScale,
-                        "truncation": self._connectorLogitTruncation,
-                    },
-                },
-                "fixed_proportions_on_connectors": None,
-            }
-
-        if EMME_VERSION >= (4, 1):
-            baseSpec["performance_settings"] = {"number_of_processors": self.NumberOfProcessors}
-        if self.NodeLogitScale is not False:
-            baseSpec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
-                "choices_at_regular_nodes": {
-                    "choice_points": "ui1",
-                    "aux_transit_choice_set": "ALL_POSSIBLE_LINKS",
-                    "logit_parameters": {"scale": self.NodeLogitScale, "truncation": self._connectorLogitTruncation},
-                }
-            }
-        else:
-            baseSpec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
-                "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
-            }
-        if EMME_VERSION >= (4, 2, 1):
-
-            partialNetwork = self.Scenario.get_partial_network(["MODE"], True)
-            # if all modes are selected for class, get all transit modes for journey levels
-            baseSpec["journey_levels"] = [
-                {
-                    "description": "Walking",
-                    "destinations_reachable": self.WalkAllWayFlag,
-                    "transition_rules": self._create_journey_level_modes(partialNetwork, 0, index),
-                    "boarding_time": {
-                        "at_nodes": None,
-                        "on_lines": {"penalty": "ut3", "perception_factor": self.ClassBoardPerceptionList[index]},
-                        "global": None,
-                        "on_segments": None,
-                    },
-                    "boarding_cost": None,
-                    "waiting_time": None,
-                },
-                {
-                    "description": "Transit",
-                    "destinations_reachable": True,
-                    "transition_rules": self._create_journey_level_modes(partialNetwork, 1, index),
-                    "boarding_time": {
-                        "at_nodes": None,
-                        "on_lines": {"penalty": "ut2", "perception_factor": self.ClassBoardPerceptionList[index]},
-                        "global": None,
-                        "on_segments": None,
-                    },
-                    "boarding_cost": None,
-                    "waiting_time": None,
-                },
-            ]
-        else:
-            # Provide backwards compatibility for a single boarding penalty
-            baseSpec["boarding_time"] = {
-                "at_nodes": None,
-                "on_lines": {"penalty": "ut3", "perception_factor": self.ClassBoardPerceptionList[index]},
-                "global": None,
-                "on_segments": None,
-            }
-        return baseSpec
-
-    def _create_journey_level_modes(self, partialNetwork, level, index):
-        modeList = []
-        if self.ClassModeList[index] == ["*"]:
-            for mode in partialNetwork.modes():
-                if mode.type == "TRANSIT":
-                    modeList.append({"mode": mode.id, "next_journey_level": 1})
-                elif six.PY3 and mode.type == "AUX_TRANSIT":
-                    modeList.append({"mode": mode.id, "next_journey_level": level})
-        else:
-            for c in self.ClassModeList:
-                mode = partialNetwork.mode(c)
-                if mode.type == "TRANSIT":
-                    modeList.append({"mode": mode.id, "next_journey_level": 1})
-                elif six.PY3 and mode.type == "AUX_TRANSIT":
-                    modeList.append({"mode": mode.id, "next_journey_level": level})
-        return modeList
-
-    def _RunExtendedTransitAssignment(self, iteration):
-        if iteration == 0:
-            msg = "Prepare Initial Assignment"
-        else:
-            msg = "Prepare Transit Assignment"
-        assignmentTool = extendedAssignmentTool
-        assignmentTool.iterative_transit_assignment = True
-        with _trace(msg):
-            for i in range(0, len(self.DemandMatrixList)):
-                spec = self._GetTransitAssignmentSpec(i)
-                if i == 0:
-                    self.TRACKER.runTool(assignmentTool, specification=spec, scenario=self.Scenario, add_volumes=False)
-                else:
-                    self.TRACKER.runTool(assignmentTool, specification=spec, scenario=self.Scenario, add_volumes=True)
-                strategiesName = "Iteration %s %s" % (iteration, self.ClassNames[i])
-                strategiesFile = self.strategies.add_strat_file(strategiesName)
-                classData = _dbUtils.get_multi_class_strat(self.strategies, self.ClassNames[i])
-                classData["strat_files"].append(strategiesName)
-                values = self.Scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time"])
-                strategiesFile.add_attr_values("TRANSIT_SEGMENT", "transit_time", values[1])
-
-    def _ComputeAssignedClassDemand(self):
-        assignedDemand = []
-        for i in range(0, len(self.ClassNames)):
-            matrixCalcSpec = {
+    def _compute_assigned_class_demand(self, scenario, demand_matrix_list, number_of_processors):
+        assigned_demand = []
+        for i in range(0, len(demand_matrix_list)):
+            matrix_calc_spec = {
                 "type": "MATRIX_CALCULATION",
-                "expression": str(self.DemandMatrixList[i]) + " * (p.ne.q)",
+                "expression": str(demand_matrix_list[i]) + " * (p.ne.q)",
                 "aggregation": {"origins": "+", "destinations": "+"},
             }
-            report = matrixCalcTool(
-                specification=matrixCalcSpec, scenario=self.Scenario, num_processors=self.NumberOfProcessors
+            report = matrix_calc_tool(
+                specification=matrix_calc_spec,
+                scenario=scenario,
+                num_processors=number_of_processors,
             )
             trips = report["result"]
             if trips <= 0:
                 raise Exception("Invalid number of trips assigned")
-            assignedDemand.append(trips)
-        return assignedDemand
+            assigned_demand.append(trips)
+        return assigned_demand
 
-    def _PrepareNetwork(self, stsu_att):
-        # network = self.Scenario.get_network()
-        network = self.Scenario.get_partial_network(
-            ["LINK", "TRANSIT_SEGMENT", "TRANSIT_LINE", "TRANSIT_VEHICLE"], include_attributes=False
+    def _compute_min_trip_impedance(self, scenario, demand_matrix_list, assigned_class_demand, impedance_matrix_list):
+        average_min_trip_impedance = 0.0
+        class_imped = []
+        for i in range(0, len(assigned_class_demand)):
+            matrix_calc_spec = {
+                "type": "MATRIX_CALCULATION",
+                "expression": str(impedance_matrix_list[i].id)
+                + "*"
+                + str(demand_matrix_list[i])
+                + "/"
+                + str(assigned_class_demand[i]),
+                "aggregation": {"origins": "+", "destinations": "+"},
+            }
+            report = matrix_calc_tool(
+                specification=matrix_calc_spec,
+                scenario=scenario,
+                num_processors=self.number_of_processors,
+            )
+            class_imped.append(float(report["result"]))
+        for i in range(0, len(assigned_class_demand)):
+            average_min_trip_impedance += class_imped[i] * assigned_class_demand[i]
+        average_min_trip_impedance = average_min_trip_impedance / sum(assigned_class_demand)
+        return average_min_trip_impedance
+
+    def _get_congestion_costs(self, parameters, network, assigned_total_demand):
+        congestion_cost = 0.0
+        for line in network.transit_lines():
+            capacity = float(line.total_capacity)
+            for segment in line.segments():
+                flow_X_time = float(segment.voltr) * (float(segment.timtr) - float(segment.dwell_time))
+                congestion = self._calculate_segment_cost(parameters, float(segment.voltr), capacity, segment)
+                congestion_cost += flow_X_time * congestion
+        return congestion_cost / assigned_total_demand
+
+    def _prepare_network(self, scenario, parameters, stsu_att):
+        network = scenario.get_partial_network(
+            ["LINK", "TRANSIT_SEGMENT", "TRANSIT_LINE", "TRANSIT_VEHICLE"],
+            include_attributes=False,
         )
         attributes_to_copy = {
             "TRANSIT_VEHICLE": ["total_capacity"],
@@ -1097,27 +1391,26 @@ class TransitAssignmentTool(_m.Tool()):
                 "@tstop",
             ],
         }
-        if self.Scenario.extra_attribute("@tstop") is None:
-            if self.SurfaceTransitSpeed == False:
+        if scenario.extra_attribute("@tstop") is None:
+            if parameters["surface_transit_speed"] == False:
                 attributes_to_copy["TRANSIT_SEGMENT"].remove("@tstop")
             else:
                 raise Exception(
                     "@tstop attribute needs to be defined. @tstop is an integer that shows how many transit stops are on each transit segment."
                 )
-        if "auto_time" not in self.Scenario.attributes("LINK"):
-            if self.SurfaceTransitSpeed == False:
+        if "auto_time" not in scenario.attributes("LINK"):
+            if parameters["surface_transit_speed"] == False:
                 attributes_to_copy["LINK"].remove("auto_time")
             else:
                 raise Exception("An auto assignment needs to be present on the scenario")
-        if self.Scenario.extra_attribute("@doors") is None:
+        if scenario.extra_attribute("@doors") is None:
             attributes_to_copy["TRANSIT_LINE"].remove("@doors")
-
-        for type, atts in six.iteritems(attributes_to_copy):
+        for type, atts in attributes_to_copy.items():
             atts = list(atts)
-            data = self.Scenario.get_attribute_values(type, atts)
+            data = scenario.get_attribute_values(type, atts)
             network.set_attribute_values(type, atts, data)
-        for type, mapping in six.iteritems(self._AttributeMapping()):
-            for source, dest in six.iteritems(mapping):
+        for type, mapping in self._attribute_mapping().items():
+            for source, dest in mapping.items():
                 network.copy_attribute(type, source, dest)
         network.create_attribute("TRANSIT_SEGMENT", "current_voltr")
         network.create_attribute("TRANSIT_SEGMENT", "cost")
@@ -1125,160 +1418,163 @@ class TransitAssignmentTool(_m.Tool()):
         network.copy_attribute("TRANSIT_SEGMENT", "transit_time", "uncongested_time")
         network.copy_attribute("TRANSIT_SEGMENT", "dwell_time", "base_dwell_time")
         for line in network.transit_lines():
-            line.total_capacity = 60.0 * self.AssignmentPeriod * line.vehicle.total_capacity / line.headway
+            line.total_capacity = 60.0 * parameters["assignment_period"] * line.vehicle.total_capacity / line.headway
         return network
 
-    def _ComputeMinTripImpedence(self, classAssignedDemand):
-        averageMinTripImpedence = 0.0
-        classImped = []
-        for i in range(0, len(classAssignedDemand)):
-            matrixCalcSpec = {
-                "type": "MATRIX_CALCULATION",
-                "expression": str(self.ImpedenceMatrices[i].id)
-                + "*"
-                + str(self.DemandMatrixList[i])
-                + "/"
-                + str(classAssignedDemand[i]),
-                "aggregation": {"origins": "+", "destinations": "+"},
+    def _get_transit_assignment_spec(
+        self,
+        scenario,
+        index,
+        fare_perception,
+        modes,
+        demand_matrix_list,
+        headway_fraction_attribute_list,
+        effective_headway_attribute_list,
+        walk_time_perception_attribute_list,
+        impedance_matrix_list,
+        wait_time_perception,
+        consider_total_impedance,
+        origin_distribution_logit_scale,
+        connector_logit_truncation,
+        number_of_processors,
+        node_logit_scale,
+        walk_all_way_flag,
+        board_penalty_perception,
+        segment_fare_attribute,
+        link_fare_attribute_id,
+    ):
+        if fare_perception != 0.0:
+            fare_perception = 60.0 / fare_perception
+        base_spec = {
+            "modes": [str(modes)],
+            "demand": demand_matrix_list[index].id,
+            "waiting_time": {
+                "headway_fraction": headway_fraction_attribute_list[index].id,
+                "effective_headways": effective_headway_attribute_list[index].id,
+                "spread_factor": 1,
+                "perception_factor": wait_time_perception,
+            },
+            "boarding_time": {
+                "at_nodes": None,
+                "on_lines": None,
+                "global": {"penalty": 0, "perception_factor": 1},
+            },
+            "boarding_cost": {
+                "at_nodes": None,
+                "on_lines": None,
+                "global": {"penalty": 0, "perception_factor": 1},
+            },
+            "in_vehicle_time": {"perception_factor": "us2"},
+            "in_vehicle_cost": {
+                "penalty": segment_fare_attribute,
+                "perception_factor": fare_perception,
+            },
+            "aux_transit_time": {"perception_factor": walk_time_perception_attribute_list[index].id},
+            "aux_transit_cost": {
+                "penalty": link_fare_attribute_id,
+                "perception_factor": fare_perception,
+            },
+            "connector_to_connector_path_prohibition": None,
+            "od_results": {"total_impedance": impedance_matrix_list[index].id},
+            "flow_distribution_between_lines": {"consider_total_impedance": consider_total_impedance},
+            "save_strategies": True,
+            "type": "EXTENDED_TRANSIT_ASSIGNMENT",
+        }
+        base_spec["flow_distribution_at_origins"] = {
+            "choices_at_origins": {
+                "choice_points": "ALL_ORIGINS",
+                "choice_set": "ALL_CONNECTORS",
+                "logit_parameters": {
+                    "scale": origin_distribution_logit_scale,
+                    "truncation": connector_logit_truncation,
+                },
+            },
+            "fixed_proportions_on_connectors": None,
+        }
+        base_spec["performance_settings"] = {"number_of_processors": number_of_processors}
+        if node_logit_scale != 1:
+            base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                "choices_at_regular_nodes": {
+                    "choice_points": "ui1",
+                    "aux_transit_choice_set": "ALL_POSSIBLE_LINKS",
+                    "logit_parameters": {
+                        "scale": node_logit_scale,
+                        "truncation": connector_logit_truncation,
+                    },
+                }
             }
-            report = matrixCalcTool(
-                specification=matrixCalcSpec, scenario=self.Scenario, num_processors=self.NumberOfProcessors
-            )
-            classImped.append(float(report["result"]))
-        for i in range(0, len(classAssignedDemand)):
-            averageMinTripImpedence += classImped[i] * classAssignedDemand[i]
-        averageMinTripImpedence = averageMinTripImpedence / sum(classAssignedDemand)
-        return averageMinTripImpedence
+        else:
+            base_spec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
+                "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
+            }
 
-    def _GetCongestionCosts(self, network, assignedDemand):
-        congestionCost = 0.0
-        for line in network.transit_lines():
-            capacity = float(line.total_capacity)
-            for segment in line.segments():
-                flowXtime = float(segment.voltr) * (float(segment.timtr) - float(segment.dwell_time))
-                congestion = self._CalculateSegmentCost(float(segment.voltr), capacity, segment)
-                congestionCost += flowXtime * congestion
-        return congestionCost / assignedDemand
+        partial_network = scenario.get_partial_network(["MODE"], True)
+        # if all modes are selected for class, get all transit modes for journey levels
+        base_spec["journey_levels"] = [
+            {
+                "description": "Walking",
+                "destinations_reachable": walk_all_way_flag,
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 0),
+                "boarding_time": {
+                    "at_nodes": None,
+                    "on_lines": {"penalty": "ut3", "perception_factor": board_penalty_perception},
+                    "global": None,
+                    "on_segments": None,
+                },
+                "boarding_cost": None,
+                "waiting_time": None,
+            },
+            {
+                "description": "Transit",
+                "destinations_reachable": True,
+                "transition_rules": self._create_journey_level_modes(modes, partial_network, 1),
+                "boarding_time": {
+                    "at_nodes": None,
+                    "on_lines": {"penalty": "ut2", "perception_factor": board_penalty_perception},
+                    "global": None,
+                    "on_segments": None,
+                },
+                "boarding_cost": None,
+                "waiting_time": None,
+            },
+        ]
+        return base_spec
 
-    def _WriteCSVFiles(self, iteration, network, cngap, crgap, normgapdiff):
-        if iteration == 0:
-            with open(self.CSVFile, "wb") as iterationFile:
-                writer = csv.writer(iterationFile)
-                header = [
-                    "iteration",
-                    "line",
-                    "capacity",
-                    "boardings",
-                    "max v/c",
-                    "average v/c",
-                    "line speed w congestion",
-                    "line speed",
-                ]
-                writer.writerow(header)
-        with open(self.CSVFile, "ab") as iterationFile:
-            writer = csv.writer(iterationFile)
-            for line in network.transit_lines():
-                boardings = 0.0
-                capacity = 0.0
-                maxVC = float("-inf")
-                avgVC = 0.0
-                lineSpeed = 0.0
-                totalLength = 0.0
-                totalTime = 0.0
-                tT = 0.0
-                capacity = float(line.total_capacity)
-                i = 0
-                for segment in line.segments():
-                    boardings += segment.board
-                    VC = float(segment.voltr) / capacity
-                    if VC > maxVC:
-                        maxVC = VC
-                    if segment.j_node is None:
-                        segmentLength = 0.0
-                    else:
-                        segmentLength = float(segment.link.length)
-                    totalLength += segmentLength
-                    avgVC += VC * segmentLength
-                    baseTime = float(segment.uncongested_time) - float(line.segment(i + 1).base_dwell_time)
-                    if iteration == 0:
-                        cost = 0
-                    else:
-                        cost = self._CalculateSegmentCost(segment.voltr, capacity, segment)
-                    dwell_time = float(segment.dwell_time)
-                    travel_time = (baseTime + float(line.segment(i + 1).dwell_time)) * (1 + cost)
-                    tt = baseTime + dwell_time
-                    totalTime += travel_time
-                    tT += tt
-                    i += 1
-                lineSpeed = totalLength / totalTime * 60
-                ls = totalLength / tT * 60
-                avgVC /= totalLength
-                row = [iteration, str(line.id), capacity, boardings, maxVC, avgVC, lineSpeed, ls]
-                writer.writerow(row)
-            row = [iteration, "GAPS", cngap, crgap, normgapdiff]
-            writer.writerow(row)
+    def _attribute_mapping(self):
+        atts = {
+            "NODE": {"initial_boardings": "inboa", "final_alightings": "fiali"},
+            "LINK": {"aux_transit_volume": "volax"},
+            "TRANSIT_SEGMENT": {
+                "transit_time": "timtr",
+                "transit_volume": "voltr",
+                "transit_boardings": "board",
+            },
+        }
+        return atts
 
-    def _SurfaceTransitSpeedUpdate(self, network, lambdaK, stsu_att, final):
-        if "transit_alightings" not in network.attributes("TRANSIT_SEGMENT"):
-            network.create_attribute("TRANSIT_SEGMENT", "transit_alightings", 0.0)
-        for line in network.transit_lines():
-            prevVolume = 0.0
-            headway = line.headway
-            number_of_trips = self.AssignmentPeriod * 60.0 / headway
+    def _calculate_segment_cost(self, parameters, transit_volume, capacity, segment):
+        ttf = segment.transit_time_func
+        for ttf_def in parameters["ttf_definitions"]:
+            if ttf == ttf_def["ttf"]:
+                alpha = ttf_def["congestion_exponent"]
+                beta = (2 * alpha - 1) / (2 * alpha - 2)
+                alpha_square = alpha * alpha
+                beta_square = beta * beta
 
-            # Get the STSU model to use
-            if line[str(stsu_att.id)] != 0.0:
-                model = self.models[int(line[str(stsu_att.id)]) - 1]
-            else:
-                continue
+                return max(
+                    0,
+                    ttf_def["congestion_perception"]
+                    * (
+                        1
+                        + math.sqrt(alpha_square * (1 - transit_volume / capacity) ** 2 + beta_square)
+                        - alpha * (1 - transit_volume / capacity)
+                        - beta
+                    ),
+                )
+        raise Exception("TTF definitions doesnot contain TTF%s" % str(ttf))
 
-            boarding_duration = model["boarding_duration"]
-            alighting_duration = model["alighting_duration"]
-            default_duration = model["default_duration"]
-            correlation = model["correlation"]
-            mode_filter = model["mode_filter"]
-
-            try:
-                doors = segment.line["@doors"]
-                if doors == 0.0:
-                    number_of_door_pairs = 1.0
-                else:
-                    number_of_door_pairs = doors / 2.0
-            except:
-                number_of_door_pairs = 1.0
-
-            for segment in line.segments(include_hidden=True):
-                segment_number = segment.number
-                if segment_number > 0 and segment.j_node is not None:
-                    segment.transit_alightings = max(
-                        prevVolume + segment.transit_boardings - segment.transit_volume, 0.0
-                    )
-                else:
-                    continue
-                # prevVolume is used above for the previous segments volume, the first segment is always ignored.
-                prevVolume = segment.transit_volume
-
-                boarding = segment.transit_boardings / number_of_trips / number_of_door_pairs
-                alighting = segment.transit_alightings / number_of_trips / number_of_door_pairs
-
-                old_dwell = segment.dwell_time
-                segment_dwell_time = (
-                    (boarding_duration * boarding)
-                    + (alighting_duration * alighting)
-                    + (segment["@tstop"] * default_duration)
-                )  # seconds
-                segment_dwell_time /= 60  # minutes
-                if segment_dwell_time >= 99.99:
-                    segment_dwell_time = 99.98
-
-                alpha = 1 - lambdaK
-                segment.dwell_time = old_dwell * alpha + segment_dwell_time * lambdaK
-        data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"])
-        self.Scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"], data)
-        return network
-
-    def _ComputeSegmentCosts(self, network):
-        excessKM = 0.0
+    def _compute_segment_costs(self, scenario, parameters, network):
+        excess_km = 0.0
         for line in network.transit_lines():
             capacity = line.total_capacity
             for segment in line.segments():
@@ -1286,31 +1582,33 @@ class TransitAssignmentTool(_m.Tool()):
                 length = segment.link.length
                 if volume >= capacity:
                     excess = volume - capacity
-                    excessKM += excess * length
-                segment.cost = self._CalculateSegmentCost(segment.voltr, capacity, segment)
-
+                    excess_km += excess * length
+                segment.cost = self._calculate_segment_cost(parameters, segment.voltr, capacity, segment)
         values = network.get_attribute_values("TRANSIT_SEGMENT", ["cost"])
-        self.Scenario.set_attribute_values("TRANSIT_SEGMENT", ["data3"], values)
-        return excessKM
+        scenario.set_attribute_values("TRANSIT_SEGMENT", ["data3"], values)
+        return excess_km
 
-    def _UpdateNetwork(self, network):
-        attributeMapping = self._AttributeMapping()
-        attributeMapping["TRANSIT_SEGMENT"]["dwell_time"] = "dwell_time"
-        for type, mapping in six.iteritems(attributeMapping):
+    def _update_network(self, scenario, network):
+        attribute_mapping = self._attribute_mapping()
+        attribute_mapping["TRANSIT_SEGMENT"]["dwell_time"] = "dwell_time"
+        for type, mapping in attribute_mapping.items():
             attributes = mapping.keys()
-            data = self.Scenario.get_attribute_values(type, attributes)
+            data = scenario.get_attribute_values(type, attributes)
             network.set_attribute_values(type, attributes, data)
         return network
 
-    def _FindStepSize(self, network, averageMinTripImpedence, averageImpedence, assignedTotalDemand):
+    def _find_step_size(
+        self, parameters, network, average_min_trip_impedance, average_impedance, assigned_total_demand, alphas
+    ):
         approx1 = 0.0
         approx2 = 0.5
         approx3 = 1.0
-        grad1 = averageMinTripImpedence - averageImpedence
-        grad2 = self._ComputeGradient(assignedTotalDemand, approx2, network)
-        grad2 += averageMinTripImpedence - averageImpedence
-        grad3 = self._ComputeGradient(assignedTotalDemand, approx3, network)
-        grad3 += averageMinTripImpedence - averageImpedence
+        grad1 = average_min_trip_impedance - average_impedance
+        grad2 = self._compute_gradient(parameters, assigned_total_demand, approx2, network)
+        grad2 += average_min_trip_impedance - average_impedance
+        grad3 = self._compute_gradient(parameters, assigned_total_demand, approx3, network)
+        grad3 += average_min_trip_impedance - average_impedance
+        # print("m_step lambdak")
         for m_steps in range(0, 21):
             h1 = approx2 - approx1
             h2 = approx3 - approx2
@@ -1337,21 +1635,56 @@ class TransitAssignmentTool(_m.Tool()):
             temp = abs(temp) * 100000.0
             if temp < 100:
                 break
-            grad = self._ComputeGradient(assignedTotalDemand, lambdaK, network)
-            grad += averageMinTripImpedence - averageImpedence
+            grad = self._compute_gradient(parameters, assigned_total_demand, lambdaK, network)
+            grad += average_min_trip_impedance - average_impedance
             approx1 = approx2
             approx2 = approx3
             approx3 = lambdaK
             grad1 = grad2
             grad2 = grad3
             grad3 = grad
-
         lambdaK = max(0.0, min(1.0, lambdaK))
-        self.alphas = [a * (1 - lambdaK) for a in self.alphas]
-        self.alphas.append(lambdaK)
-        return lambdaK
+        alphas = [a * (1 - lambdaK) for a in alphas]
+        alphas.append(lambdaK)
+        return lambdaK, alphas
 
-    def _UpdateVolumes(self, network, lambdaK):
+    def _compute_gradient(self, parameters, assigned_total_demand, lambdaK, network):
+        value = 0.0
+        for line in network.transit_lines():
+            capacity = float(line.total_capacity)
+            for segment in line.segments():
+                assigned_volume = float(segment.current_voltr)
+                cumulative_volume = float(segment.transit_volume)
+                t0 = (segment.transit_time - segment.dwell_time) / (1 + segment.cost)
+                volume_difference = cumulative_volume - assigned_volume
+                if lambdaK == 1:
+                    adjusted_volume = cumulative_volume
+                else:
+                    adjusted_volume = assigned_volume + lambdaK * (cumulative_volume - assigned_volume)
+                cost_difference = self._calculate_segment_cost(
+                    parameters, adjusted_volume, capacity, segment
+                ) - self._calculate_segment_cost(parameters, assigned_volume, capacity, segment)
+                value += t0 * cost_difference * volume_difference
+        return value / assigned_total_demand
+
+    def _create_journey_level_modes(self, modes, partial_network, level):
+        mode_list = []
+        if modes == "*":
+            for mode in partial_network.modes():
+                if mode.type == "TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": 1})
+                elif mode.type == "AUX_TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": level})
+        else:
+            for modechar in modes:
+                mode = partial_network.mode(modechar)
+                if mode.type == "TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": 1})
+                elif mode.type == "AUX_TRANSIT":
+                    mode_list.append({"mode": mode.id, "next_journey_level": level})
+        return mode_list
+
+    def _update_volumes(self, network, lambdaK):
         alpha = 1 - lambdaK
         for node in network.regular_nodes():
             node.inboa = node.inboa * alpha + node.initial_boardings * lambdaK
@@ -1366,510 +1699,150 @@ class TransitAssignmentTool(_m.Tool()):
                 segment.board = segment.board * alpha + segment.transit_boardings * lambdaK
         return
 
-    def _ComputeGaps(
-        self, assignedTotalDemand, lambdaK, averageMinTripImpedence, previousAverageMinTripImpedence, network
+    def _compute_gaps(
+        self,
+        parameters,
+        assigned_total_demand,
+        lambdaK,
+        average_min_trip_impedance,
+        previous_average_min_trip_impedance,
+        network,
     ):
-        cngap = previousAverageMinTripImpedence - averageMinTripImpedence
-        netCosts = self._ComputeNetworkCosts(assignedTotalDemand, lambdaK, network)
-        averageImpedence = (
-            lambdaK * averageMinTripImpedence + (1 - lambdaK) * previousAverageMinTripImpedence + netCosts
+        cngap = previous_average_min_trip_impedance - average_min_trip_impedance
+        net_costs = self._compute_network_costs(parameters, assigned_total_demand, lambdaK, network)
+        average_impedance = (
+            lambdaK * average_min_trip_impedance + (1 - lambdaK) * previous_average_min_trip_impedance + net_costs
         )
-        crgap = cngap / averageImpedence
-        normGapDifference = (self.NormGap - cngap) * 100000.0
-        return (averageImpedence, cngap, crgap, normGapDifference, netCosts)
+        crgap = cngap / average_impedance
+        norm_gap_difference = (parameters["norm_gap"] - cngap) * 100000.0
+        return (average_impedance, cngap, crgap, norm_gap_difference, net_costs)
 
-    def _SaveResults(self, network, stsu_att):
-        if self.Scenario.extra_attribute("@ccost") is not None:
-            ccost = self.Scenario.extra_attribute("@ccost")
-            self.Scenario.delete_extra_attribute("@ccost")
+    def _compute_network_costs(self, parameters, assigned_total_demand, lambdaK, network):
+        value = 0.0
+        for line in network.transit_lines():
+            capacity = float(line.total_capacity)
+            for segment in line.segments():
+                assigned_volume = segment.current_voltr
+                cumulative_volume = segment.transit_volume
+                t0 = (segment.transit_time - segment.dwell_time) / (1 + segment.cost)
+                volume_difference = assigned_volume + lambdaK * (cumulative_volume - assigned_volume)
+                adjusted_volume = assigned_volume + lambdaK * (cumulative_volume - assigned_volume)
+                cost_difference = self._calculate_segment_cost(
+                    parameters, adjusted_volume, capacity, segment
+                ) - self._calculate_segment_cost(parameters, assigned_volume, capacity, segment)
+                value += t0 * cost_difference * volume_difference
+        return value / assigned_total_demand
+
+    def _save_results(self, scenario, parameters, network, alphas, strategies, stsu_att):
+        if scenario.extra_attribute("@ccost") is not None:
+            ccost = scenario.extra_attribute("@ccost")
+            scenario.delete_extra_attribute("@ccost")
             network.delete_attribute(ccost.type, "@ccost")
         type = "TRANSIT_SEGMENT"
-        congestionAttribute = self.Scenario.create_extra_attribute(type, "@ccost")
-        congestionAttribute.description = "congestion cost"
+        congestion_attribute = scenario.create_extra_attribute(type, "@ccost")
+        congestion_attribute.description = "congestion cost"
         network.create_attribute(type, "@ccost")
         for line in network.transit_lines():
             capacity = float(line.total_capacity)
             i = 0
             for segment in line.segments():
                 volume = float(segment.voltr)
-                congestionTerm = self._CalculateSegmentCost(volume, capacity, segment)
-                baseTime = float(segment.uncongested_time) - float(line.segment(i + 1).base_dwell_time)
-                segment.transit_time = (baseTime + float(line.segment(i + 1).dwell_time)) * (1 + congestionTerm)
-                segment["@ccost"] = segment.transit_time - baseTime
+                congestion_term = self._calculate_segment_cost(parameters, volume, capacity, segment)
+                base_time = float(segment.uncongested_time) - float(line.segment(i + 1).base_dwell_time)
+                segment.transit_time = (base_time + float(line.segment(i + 1).dwell_time)) * (1 + congestion_term)
+                segment["@ccost"] = segment.transit_time - base_time
                 i += 1
-        attributeMapping = self._AttributeMapping()
-        attributeMapping["TRANSIT_SEGMENT"]["@ccost"] = "@ccost"
-        attributeMapping["TRANSIT_SEGMENT"]["transit_time"] = "transit_time"
-        for type, mapping in six.iteritems(attributeMapping):
+        attribute_mapping = self._attribute_mapping()
+        attribute_mapping["TRANSIT_SEGMENT"]["@ccost"] = "@ccost"
+        attribute_mapping["TRANSIT_SEGMENT"]["transit_time"] = "transit_time"
+        for type, mapping in attribute_mapping.items():
             data = network.get_attribute_values(type, mapping.values())
-            self.Scenario.set_attribute_values(type, mapping.keys(), data)
-        if self.SurfaceTransitSpeed != False:
-            data = self.Scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"])
+            scenario.set_attribute_values(type, mapping.keys(), data)
+        if parameters["surface_transit_speed"] == True:
+            data = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"])
             network.set_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"], data)
-            _netEdit.createSegmentAlightingsAttribute(network)
-            network = self._SurfaceTransitSpeedUpdate(network, 1, stsu_att, True)
+            net_edit.create_segment_alightings_attribute(network)
+            network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
             data = network.get_attribute_values("TRANSIT_SEGMENT", ["transit_boardings", "transit_alightings"])
-            self.Scenario.set_attribute_values("TRANSIT_SEGMENT", ["@boardings", "@alightings"], data)
-        self.strategies.data["alphas"] = self.alphas
-        self.strategies._save_config()
+            scenario.set_attribute_values("TRANSIT_SEGMENT", ["@boardings", "@alightings"], data)
+        strategies.data["alphas"] = alphas
+        strategies._save_config()
 
-    def _GetBaseAssignmentSpec(self):
-        farePerception = []
-        baseSpec = []
-        for i in range(0, len(self.DemandMatrixList)):
-
-            if self.ClassFarePerceptionList[i] == 0.0:
-                farePerception.append(0.0)
-            else:
-                farePerception.append(60.0 / self.ClassFarePerceptionList[i])
-            baseSpec.append(
-                {
-                    "modes": self.ClassModeList[i],
-                    "demand": self.DemandMatrixList[i].id,
-                    "waiting_time": {
-                        "headway_fraction": self.HeadwayFractionAttributeId,
-                        "effective_headways": self.EffectiveHeadwayAttributeId,
-                        "spread_factor": 1,
-                        "perception_factor": self.ClassWaitPerceptionList[i],
-                    },
-                    "boarding_time": {
-                        "at_nodes": None,
-                        "on_lines": {"penalty": "ut3", "perception_factor": self.ClassBoardPerceptionList[i]},
-                    },
-                    "boarding_cost": {"at_nodes": {"penalty": 0, "perception_factor": 1}, "on_lines": None},
-                    "in_vehicle_time": {"perception_factor": "us2"},
-                    "in_vehicle_cost": {
-                        "penalty": self.SegmentFareAttributeIdList[i],
-                        "perception_factor": farePerception[i],
-                    },
-                    "aux_transit_time": {"perception_factor": self.WalkAttributeIdList[i]},
-                    "aux_transit_cost": {
-                        "penalty": self.LinkFareAttributeIdList[i],
-                        "perception_factor": farePerception[i],
-                    },
-                    "connector_to_connector_path_prohibition": None,
-                    "od_results": {"total_impedance": self.ImpedenceMatrices[i].id},
-                    "flow_distribution_between_lines": {"consider_total_impedance": self._considerTotalImpedance},
-                    "save_strategies": True,
-                    "type": "EXTENDED_TRANSIT_ASSIGNMENT",
-                }
-            )
-        for i in range(0, len(baseSpec)):
-            if self._useLogitConnectorChoice:
-                """baseSpec[i]['flow_distribution_at_origins'] = {'by_time_to_destination': {'logit': {'scale': self.xtmf_OriginDistributionLogitScale,
-                                                     'truncation': self._connectorLogitTruncation}},
-                'by_fixed_proportions': None}"""
-                baseSpec[i]["flow_distribution_at_origins"] = {
-                    "choices_at_origins": {
-                        "choice_points": "ALL_ORIGINS",
-                        "choice_set": "ALL_CONNECTORS",
-                        "logit_parameters": {
-                            "scale": self.xtmf_OriginDistributionLogitScale,
-                            "truncation": self._connectorLogitTruncation,
-                        },
-                    },
-                    "fixed_proportions_on_connectors": None,
-                }
-            if EMME_VERSION >= (4, 1):
-                baseSpec[i]["performance_settings"] = {"number_of_processors": self.NumberOfProcessors}
-                """if self._useLogitAuxTrChoice:
-                    raise NotImplementedError()"""
-                if self.Scenario.extra_attribute("@node_logit") != None:
-                    baseSpec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
-                        "choices_at_regular_nodes": {
-                            "choice_points": "@node_logit",
-                            "aux_transit_choice_set": "ALL_POSSIBLE_LINKS",
-                            "logit_parameters": {"scale": 0.2, "truncation": 0.05},
-                        }
-                    }
-                else:
-                    baseSpec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
-                        "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
-                    }
-                partialNetwork = self.Scenario.get_partial_network(["MODE"], True)
-                baseSpec[i]["journey_levels"] = [
-                    {
-                        "description": "Walking",
-                        "destinations_reachable": self.WalkAllWayFlag,
-                        "transition_rules": self._create_journey_level_modes(partialNetwork, 0, i),
-                        "boarding_time": None,
-                        "boarding_cost": None,
-                        "waiting_time": None,
-                    },
-                    {
-                        "description": "Transit",
-                        "destinations_reachable": True,
-                        "transition_rules": self._create_journey_level_modes(partialNetwork, 1, i),
-                        "boarding_time": None,
-                        "boarding_cost": None,
-                        "waiting_time": None,
-                    },
-                ]
-
-        return baseSpec
-
-    def _GetBaseAssignmentSpecUncongested(self, index):
-        if self.ClassFarePerceptionList[index] == 0.0:
-            farePerception = 0.0
-        else:
-            farePerception = 60.0 / self.ClassFarePerceptionList[index]
-        baseSpec = {
-            "modes": self.ClassModeList[index],
-            "demand": self.DemandMatrixList[index].id,
-            "waiting_time": {
-                "headway_fraction": self.HeadwayFractionAttributeId,
-                "effective_headways": self.EffectiveHeadwayAttributeId,
-                "spread_factor": 1,
-                "perception_factor": self.ClassWaitPerceptionList[index],
-            },
-            "boarding_time": {
-                "at_nodes": None,
-                "on_lines": {"penalty": "ut3", "perception_factor": self.ClassBoardPerceptionList[index]},
-            },
-            "boarding_cost": {"at_nodes": {"penalty": 0, "perception_factor": 1}, "on_lines": None},
-            "in_vehicle_time": {"perception_factor": "us2"},
-            "in_vehicle_cost": {"penalty": self.SegmentFareAttributeIdList[index], "perception_factor": farePerception},
-            "aux_transit_time": {"perception_factor": self.WalkAttributeIdList[index]},
-            "aux_transit_cost": {"penalty": self.LinkFareAttributeIdList[index], "perception_factor": farePerception},
-            "connector_to_connector_path_prohibition": None,
-            "od_results": {"total_impedance": self.ImpedenceMatrices[index].id},
-            "flow_distribution_between_lines": {"consider_total_impedance": self._considerTotalImpedance},
-            "save_strategies": True,
-            "type": "EXTENDED_TRANSIT_ASSIGNMENT",
-        }
-        if self._useLogitConnectorChoice:
-            baseSpec["flow_distribution_at_origins"] = {
-                "choices_at_origins": {
-                    "choice_points": "ALL_ORIGINS",
-                    "choice_set": "ALL_CONNECTORS",
-                    "logit_parameters": {
-                        "scale": self.xtmf_OriginDistributionLogitScale,
-                        "truncation": self._connectorLogitTruncation,
-                    },
-                },
-                "fixed_proportions_on_connectors": None,
-            }
-        if EMME_VERSION >= (4, 1):
-            baseSpec["performance_settings"] = {"number_of_processors": self.NumberOfProcessors}
-            """if self._useLogitAuxTrChoice:
-                raise NotImplementedError()"""
-        if self.NodeLogitScale is not False:
-            baseSpec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
-                "choices_at_regular_nodes": {
-                    "choice_points": "ui1",
-                    "aux_transit_choice_set": "ALL_POSSIBLE_LINKS",
-                    "logit_parameters": {"scale": self.NodeLogitScale, "truncation": self._connectorLogitTruncation},
-                }
-            }
-        else:
-            baseSpec["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
-                "choices_at_regular_nodes": "OPTIMAL_STRATEGY"
-            }
-        if EMME_VERSION >= (4, 2, 1):
-            partialNetwork = self.Scenario.get_partial_network(["MODE"], True)
-            # if all modes are selected for class, get all transit modes for journey levels
-            baseSpec["journey_levels"] = [
-                {
-                    "description": "Walking",
-                    "destinations_reachable": self.WalkAllWayFlag,
-                    "transition_rules": self._create_journey_level_modes(partialNetwork, 0, index),
-                    "boarding_time": None,
-                    "boarding_cost": None,
-                    "waiting_time": None,
-                },
-                {
-                    "description": "Transit",
-                    "destinations_reachable": True,
-                    "transition_rules": self._create_journey_level_modes(partialNetwork, 1, index),
-                    "boarding_time": None,
-                    "boarding_cost": None,
-                    "waiting_time": None,
-                },
-            ]
-        return baseSpec
-
-    def _ExtractOutputMatrices(self):
-        for i, demand in enumerate(self.DemandMatrixList):
-            if self.WalkTimeMatrixList[i] or self.WaitTimeMatrixList[i] or self.PenaltyMatrixList[i]:
-                self._ExtractTimesMatrices(i)
-            if self.InVehicleTimeMatrixList[i] is not None:
-                with _util.tempExtraAttributeMANAGER(self.Scenario, "TRANSIT_SEGMENT") as TempInVehicleTimesAttribute:
-                    if self.CalculateCongestedIvttFlag == True:
-                        self._ExtractInVehicleTimes(TempInVehicleTimesAttribute, True, i)
+    def _extract_output_matrices(
+        self,
+        scenario,
+        parameters,
+        demand_matrix_list,
+        walk_time_matrix_list,
+        wait_time_matrix_list,
+        board_penalty_matrix_list,
+        in_vehicle_time_matrix_list,
+        congestion_matrix_list,
+        fare_matrix_list,
+    ):
+        for i, transit_class in enumerate(parameters["transit_classes"]):
+            if walk_time_matrix_list[i] or wait_time_matrix_list or board_penalty_matrix_list[i]:
+                self._extract_times_matrices(
+                    i, scenario, transit_class, wait_time_matrix_list, board_penalty_matrix_list, walk_time_matrix_list
+                )
+            if in_vehicle_time_matrix_list[i] is not None:
+                with _util.temp_extra_attribute_manager(scenario, "TRANSIT_SEGMENT") as temp_in_vehicle_times_attribute:
+                    if parameters["calculate_congested_ivtt_flag"] == True:
+                        self._extract_in_vehicle_times(
+                            i,
+                            scenario,
+                            parameters,
+                            transit_class,
+                            temp_in_vehicle_times_attribute,
+                            demand_matrix_list,
+                            in_vehicle_time_matrix_list,
+                            True,
+                        )
                     else:
-                        self._ExtractInVehicleTimes(TempInVehicleTimesAttribute, False, i)
-            if self.xtmf_congestedAssignment == True:
-                if self.CongestionMatrixList[i] is not None:
-                    self._ExtractCongestionMatrix(self.CongestionMatrixList[i], i)
-            if self.FareMatrixList[i]:
-                self._ExtractCostMatrix(i)
+                        self._extract_in_vehicle_times(
+                            i,
+                            scenario,
+                            parameters,
+                            transit_class,
+                            temp_in_vehicle_times_attribute,
+                            demand_matrix_list,
+                            in_vehicle_time_matrix_list,
+                            False,
+                        )
+            if parameters["congested_assignment"] == True:
+                if congestion_matrix_list[i] is not None:
+                    self._extract_congestion_matrix(
+                        i, scenario, transit_class, congestion_matrix_list[i], demand_matrix_list
+                    )
+            if fare_matrix_list[i]:
+                self._extract_cost_matrix(i, scenario, transit_class, demand_matrix_list, fare_matrix_list)
 
-    ################################# SUB TASK METHODS ###########################
-
-    def _ParsePerceptionString(self, index):
-        perceptionList = []
-        zoneValues = self.WalkPerceptionList[index].splitlines()
-        for zoneValue in zoneValues:
-            if zoneValue.isspace():
-                continue
-            parts = zoneValue.split(":")
-            if len(parts) < 2:
-                msg = "Error parsing perception string"
-                msg += ". [%s]" % zoneValue
-                raise SyntaxError(msg)
-            strippedParts = [item.strip() for item in parts]
-            try:
-                perception = float(strippedParts[0])
-            except:
-                msg = "Perception value must be a number"
-                msg += ". [%s]" % zoneValue
-                raise SyntaxError(msg)
-
-            try:
-                zone = str(strippedParts[1])
-            except:
-                msg = "Filter value must be a string"
-                msg += ". [%s]" % zoneValue
-                raise SyntaxError(msg)
-
-            perceptionList.append(strippedParts[0:2])
-        return perceptionList
-
-    def _ParseExponentString(self):
-        exponentList = {}
-        components = self.CongestionExponentString.split(",")
-        for component in components:
-            if component.isspace():
-                continue
-            parts = component.split(":")
-            if len(parts) != 3:
-                msg = "Error parsing penalty and filter string: Separate ttf, perception and exponent with colons ttf:perception:exponent"
-                msg += ". [%s]" % component
-                raise SyntaxError(msg)
-            strippedParts = [item.strip() for item in parts]
-            try:
-                ttf = int(strippedParts[0])
-            except:
-                msg = "ttf value must be an integer"
-                msg += ". [%s]" % component
-                raise SyntaxError(msg)
-
-            try:
-                perception = float(strippedParts[1])
-            except:
-                msg = "Perception value must be a number"
-                msg += ". [%s]" % component
-                raise SyntaxError(msg)
-
-            try:
-                exponent = float(strippedParts[2])
-            except:
-                msg = "Exponent value must be a number"
-                msg += ". [%s]" % component
-                raise SyntaxError(msg)
-            strippedParts[0] = ttf
-            strippedParts[1] = perception
-            strippedParts[2] = exponent
-            exponentList[strippedParts[0]] = strippedParts[0:3]
-            self._HealTravelTimeFunction(ttf)
-        return exponentList
-
-    def _GetFuncSpec(self):
-        parameterList = self._ParseExponentString()
-        partialSpec = (
-            "import math \ndef calc_segment_cost(transit_volume, capacity, segment):\n    cap_period = "
-            + str(self.AssignmentPeriod)
-        )
-        i = 0
-        for ttf, item in six.iteritems(parameterList):
-            ttf = str(ttf)
-            alpha = float(item[2])
-            beta = (2 * alpha - 1) / (2 * alpha - 2)
-            alphaSquare = alpha ** 2
-            betaSquare = beta ** 2
-            if i == 0:
-                partialSpec += (
-                    "\n    if segment.transit_time_func == "
-                    + ttf
-                    + ": \n        return max(0,("
-                    + str(item[1])
-                    + " * (1 + math.sqrt("
-                    + str(alphaSquare)
-                    + " * \n            (1 - transit_volume / capacity) ** 2 + "
-                    + str(betaSquare)
-                    + ") - "
-                    + str(alpha)
-                    + " \n            * (1 - transit_volume / capacity) - "
-                    + str(beta)
-                    + ")))"
-                )
-            else:
-                partialSpec += (
-                    "\n    elif segment.transit_time_func == "
-                    + ttf
-                    + ": \n        return max(0,("
-                    + str(item[1])
-                    + " * (1 + math.sqrt("
-                    + str(alphaSquare)
-                    + " *  \n            (1 - transit_volume / capacity) ** 2 + "
-                    + str(betaSquare)
-                    + ") - "
-                    + str(alpha)
-                    + " \n            * (1 - transit_volume / capacity) - "
-                    + str(beta)
-                    + ")))"
-                )
-            i += 1
-        partialSpec += '\n    else: \n        raise Exception("ttf=%s congestion values not defined in input" %segment.transit_time_func)'
-        funcSpec = {
-            "type": "CUSTOM",
-            "assignment_period": self.AssignmentPeriod,
-            "orig_func": False,
-            "congestion_attribute": "us3",
-            "python_function": partialSpec,
-        }
-        return funcSpec
-
-    def _SetUpLineAttributes(self, stsu_att):
-        models = []
-        for i, model in enumerate(self.SurfaceTransitSpeed):
-            models.append({})
-            model = model.split(":")
-            models[i]["boarding_duration"] = float(model[0])
-            models[i]["alighting_duration"] = float(model[1])
-            models[i]["default_duration"] = float(model[2])
-            models[i]["correlation"] = float(model[3])
-            models[i]["mode_filter"] = str(model[4]).strip(" ")
-            models[i]["line_filter"] = str(model[5]).strip(" ")
-            models[i]["erow_speed"] = float(model[6])
-            spec = {
-                "type": "NETWORK_CALCULATION",
-                "result": str(stsu_att.id),
-                "expression": str(i + 1),
-                "selections": {"transit_line": "mode = " + models[i]["mode_filter"]},
-            }
-            if models[i]["line_filter"] == "" and models[i]["mode_filter"] != "":
-                spec["selections"]["transit_line"] = "mode = " + models[i]["mode_filter"]
-            elif models[i]["line_filter"] != "" and models[i]["mode_filter"] != "":
-                spec["selections"]["transit_line"] = (
-                    models[i]["line_filter"] + " and mode = " + models[i]["mode_filter"]
-                )
-            elif models[i]["line_filter"] != "" and models[i]["mode_filter"] == "":
-                spec["selections"]["transit_line"] = models[i]["line_filter"]
-            elif models[i]["line_filter"] == "" and models[i]["mode_filter"] == "":
-                spec["selections"]["transit_line"] = "all"
-            else:
-                raise Exception(
-                    "Please enter a correct mode filter and/or line filter in Surface Transit Speed Module %d" % (i + 1)
-                )
-            report = networkCalcTool(spec, scenario=self.Scenario)
-        return models
-
-    def _CalculateSegmentCost(self, transit_volume, capacity, segment):
-        ttf = segment.transit_time_func
-        entry = self.ttfDict[ttf]
-        alpha = entry[2]
-        beta = (2 * alpha - 1) / (2 * alpha - 2)
-        alphaSquare = alpha ** 2
-        betaSquare = beta ** 2
-        cost = entry[1] * (
-            1
-            + math.sqrt(alphaSquare * (1 - transit_volume / capacity) ** 2 + betaSquare)
-            - alpha * (1 - transit_volume / capacity)
-            - beta
-        )
-        return max(0, cost)
-
-    def _GetStopSpec(self):
-        stopSpec = {"max_iterations": self.Iterations, "normalized_gap": self.NormGap, "relative_gap": self.RelGap}
-        return stopSpec
-
-    def _ComputeGradient(self, assignedTotalDemand, lambdaK, network):
-        value = 0.0
-        for line in network.transit_lines():
-            capacity = float(line.total_capacity)
-            for segment in line.segments():
-                assignedVolume = float(segment.current_voltr)
-                cumulativeVolume = float(segment.transit_volume)
-                t0 = (segment.transit_time - segment.dwell_time) / (1 + segment.cost)
-                volumeDifference = cumulativeVolume - assignedVolume
-                if lambdaK == 1:
-                    adjustedVolume = cumulativeVolume
-                else:
-                    adjustedVolume = assignedVolume + lambdaK * (cumulativeVolume - assignedVolume)
-                costDifference = self._CalculateSegmentCost(
-                    adjustedVolume, capacity, segment
-                ) - self._CalculateSegmentCost(assignedVolume, capacity, segment)
-                value += t0 * costDifference * volumeDifference
-        return value / assignedTotalDemand
-
-    def _ComputeNetworkCosts(self, assignedTotalDemand, lambdaK, network):
-        value = 0.0
-        for line in network.transit_lines():
-            capacity = float(line.total_capacity)
-            for segment in line.segments():
-                assignedVolume = segment.current_voltr
-                cumulativeVolume = segment.transit_volume
-                t0 = (segment.transit_time - segment.dwell_time) / (1 + segment.cost)
-                volumeDifference = assignedVolume + lambdaK * (cumulativeVolume - assignedVolume)
-                adjustedVolume = assignedVolume + lambdaK * (cumulativeVolume - assignedVolume)
-                costDifference = self._CalculateSegmentCost(
-                    adjustedVolume, capacity, segment
-                ) - self._CalculateSegmentCost(assignedVolume, capacity, segment)
-                value += t0 * costDifference * volumeDifference
-        return value / assignedTotalDemand
-
-    def _ExtractTimesMatrices(self, i):
+    def _extract_times_matrices(
+        self, i, scenario, transit_class, wait_time_matrix_list, board_penalty_matrix_list, walk_time_matrix_list
+    ):
         spec = {
             "by_mode_subset": {
                 "modes": ["*"],
-                "actual_aux_transit_times": self.WalkTimeMatrixList[i],
-                "actual_total_boarding_times": self.PenaltyMatrixList[i],
+                "actual_aux_transit_times": wait_time_matrix_list[i],
+                "actual_total_boarding_times": board_penalty_matrix_list[i],
             },
             "type": "EXTENDED_TRANSIT_MATRIX_RESULTS",
-            "actual_total_waiting_times": self.WaitTimeMatrixList[i],
+            "actual_total_waiting_times": walk_time_matrix_list[i],
         }
-        self.TRACKER.runTool(matrixResultsTool, spec, scenario=self.Scenario, class_name=self.ClassNames[i])
+        self._tracker.run_tool(matrix_results_tool, spec, scenario=scenario, class_name=transit_class["name"])
 
-    def _ExtractCostMatrix(self, i):
-        spec = {
-            "trip_components": {
-                "boarding": None,
-                "in_vehicle": self.SegmentFareAttributeIdList[i],
-                "aux_transit": self.LinkFareAttributeIdList[i],
-                "alighting": None,
-            },
-            "sub_path_combination_operator": "+",
-            "sub_strategy_combination_operator": "average",
-            "selected_demand_and_transit_volumes": {
-                "sub_strategies_to_retain": "ALL",
-                "selection_threshold": {"lower": -999999, "upper": 999999},
-            },
-            "analyzed_demand": self.DemandMatrixList[i].id,
-            "constraint": None,
-            "results": {
-                "strategy_values": self.FareMatrixList[i],
-                "selected_demand": None,
-                "transit_volumes": None,
-                "aux_transit_volumes": None,
-                "total_boardings": None,
-                "total_alightings": None,
-            },
-            "type": "EXTENDED_TRANSIT_STRATEGY_ANALYSIS",
-        }
-        if EMME_VERSION >= (4, 3, 2):
-            self.TRACKER.runTool(
-                strategyAnalysisTool,
-                spec,
-                scenario=self.Scenario,
-                class_name=self.ClassNames[i],
-                num_processors=self.NumberOfProcessors,
-            )
-        else:
-            self.TRACKER.runTool(strategyAnalysisTool, spec, scenario=self.Scenario, class_name=self.ClassNames[i])
-
-    def _ExtractInVehicleTimes(self, attribute, congested, i):
-        if congested == True or self.xtmf_congestedAssignment == False:
+    def _extract_in_vehicle_times(
+        self,
+        i,
+        scenario,
+        parameters,
+        transit_class,
+        attribute,
+        demand_matrix_list,
+        in_vehicle_time_matrix_list,
+        congested,
+    ):
+        if congested == True or parameters["congested_assignment"] == False:
             spec = {
                 "result": str(attribute.id),
                 "expression": "timtr",
@@ -1877,7 +1850,7 @@ class TransitAssignmentTool(_m.Tool()):
                 "selections": {"link": "all", "transit_line": "all"},
                 "type": "NETWORK_CALCULATION",
             }
-            self.TRACKER.runTool(networkCalcTool, spec, scenario=self.Scenario)
+            self._tracker.run_tool(network_calc_tool, spec, scenario=scenario)
         else:
             spec = {
                 "result": str(attribute.id),
@@ -1886,7 +1859,7 @@ class TransitAssignmentTool(_m.Tool()):
                 "selections": {"link": "all", "transit_line": "all"},
                 "type": "NETWORK_CALCULATION",
             }
-            self.TRACKER.runTool(networkCalcTool, spec, scenario=self.Scenario)
+            self._tracker.run_tool(network_calc_tool, spec, scenario=scenario)
         spec = {
             "trip_components": {
                 "boarding": None,
@@ -1900,10 +1873,10 @@ class TransitAssignmentTool(_m.Tool()):
                 "sub_strategies_to_retain": "ALL",
                 "selection_threshold": {"lower": -999999, "upper": 999999},
             },
-            "analyzed_demand": self.DemandMatrixList[i].id,
+            "analyzed_demand": demand_matrix_list[i].id,
             "constraint": None,
             "results": {
-                "strategy_values": self.InVehicleTimeMatrixList[i],
+                "strategy_values": in_vehicle_time_matrix_list[i],
                 "selected_demand": None,
                 "transit_volumes": None,
                 "aux_transit_volumes": None,
@@ -1912,18 +1885,15 @@ class TransitAssignmentTool(_m.Tool()):
             },
             "type": "EXTENDED_TRANSIT_STRATEGY_ANALYSIS",
         }
-        if EMME_VERSION >= (4, 3, 2):
-            self.TRACKER.runTool(
-                strategyAnalysisTool,
-                spec,
-                scenario=self.Scenario,
-                class_name=self.ClassNames[i],
-                num_processors=self.NumberOfProcessors,
-            )
-        else:
-            self.TRACKER.runTool(strategyAnalysisTool, spec, scenario=self.Scenario, class_name=self.ClassNames[i])
+        self._tracker.run_tool(
+            strategy_analysis_tool,
+            spec,
+            scenario=scenario,
+            class_name=transit_class["name"],
+            num_processors=self.number_of_processors,
+        )
 
-    def _ExtractCongestionMatrix(self, congestionMatrixId, i):
+    def _extract_congestion_matrix(self, i, scenario, transit_class, congestion_matrix_id, demand_matrix_list):
         spec = {
             "trip_components": {"boarding": None, "in_vehicle": "@ccost", "aux_transit": None, "alighting": None},
             "sub_path_combination_operator": "+",
@@ -1932,10 +1902,10 @@ class TransitAssignmentTool(_m.Tool()):
                 "sub_strategies_to_retain": "ALL",
                 "selection_threshold": {"lower": -999999, "upper": 999999},
             },
-            "analyzed_demand": self.DemandMatrixList[i].id,
+            "analyzed_demand": demand_matrix_list[i].id,
             "constraint": None,
             "results": {
-                "strategy_values": congestionMatrixId,
+                "strategy_values": congestion_matrix_id,
                 "selected_demand": None,
                 "transit_volumes": None,
                 "aux_transit_volumes": None,
@@ -1944,129 +1914,83 @@ class TransitAssignmentTool(_m.Tool()):
             },
             "type": "EXTENDED_TRANSIT_STRATEGY_ANALYSIS",
         }
-        if EMME_VERSION >= (4, 3, 2):
-            self.TRACKER.runTool(
-                strategyAnalysisTool,
-                spec,
-                scenario=self.Scenario,
-                class_name=self.ClassNames[i],
-                num_processors=self.NumberOfProcessors,
-            )
-        else:
-            self.TRACKER.runTool(strategyAnalysisTool, spec, scenario=self.Scenario, class_name=self.ClassNames[i])
+        self._tracker.run_tool(
+            strategy_analysis_tool,
+            spec,
+            scenario=scenario,
+            class_name=transit_class["name"],
+            num_processors=self.number_of_processors,
+        )
 
-    def _FixRawIVTT(self, congestionMatrix, i):
-        expression = "{mfivtt} - {mfcong}".format(mfivtt=self.InVehicleTimeMatrixList[i], mfcong=congestionMatrix)
-        matrixCalcSpec = {
-            "expression": expression,
-            "result": self.InVehicleTimeMatrixList[i],
-            "constraint": {"by_value": None, "by_zone": None},
-            "aggregation": {"origins": None, "destinations": None},
-            "type": "MATRIX_CALCULATION",
+    def _extract_cost_matrix(self, i, scenario, transit_class, demand_matrix_list, fare_matrix_list):
+        spec = {
+            "trip_components": {
+                "boarding": None,
+                "in_vehicle": transit_class["segment_fare_attribute"],
+                "aux_transit": transit_class["link_fare_attribute_id"],
+                "alighting": None,
+            },
+            "sub_path_combination_operator": "+",
+            "sub_strategy_combination_operator": "average",
+            "selected_demand_and_transit_volumes": {
+                "sub_strategies_to_retain": "ALL",
+                "selection_threshold": {"lower": -999999, "upper": 999999},
+            },
+            "analyzed_demand": demand_matrix_list[i].id,
+            "constraint": None,
+            "results": {
+                "strategy_values": fare_matrix_list[i],
+                "selected_demand": None,
+                "transit_volumes": None,
+                "aux_transit_volumes": None,
+                "total_boardings": None,
+                "total_alightings": None,
+            },
+            "type": "EXTENDED_TRANSIT_STRATEGY_ANALYSIS",
         }
-        matrixCalcTool(matrixCalcSpec, scenario=self.Scenario)
-
-    def short_description(self):
-        return "MultiClass transit assignment tool for GTAModel V4"
-
-    def _AttributeMapping(self):
-        atts = {
-            "NODE": {"initial_boardings": "inboa", "final_alightings": "fiali"},
-            "LINK": {"aux_transit_volume": "volax"},
-            "TRANSIT_SEGMENT": {"transit_time": "timtr", "transit_volume": "voltr", "transit_boardings": "board"},
-        }
-        return atts
+        self._tracker.run_tool(
+            strategy_analysis_tool,
+            spec,
+            scenario=scenario,
+            class_name=transit_class["name"],
+            num_processors=self.number_of_processors,
+        )
 
     @contextmanager
-    def _getImpendenceMatrices(self):
-        self.ImpedenceMatrices = []
+    def _temp_stsu_ttfs(self, scenario, parameters):
+        orig_ttf_values = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"])
+        ttfs_xrow = self._process_ttfs_xrow(parameters)
+        ttfs_changed = []
+        stsu_ttf_map = {}
         created = {}
-        for i in range(0, len(self.DemandMatrixList)):
-            matrixCreated = False
-            if self.ImpedanceMatrixList[i] == None:
-                matrixCreated = True
-                _m.logbook_write("Creating temporary Impendence Matrix for class %s" % self.ClassNames[i])
-                mtx = _util.initializeMatrix(
-                    default=0.0, description="Temporary Impedence for class %s" % self.ClassNames[i], matrix_type="FULL"
-                )
-                self.ImpedenceMatrices.append(mtx)
-            else:
-                mtx = _bank.matrix(self.ImpedanceMatrixList[i])
-                self.ImpedenceMatrices.append(mtx)
-            created[mtx.id] = matrixCreated
-        try:
-            yield self.ImpedenceMatrices
-        finally:
-            for key in created:
-                if created[key] == True:
-                    _bank.delete_matrix(key)
-
-    @contextmanager
-    def _tempStsuTTFs(self):
-        self.orig_ttf_values = self.Scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"])
-        self.ttfs_changed = False
-        self.stsu_ttf_map = {}
-        ttfs = self._ParseExponentString()
-        self.stsu_ttf_map = {}
-        created = {}
-        for ttf, items in six.iteritems(ttfs):
+        to_add_list = []
+        for ttf in parameters["ttf_definitions"]:
             for i in range(1, 100):
                 func = "ft" + str(i)
-                if self.Scenario.emmebank.function(func) is None:
-                    self.Scenario.emmebank.create_function(func, "(length*60/us1)")
-                    self.stsu_ttf_map[int(ttf)] = int(func[2:])
-                    if ttf in self.ttfs_xrow:
-                        self.ttfs_xrow.add(int(func[2:]))
-                    self.CongestionExponentString = self.CongestionExponentString + ",%s:%s:%s" % (
-                        str(func[2:]),
-                        str(items[1]),
-                        str(items[2]),
-                    )
-                    # self.stsu_ttf = func
+                if scenario.emmebank.function(func) is None:
+                    scenario.emmebank.create_function(func, "(length*60/us1)")
+                    stsu_ttf_map[ttf["ttf"]] = i
+                    to_add_list.append(ttf.copy())
+                    to_add_list[len(to_add_list) - 1]["ttf"] = i
+                    if ttf["ttf"] in ttfs_xrow:
+                        ttfs_xrow.add(i)
                     created[func] = True
                     break
+        for ttf in to_add_list:
+            parameters["ttf_definitions"].append(ttf)
         try:
-            yield self.stsu_ttf_map
+            yield stsu_ttf_map, ttfs_changed
         finally:
             for func in created:
                 if created[func] == True:
-                    self.Scenario.emmebank.delete_function(func)
-            if self.ttfs_changed == True:
-                self.Scenario.set_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"], self.orig_ttf_values)
-
-    @_m.method(return_type=six.u)
-    def get_scenario_node_attributes(self):
-        options = ["<option value='-1'>None</option>"]
-        for exatt in self.Scenario.extra_attributes():
-            if exatt.type == "NODE":
-                options.append('<option value="%s">%s - %s</option>' % (exatt.id, exatt.id, exatt.description))
-
-        return "\n".join(options)
-
-    @_m.method(return_type=six.u)
-    def get_scenario_link_attributes(self, include_none=True):
-        options = []
-        if include_none:
-            options.append("<option value='-1'>None</option>")
-        for exatt in self.Scenario.extra_attributes():
-            if exatt.type == "LINK":
-                options.append('<option value="%s">%s - %s</option>' % (exatt.id, exatt.id, exatt.description))
-
-        return "\n".join(options)
-
-    @_m.method(return_type=six.u)
-    def get_scenario_segment_attribtues(self):
-        options = []
-        for exatt in self.Scenario.extra_attributes():
-            if exatt.type == "TRANSIT_SEGMENT":
-                options.append('<option value="%s">%s - %s</option>' % (exatt.id, exatt.id, exatt.description))
-
-        return "\n".join(options)
+                    scenario.emmebank.delete_function(func)
+            if True in ttfs_changed:
+                scenario.set_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"], orig_ttf_values)
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        return self.TRACKER.getProgress()
+        return self._tracker.get_progress()
 
-    @_m.method(return_type=six.u)
+    @_m.method(return_type=str)
     def tool_run_msg_status(self):
         return self.tool_run_msg
