@@ -63,8 +63,6 @@ namespace TMG.Emme.Generate
             [Parameter(Name = "Schema File", Description = "Fare Schema File",
                 Index = 2)]
             public IFunction<string> SchemaFile;
-
-
             public string Name { get; set; }
             public bool RuntimeValidation(ref string error)
             {
