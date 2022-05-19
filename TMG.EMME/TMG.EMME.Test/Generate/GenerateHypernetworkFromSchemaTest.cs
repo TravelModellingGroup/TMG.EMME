@@ -24,7 +24,7 @@ using System.Text;
 using System.IO;
 using XTMF2;
 
-namespace TMG.Emme.Test.Assign
+namespace TMG.Emme.Test.Generate
 {
     [TestClass]
     public class GenerateHypernetworkFromSchemaTest : TestBase
