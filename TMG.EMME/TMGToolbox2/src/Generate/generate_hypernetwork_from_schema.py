@@ -28,7 +28,7 @@ Generate Hypernetwork From Schema Tool
 
     Initial revision by: mattaustin222
 
-    Latest revision by: WilliamsDiogu
+    Latest version by: WilliamsDiogu
     
     #---VERSION HISTORY
     
