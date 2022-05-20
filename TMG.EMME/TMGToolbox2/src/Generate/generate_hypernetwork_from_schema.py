@@ -160,6 +160,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             root_base = _ET.parse(parameters["base_schema_file"]).getroot()
 
             n_groups, n_zones, n_station_groups = self._validate_base_schema_file(parameters, root_base)
+            print("the end")
 
     def _get_att(self, parameters):
         atts = {

@@ -53,9 +53,12 @@ namespace TMG.Emme.Test.Generate
                     writer.WriteEndArray();
                 }), LogbookLevel.Standard));
         }
+
         [TestMethod]
         public void GenerateHypernetworkFromSchemaModule()
         {
+            const int baseScenario = 1;
+            Helper.ImportNetwork(baseScenario, "TestFiles/base_network.nwp");
             var fareClass = new[]
             {
                 new Emme.Generate.GenerateHypernetworkFromSchema.FareClass()
