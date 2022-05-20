@@ -43,19 +43,22 @@ namespace TMG.Emme.Test.Generate
                     writer.WriteBoolean("station_connector_flag", true);
                     writer.WriteString("transfer_mode", "t");
                     writer.WriteNumber("virtual_node_domain", 100000);
-                    writer.WriteString("base_schema_file", "TestFiles/base_fares.xml");
+                    writer.WriteString("base_schema_file", Path.GetFullPath("TestFiles/base_fares.xml"));
                     writer.WriteStartArray("fare_classes");
                     writer.WriteStartObject();
                     writer.WriteString("link_fare_attribute", "@lfare");
                     writer.WriteString("segment_fare_attribute", "@sfare");
-                    writer.WriteString("schema_file", "TestFiles/fares.xml");
+                    writer.WriteString("schema_file", Path.GetFullPath("TestFiles/fares.xml"));
                     writer.WriteEndObject();
                     writer.WriteEndArray();
                 }), LogbookLevel.Standard));
         }
+
         [TestMethod]
         public void GenerateHypernetworkFromSchemaModule()
         {
+            const int baseScenario = 1;
+            Helper.ImportNetwork(baseScenario, "TestFiles/base_network.nwp");
             var fareClass = new[]
             {
                 new Emme.Generate.GenerateHypernetworkFromSchema.FareClass()
@@ -63,19 +66,20 @@ namespace TMG.Emme.Test.Generate
                     Name = "FareClass",
                     LinkFareAttribute = Helper.CreateParameter("@lfare"),
                     SegmentFareAttribute = Helper.CreateParameter("@sfare"),
-                    SchemaFile = Helper.CreateParameter("TestFiles/fares.xml")
+                    SchemaFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/fares.xml"))
                 }
             };
-            var module = new Emme.Generate.GenerateHypernetworkFromSchema()
+            var generateModule = new Emme.Generate.GenerateHypernetworkFromSchema()
             {
-                BaseScenario = Helper.CreateParameter(1),
+                Name = "Generator",
+                BaseScenario = Helper.CreateParameter(baseScenario),
                 NewScenario = Helper.CreateParameter(2),
                 StationConnectorFlag = Helper.CreateParameter(true),
                 TransferMode = Helper.CreateParameter("t"),
                 VirtualNodeDomain = Helper.CreateParameter(100000),
-                BaseSchemaFile = Helper.CreateParameter("TestFiles/base_fares.xml"),
+                BaseSchemaFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/base_fares.xml")),
             };
-            module.Invoke(Helper.Modeller);
+            generateModule.Invoke(Helper.Modeller);
         }
     }
 }
