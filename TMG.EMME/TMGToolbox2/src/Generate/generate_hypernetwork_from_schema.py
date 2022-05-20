@@ -73,9 +73,7 @@ Generate Hypernetwork From Schema Tool
     2.0.0 Refactored and improved by WilliamsDiogu for XTMF2, compatible  with Emme 4.6 and base on
         Python 3 . 
 """
-from sqlite3 import paramstyle
 import traceback as _traceback
-from xml.etree import ElementTree as _ET
 import time as _time
 import multiprocessing
 
@@ -83,7 +81,6 @@ from numpy import percentile
 import inro.modeller as _m
 from inro.emme.core.exception import ModuleError
 from contextlib import contextmanager
-from os import path
 
 _m.TupleType = object
 _m.ListType = list
@@ -105,15 +102,10 @@ null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
 
 
-class xml_validation_error(Exception):
-    pass
-
-
 class GenerateHypernetworkFromSchema(_m.Tool()):
     version = "2.0.0"
     tool_run_msg = ""
     number_of_tasks = 5
-    __ZONE_TYPES = ["node_selection", "from_shapefile"]
 
     def __init__(self):
         self._tracker = _util.progress_tracker(self.number_of_tasks)
@@ -139,27 +131,21 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         return pb.render()
 
     def __call__(self, parameters):
+        scenario = _util.load_scenario(parameters["scenario_number"])
         try:
-            self._execute(parameters)
+            self._execute(scenario, parameters)
         except Exception as e:
-            msg = str(e) + "\n" + _traceback.format_exc()
-            raise Exception(msg)
+            raise Exception(_util.format_reverse_stack())
 
     def run_xtmf(self, parameters):
+        scenario = _util.load_scenario(parameters["scenario_number"])
         try:
-            self._execute(parameters)
+            self._execute(scenario, parameters)
         except Exception as e:
-            msg = str(e) + "\n" + _traceback.format_exc()
-            raise Exception(msg)
+            raise Exception(_util.format_reverse_stack())
 
     def _execute(self, parameters):
-        with _m.logbook_trace(
-            name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
-            attributes=self._get_att(parameters),
-        ):
-            root_base = _ET.parse(parameters["base_schema_file"]).getroot()
-
-            n_groups, n_zones, n_station_groups = self._validate_base_schema_file(parameters, root_base)
+        ...
 
     def _get_att(self, parameters):
         atts = {
@@ -168,126 +154,3 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             "self": self.__MODELLER_NAMESPACE__,
         }
         return atts
-
-    def _validate_base_schema_file(self, parameters, root):
-        # check the top-level of the file
-        version_element = root.find("version")
-        if version_element is None:
-            raise xml_validation_error("Base Schema must specify a 'version' element.")
-        groups_element = root.find("groups")
-        if groups_element is None:
-            raise xml_validation_error("Base schema must specify a 'group' element.")
-        zones_element = root.find("zones")
-
-        # Validate version
-        try:
-            version = version_element.attrib["number"]
-        except KeyError:
-            raise xml_validation_error("Version element must specify a 'number' attribute.")
-
-        # Validate groups
-        group_elements = groups_element.findall("group")
-        valid_group_ids = set()
-        if len(group_elements) == 0:
-            raise xml_validation_error("Scehma must specify at least one group elements")
-        for i, group_element in enumerate(group_elements):
-            if not "id" in group_element.attrib:
-                raise xml_validation_error("Group element #%s must specify an 'id' attribute" % i)
-            id = group_element.attrib["id"]
-            if id in valid_group_ids:
-                raise xml_validation_error("Group id '%s' found more than once. Each id must be unique." % id)
-            valid_group_ids.add(id)
-
-            selection_elements = group_element.findall("selection")
-            if len(selection_elements) == 0:
-                raise xml_validation_error("Group element '%s' does not specify any 'selection' sub-elements" % id)
-
-        # Validate zones, if required
-        valid_zone_ids = set()
-        if zones_element is not None:
-            shape_file_elements = zones_element.findall("shapefile")
-            zone_elements = zones_element.findall("zone")
-
-            shape_file_ids = set()
-            for i, shape_file_element in enumerate(shape_file_elements):
-                if not "id" in shape_file_element.attrib:
-                    raise xml_validation_error("Shapefile #%s element must specify an 'id' attribute" % i)
-
-                id = shape_file_element.attrib["id"]
-                if id in shape_file_ids:
-                    raise xml_validation_error("Shapefile id '%' found more than once. Each id must be unique" % id)
-                shape_file_ids.add(id)
-
-                if not "path" in shape_file_element.attrib:
-                    raise xml_validation_error("Shapefile '%s' must specify a 'path' attribute" % id)
-                p = shape_file_element.attrib["path"]
-                # Joins the path if it is relative.
-                p = self._get_absolute_filepath(parameters, p)
-                if not path.exists(p):
-                    raise xml_validation_error("File not found for id '%s' at %s" % (id, p))
-            for i, zone_element in enumerate(zone_elements):
-                if not "id" in zone_element.attrib:
-                    raise xml_validation_error("Zone element #%s must specify an 'id' attribute" % i)
-                id = zone_element.attrib["id"]
-                if id in valid_zone_ids:
-                    raise xml_validation_error("Zone id '%s' found more than once. Each id must be unique" % id)
-                valid_zone_ids.add(id)
-                if not "type" in zone_element.attrib:
-                    raise xml_validation_error("Zone '%s' must specify a 'type' attribute" % id)
-                zone_type = zone_element.attrib["type"]
-                if not zone_type in self.__ZONE_TYPES:
-                    raise xml_validation_error("Zone type '%s' for zone '%s' is not recognized." % (zone_type, id))
-                if zone_type == "node_selection":
-                    if len(zone_element.findall("node_selector")) == 0:
-                        raise xml_validation_error(
-                            "Zone type 'node_selection' for zone '%s' must specify at least one 'node_selector' element."
-                            % id
-                        )
-                elif zone_type == "from_shapefile":
-                    child_element = zone_element.find("from_shapefile")
-                    if child_element is None:
-                        raise xml_validation_error(
-                            "Zone type 'from_shapefile' for zone '%s' must specify exactly one 'from_shapefile' element."
-                            % id
-                        )
-                    if not "id" in child_element.attrib:
-                        raise xml_validation_error("from_shapefile element must specify an 'id' attribute.")
-                    if not "FID" in child_element.attrib:
-                        raise xml_validation_error("from_shapefile element must specify a 'FID' attribute.")
-                    sid = child_element.attrib["id"]
-                    if not sid in shape_file_ids:
-                        raise xml_validation_error(
-                            "Could not find a shapefile with the id '%s' for zone '%s'." % (sid, id)
-                        )
-                    try:
-                        FID = int(child_element.attrib["FID"])
-                        if FID < 0:
-                            raise Exception()
-                    except:
-                        raise xml_validation_error("FID attribute must be a positive integer.")
-        else:
-            zone_elements = []
-
-        n_station_groups = 0
-        station_groups_element = root.find("station_groups")
-        if station_groups_element is not None:
-            station_group_elements = station_groups_element.findall("station_group")
-
-            for element in station_group_elements:
-                forGroup = element.attrib["for"]
-                if not forGroup in valid_group_ids:
-                    raise xml_validation_error(
-                        "Could not find a group '%s' for to associate with a station group" % forGroup
-                    )
-                n_station_groups += 1
-        return len(group_elements), len(zone_elements), n_station_groups
-
-    def _get_absolute_filepath(self, parameters, other_path):
-        """
-        For the shapefile path, this function checks if it is a relative path or not.
-        If it is a relative path, it returns a valid absolute path based on the
-        location of the XML Schema File.
-        """
-        if path.isabs(other_path):
-            return other_path
-        return path.join(path.dirname(parameters["base_schema_file"]), other_path)
