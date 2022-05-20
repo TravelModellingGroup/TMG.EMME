@@ -48,6 +48,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="src\Filter\filter_gtfs_for_service_id_and_routes.py" />
+    <Compile Include="src\Generate\generate_hypernetwork_from_schema.py" />
     <Compile Include="src\Import\import_binary_matrix.py" />
     <Compile Include="src\Import\import_network_package.py">
       <SubType>Code</SubType>
@@ -75,6 +76,7 @@
     <Folder Include="src\Export\" />
     <Folder Include="src\Convert\" />
     <Folder Include="src\Copy\" />
+    <Folder Include="src\Generate\" />
     <Folder Include="src\Process\" />
     <Folder Include="src\Process\Transit\" />
     <Folder Include="src\Process\Road\" />
