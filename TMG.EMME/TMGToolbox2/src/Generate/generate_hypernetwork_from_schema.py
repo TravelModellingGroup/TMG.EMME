@@ -144,5 +144,13 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def _execute(self):
+    def _execute(self, parameters):
         ...
+
+    def _get_att(self, parameters):
+        atts = {
+            "Scenario": str(parameters["base_scenario"]),
+            "Version": self.version,
+            "self": self.__MODELLER_NAMESPACE__,
+        }
+        return atts
