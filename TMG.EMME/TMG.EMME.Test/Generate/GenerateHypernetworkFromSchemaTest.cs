@@ -69,16 +69,17 @@ namespace TMG.Emme.Test.Generate
                     SchemaFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/fares.xml"))
                 }
             };
-            var module = new Emme.Generate.GenerateHypernetworkFromSchema()
+            var generateModule = new Emme.Generate.GenerateHypernetworkFromSchema()
             {
-                BaseScenario = Helper.CreateParameter(1),
+                Name = "Generator",
+                BaseScenario = Helper.CreateParameter(baseScenario),
                 NewScenario = Helper.CreateParameter(2),
                 StationConnectorFlag = Helper.CreateParameter(true),
                 TransferMode = Helper.CreateParameter("t"),
                 VirtualNodeDomain = Helper.CreateParameter(100000),
                 BaseSchemaFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/base_fares.xml")),
             };
-            module.Invoke(Helper.Modeller);
+            generateModule.Invoke(Helper.Modeller);
         }
     }
 }
