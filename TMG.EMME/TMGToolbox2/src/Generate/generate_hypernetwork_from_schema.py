@@ -188,6 +188,11 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                             base_scenario, groups_element, line_group_att.id
                         )
                         print("Loaded groups.", group_ids_2_int, int_2_group_ids)
+                    station_groups_element = root_base.find("station_groups")
+                    if station_groups_element is not None:
+                        with _trace("Station Groups"):
+                            station_groups = self._load_station_groups(base_scenario, station_groups_element)
+                            print("Loaded station groups")
 
     def _get_att(self, parameters):
         atts = {
@@ -417,3 +422,33 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             _write(msg)
             self._tracker.complete_subtask()
         return group_ids_2_int, int_2_group_ids
+
+    def _load_station_groups(self, base_scenario, station_groups_element):
+        tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
+
+        station_groups, ids = {}, []
+        with _util.temp_extra_attribute_manager(base_scenario, "NODE", returnId=True) as attr:
+
+            for i, station_group_element in enumerate(station_groups_element.findall("station_group")):
+                for_group = station_group_element.attrib["for"]
+                selector = station_group_element.attrib["selection"]
+
+                spec = {
+                    "result": attr,
+                    "expression": str(i + 1),  # Plus one since the attribute is initialized to 0
+                    "aggregation": None,
+                    "selections": {"node": selector},
+                    "type": "NETWORK_CALCULATION",
+                }
+                tool(spec, scenario=base_scenario)
+                station_groups[for_group] = set()
+                ids.append(for_group)
+
+            indices, table = base_scenario.get_attribute_values("NODE", [attr])
+            for node_number, index in indices.items():
+                value = int(table[index])
+                if value == 0:
+                    continue
+                station_groups[ids[value - 1]].add(node_number)
+
+        return station_groups
