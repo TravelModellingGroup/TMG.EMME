@@ -139,21 +139,23 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         return pb.render()
 
     def __call__(self, parameters):
+        base_scenario = _util.load_scenario(parameters["base_scenario"])
         try:
-            self._execute(parameters)
+            self._execute(parameters, base_scenario)
         except Exception as e:
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
     def run_xtmf(self, parameters):
+        base_scenario = _util.load_scenario(parameters["base_scenario"])
         try:
-            self._execute(parameters)
+            self._execute(parameters, base_scenario)
         except Exception as e:
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def _execute(self, parameters):
-        with _m.logbook_trace(
+    def _execute(self, parameters, base_scenario):
+        with _trace(
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._get_att(parameters),
         ):
@@ -169,6 +171,23 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 n_rules.append(self._validate_fare_schema_file(root_fare[i], valid_group_ids, valid_zone_ids))
             n_rules = sum(n_rules)
             self._tracker.complete_task()
+
+            # Load the line groups and zones
+            version = root_base.find("version").attrib["number"]
+            _write("Loading Base Schema File version %s" % version)
+            print("Loading Base Schema File version %s" % version)
+
+            self._tracker.start_process(n_groups + n_zones)
+            with _util.temp_extra_attribute_manager(
+                base_scenario, "TRANSIT_LINE", description="Line Group"
+            ) as line_group_att:
+                with _util.temp_extra_attribute_manager(base_scenario, "NODE", description="Fare Zone") as zone_att:
+                    with _trace("Transit Line Groups"):
+                        groups_element = root_base.find("groups")
+                        group_ids_2_int, int_2_group_ids = self._load_groups(
+                            base_scenario, groups_element, line_group_att.id
+                        )
+                        print("Loaded groups.", group_ids_2_int, int_2_group_ids)
 
     def _get_att(self, parameters):
         atts = {
@@ -360,3 +379,41 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 text = child.text
                 check_func(text, name)
         return len(fare_elements)
+
+    def _load_groups(self, base_scenario, groups_element, line_group_att_id):
+        group_ids_2_int = {}
+        int_2_group_ids = {}
+
+        tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
+
+        def get_spec(number, selection):
+            return {
+                "result": line_group_att_id,
+                "expression": str(number),
+                "aggregation": None,
+                "selections": {"transit_line": selection},
+                "type": "NETWORK_CALCULATION",
+            }
+
+        for i, group_element in enumerate(groups_element.findall("group")):
+            group_number = i + 1
+
+            id = group_element.attrib["id"]
+            group_ids_2_int[id] = group_number
+            int_2_group_ids[group_number] = id
+
+            for selection_element in group_element.findall("selection"):
+                selector = selection_element.text
+                spec = get_spec(group_number, selector)
+                try:
+                    tool(spec, scenario=base_scenario)
+                except ModuleError:
+                    msg = "Emme runtime error processing line group '%s'." % id
+                    _write(msg)
+                    print(msg)
+
+            msg = "Loaded group %s: %s" % (group_number, id)
+            print(msg)
+            _write(msg)
+            self._tracker.complete_subtask()
+        return group_ids_2_int, int_2_group_ids
