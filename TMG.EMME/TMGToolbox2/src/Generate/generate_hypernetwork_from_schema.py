@@ -159,8 +159,16 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         ):
             root_base = _ET.parse(parameters["base_schema_file"]).getroot()
 
-            n_groups, n_zones, n_station_groups = self._validate_base_schema_file(parameters, root_base)
-            print("the end")
+            n_groups, n_zones, n_station_groups, valid_group_ids, valid_zone_ids = self._validate_base_schema_file(
+                parameters, root_base
+            )
+            n_rules = []
+            root_fare = []
+            for i, fare_class in enumerate(parameters["fare_classes"]):
+                root_fare.append(_ET.parse(fare_class["schema_file"]).getroot())
+                n_rules.append(self._validate_fare_schema_file(root_fare[i], valid_group_ids, valid_zone_ids))
+            n_rules = sum(n_rules)
+            self._tracker.complete_task()
 
     def _get_att(self, parameters):
         atts = {
@@ -281,7 +289,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                         "Could not find a group '%s' for to associate with a station group" % forGroup
                     )
                 n_station_groups += 1
-        return len(group_elements), len(zone_elements), n_station_groups
+        return len(group_elements), len(zone_elements), n_station_groups, valid_group_ids, valid_zone_ids
 
     def _get_absolute_filepath(self, parameters, other_path):
         """
@@ -292,3 +300,63 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         if path.isabs(other_path):
             return other_path
         return path.join(path.dirname(parameters["base_schema_file"]), other_path)
+
+    def _validate_fare_schema_file(self, root, valid_group_ids, valid_zone_ids):
+        fare_rules_element = root.find("fare_rules")
+        if fare_rules_element is None:
+            raise xml_validation_error("Fare schema must specify a 'fare_rules' element.")
+        fare_elements = fare_rules_element.findall("fare")
+
+        def check_group_id(group, name):
+            if not group in valid_group_ids:
+                raise xml_validation_error("Could not find a group with id '%s' for element '%s'" % (group, name))
+
+        def check_zone_id(zone, name):
+            if not zone in valid_zone_ids:
+                raise xml_validation_error("Could not find a zone with id '%s' for element '%s'" % (zone, name))
+
+        def check_is_bool(val, name):
+            if not val.upper() in ["TRUE", "T", "FALSE", "F"]:
+                raise xml_validation_error("Value '%s' for element '%s' must be True or False." % (val, name))
+
+        for i, fare_element in enumerate(fare_elements):
+            if not "cost" in fare_element.attrib:
+                raise xml_validation_error("Fare element #%s must specify a 'cost' attribute" % i)
+            if not "type" in fare_element.attrib:
+                raise xml_validation_error("Fare element #%s must specify a 'type' attribute" % i)
+            try:
+                cost = float(fare_element.attrib["cost"])
+            except ValueError:
+                raise xml_validation_error("Fare element #%s attribute 'cost' must be valid decimal number." % i)
+            rule_type = fare_element.attrib["type"]
+            if rule_type == "initial_boarding":
+                required_children = {"group": check_group_id}
+                optional_children = {"in_zone": check_zone_id, "include_all_groups": check_is_bool}
+            elif rule_type == "transfer":
+                required_children = {"from_group": check_group_id, "to_group": check_group_id}
+                optional_children = {"bidirectional": check_is_bool}
+            elif rule_type == "zone_crossing":
+                required_children = {"group": check_group_id, "from_zone": check_zone_id, "to_zone": check_zone_id}
+                optional_children = {"bidirectional": check_is_bool}
+            elif rule_type == "distance_in_vehicle":
+                required_children = {"group": check_group_id}
+                optional_children = {}
+            else:
+                raise xml_validation_error("Fare rule type '%s' not recognized." % rule_type)
+            # Check required children
+            for name, check_func in required_children.items():
+                child = fare_element.find(name)
+                if child is None:
+                    raise xml_validation_error(
+                        "Fare element #%s of type '%s' must specify a '%s' element" % (i, rule_type, name)
+                    )
+                text = child.text
+                check_func(text, name)
+            # Check optional children
+            for name, check_func in optional_children.items():
+                child = fare_element.find(name)
+                if child is None:
+                    continue
+                text = child.text
+                check_func(text, name)
+        return len(fare_elements)
