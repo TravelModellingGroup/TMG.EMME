@@ -98,8 +98,8 @@ _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 _geometry = _MODELLER.module("tmg2.utilities.geometry")
 _network_edit = _MODELLER.module("tmg2.utilities.network_editing")
 _spatial_index = _MODELLER.module("tmg2.utilities.spatial_index")
-Shapely2ESRI = _geometry.Shapely2ESRI
-GridIndex = _spatial_index.GridIndex
+shapely_2_esri = _geometry.Shapely2ESRI
+grid_index = _spatial_index.GridIndex
 transit_line_proxy = _network_edit.TransitLineProxy
 null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
@@ -107,6 +107,18 @@ EMME_VERSION = _util.get_emme_version(tuple)
 
 class xml_validation_error(Exception):
     pass
+
+
+class node_spatial_proxy:
+    def __init__(self, id, x, y):
+        self.id = id
+        self.x = x
+        self.y = y
+        self.zone = 0
+        self.geometry = _geometry.Point(x, y)
+
+    def __str__(self):
+        return str(self.id)
 
 
 class GenerateHypernetworkFromSchema(_m.Tool()):
@@ -193,6 +205,18 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                         with _trace("Station Groups"):
                             station_groups = self._load_station_groups(base_scenario, station_groups_element)
                             print("Loaded station groups")
+                    zones_element = root_base.find("zones")
+                    if zones_element is not None:
+                        with _trace("Fare Zones"):
+                            self._load_zones(parameters, base_scenario, zones_element, zone_att.id)
+                            # zone_id_2_int, int_2_zone_id, node_proxies = self._load_zones(
+                            #     parameters, base_scenario, zones_element, zone_att.id
+                            # )
+                            print("Loaded zones.")
+                    else:
+                        zone_id_2_int, int_2_zone_id, node_proxies = {}, {}, {}
+                    # Complete the group/zone loading task
+                    self._tracker.complete_task()
 
     def _get_att(self, parameters):
         atts = {
@@ -453,7 +477,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
 
         return station_groups
 
-    def _LoadZones(self, zones_element, zone_attribute_id):
+    def _load_zones(self, parameters, base_scenario, zones_element, zone_attribute_id):
         """
         Loads node zone numbers. This is a convoluted process in order to allow
         users to apply zones by BOTH selectors AND geometry. The first method
@@ -467,8 +491,8 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
 
         tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 
-        shape_files = self._zoad_shape_files(zones_element)
-        spatial_index, nodes = self._index_node_geometries()
+        shape_files = self._load_shape_files(parameters, zones_element)
+        spatial_index, nodes = self._index_node_geometries(base_scenario)
 
         try:
             for number, zone_element in enumerate(zones_element.findall("zone")):
@@ -481,9 +505,9 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 int_2_zone_id[number] = id
 
                 if typ == "node_selection":
-                    self._load_zone_from_selection(zone_element, zone_attribute_id, tool, number, nodes)
+                    self._load_zone_from_selection(base_scenario, zone_element, zone_attribute_id, tool, number, nodes)
                 elif typ == "from_shapefile":
-                    self._load_zone_from_geometry(zone_element, spatial_index, shape_files, number, nodes)
+                    self._load_zone_from_geometry(zone_element, spatial_index, shape_files, number)
 
                 msg = "Loaded zone %s: %s" % (number, id)
                 _write(msg)
