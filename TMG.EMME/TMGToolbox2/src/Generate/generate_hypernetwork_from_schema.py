@@ -98,8 +98,8 @@ _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 _geometry = _MODELLER.module("tmg2.utilities.geometry")
 _network_edit = _MODELLER.module("tmg2.utilities.network_editing")
 _spatial_index = _MODELLER.module("tmg2.utilities.spatial_index")
-Shapely2ESRI = _geometry.Shapely2ESRI
-GridIndex = _spatial_index.GridIndex
+shapely_2_esri = _geometry.Shapely2ESRI
+grid_index = _spatial_index.GridIndex
 transit_line_proxy = _network_edit.TransitLineProxy
 null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
@@ -107,6 +107,18 @@ EMME_VERSION = _util.get_emme_version(tuple)
 
 class xml_validation_error(Exception):
     pass
+
+
+class node_spatial_proxy:
+    def __init__(self, id, x, y):
+        self.id = id
+        self.x = x
+        self.y = y
+        self.zone = 0
+        self.geometry = _geometry.Point(x, y)
+
+    def __str__(self):
+        return str(self.id)
 
 
 class GenerateHypernetworkFromSchema(_m.Tool()):
@@ -193,6 +205,17 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                         with _trace("Station Groups"):
                             station_groups = self._load_station_groups(base_scenario, station_groups_element)
                             print("Loaded station groups")
+                    zones_element = root_base.find("zones")
+                    if zones_element is not None:
+                        with _trace("Fare Zones"):
+                            zone_id_2_int, int_2_zone_id, node_proxies = self._load_zones(
+                                parameters, base_scenario, zones_element, zone_att.id
+                            )
+                            print("Loaded zones.")
+                    else:
+                        zone_id_2_int, int_2_zone_id, node_proxies = {}, {}, {}
+                    # Complete the group/zone loading task
+                    self._tracker.complete_task()
 
     def _get_att(self, parameters):
         atts = {
@@ -452,3 +475,134 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 station_groups[ids[value - 1]].add(node_number)
 
         return station_groups
+
+    def _load_zones(self, parameters, base_scenario, zones_element, zone_attribute_id):
+        """
+        Loads node zone numbers. This is a convoluted process in order to allow
+        users to apply zones by BOTH selectors AND geometry. The first method
+        applies changes directly to the base scenario, which the second requires
+        knowing the node coordinates to work.
+
+        """
+        zone_id_2_int = {}
+        int_2_zone_id = {}
+
+        tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
+
+        shape_files = self._load_shape_files(parameters, zones_element)
+        spatial_index, nodes = self._index_node_geometries(base_scenario)
+
+        try:
+            for number, zone_element in enumerate(zones_element.findall("zone")):
+                id = zone_element.attrib["id"]
+                typ = zone_element.attrib["type"]
+
+                number += 1
+
+                zone_id_2_int[id] = number
+                int_2_zone_id[number] = id
+
+                if typ == "node_selection":
+                    self._load_zone_from_selection(base_scenario, zone_element, zone_attribute_id, tool, number, nodes)
+                elif typ == "from_shapefile":
+                    self._load_zone_from_geometry(zone_element, spatial_index, shape_files, number)
+                else:
+                    raise Exception("Zone element type '%s' is not node_selection or from_shapefile!" % typ)
+
+                msg = "Loaded zone %s: %s" % (number, id)
+                _write(msg)
+                print(msg)
+                self._tracker.complete_subtask()
+        finally:
+            # Close the shapefile readers
+            for reader in shape_files.values():
+                reader.close()
+
+        return zone_id_2_int, int_2_zone_id, nodes
+
+    def _load_shape_files(self, parameters, zones_element):
+        shape_files = {}
+        try:
+            for shape_file_element in zones_element.findall("shapefile"):
+                id = shape_file_element.attrib["id"]
+                pth = shape_file_element.attrib["path"]
+                # Join the path if it is relative
+                pth = self._get_absolute_filepath(parameters, pth)
+
+                reader = shapely_2_esri(pth, "r")
+                reader.open()
+                if reader.getGeometryType() != "POLYGON":
+                    raise IOError("Shapefile %s does not contain POLYGONS" % pth)
+
+                shape_files[id] = reader
+        except:
+            for reader in shape_files.values():
+                reader.close()
+            raise
+
+        return shape_files
+
+    def _index_node_geometries(self, base_scenario):
+        """
+        Uses get_attribute_values() (Scenario function) to create proxy objects for Emme nodes.
+
+        This is done to allow node locations to be loaded IN THE ORDER SPECIFIED BY THE FILE,
+        regardless of whether those nodes are specified by a selector or by geometry.
+        """
+        indices, xtable, ytable = base_scenario.get_attribute_values("NODE", ["x", "y"])
+
+        extents = min(xtable), min(ytable), max(xtable), max(ytable)
+
+        spatial_index = grid_index(extents, marginSize=1.0)
+        proxies = {}
+
+        for node_number, index in indices.items():
+            x = xtable[index]
+            y = ytable[index]
+
+            # Using a proxy class defined in THIS file, because we don't yet
+            # have the full network loaded.
+            node_proxy = node_spatial_proxy(node_number, x, y)
+            spatial_index.insertPoint(node_proxy)
+            proxies[node_number] = node_proxy
+
+        return spatial_index, proxies
+
+    def _load_zone_from_selection(self, base_scenario, zone_element, zone_attribute_id, tool, number, nodes):
+        id = zone_element.attrib["id"]
+
+        for selection_element in zone_element.findall("node_selector"):
+            spec = {
+                "result": zone_attribute_id,
+                "expression": str(number),
+                "aggregation": None,
+                "selections": {"node": selection_element.text},
+                "type": "NETWORK_CALCULATION",
+            }
+
+            try:
+                tool(spec, scenario=base_scenario)
+            except ModuleError as me:
+                raise IOError("Error loading zone '%s': %s" % (id, me))
+
+        # Update the list of proxy nodes with the network's newly-loaded zones attribute
+        indices, table = base_scenario.get_attribute_values("NODE", [zone_attribute_id])
+        for number, index in indices.items():
+            nodes[number].zone = table[index]
+
+    def _load_zone_from_geometry(self, zone_element, spatial_index, shape_files, number):
+        id = zone_element.attrib["id"]
+
+        for from_shape_file_element in zone_element.findall("from_shapefile"):
+            sid = from_shape_file_element.attrib["id"]
+            fid = int(from_shape_file_element.attrib["FID"])
+
+            reader = shape_files[sid]
+            polygon = reader.readFrom(fid)
+
+            nodes_to_check = spatial_index.queryPolygon(polygon)
+            for proxy in nodes_to_check:
+                point = proxy.geometry
+
+                if polygon.intersects(point):
+                    proxy.zone = number
