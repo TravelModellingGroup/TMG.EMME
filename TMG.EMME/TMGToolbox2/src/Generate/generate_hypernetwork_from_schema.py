@@ -506,6 +506,8 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     self._load_zone_from_selection(base_scenario, zone_element, zone_attribute_id, tool, number, nodes)
                 elif typ == "from_shapefile":
                     self._load_zone_from_geometry(zone_element, spatial_index, shape_files, number)
+                else:
+                    raise Exception("Zone element type '%s' is not node_selection or from_shapefile!" % typ)
 
                 msg = "Loaded zone %s: %s" % (number, id)
                 _write(msg)
