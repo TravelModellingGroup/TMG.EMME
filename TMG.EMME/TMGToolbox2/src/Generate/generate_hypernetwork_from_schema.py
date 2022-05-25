@@ -208,10 +208,9 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     zones_element = root_base.find("zones")
                     if zones_element is not None:
                         with _trace("Fare Zones"):
-                            self._load_zones(parameters, base_scenario, zones_element, zone_att.id)
-                            # zone_id_2_int, int_2_zone_id, node_proxies = self._load_zones(
-                            #     parameters, base_scenario, zones_element, zone_att.id
-                            # )
+                            zone_id_2_int, int_2_zone_id, node_proxies = self._load_zones(
+                                parameters, base_scenario, zones_element, zone_att.id
+                            )
                             print("Loaded zones.")
                     else:
                         zone_id_2_int, int_2_zone_id, node_proxies = {}, {}, {}
@@ -567,3 +566,42 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             proxies[node_number] = node_proxy
 
         return spatial_index, proxies
+
+    def _load_zone_from_selection(self, base_scenario, zone_element, zone_attribute_id, tool, number, nodes):
+        id = zone_element.attrib["id"]
+
+        for selection_element in zone_element.findall("node_selector"):
+            spec = {
+                "result": zone_attribute_id,
+                "expression": str(number),
+                "aggregation": None,
+                "selections": {"node": selection_element.text},
+                "type": "NETWORK_CALCULATION",
+            }
+
+            try:
+                tool(spec, scenario=base_scenario)
+            except ModuleError as me:
+                raise IOError("Error loading zone '%s': %s" % (id, me))
+
+        # Update the list of proxy nodes with the network's newly-loaded zones attribute
+        indices, table = base_scenario.get_attribute_values("NODE", [zone_attribute_id])
+        for number, index in indices.items():
+            nodes[number].zone = table[index]
+
+    def _load_zone_from_geometry(self, zone_element, spatial_index, shape_files, number):
+        id = zone_element.attrib["id"]
+
+        for from_shape_file_element in zone_element.findall("from_shapefile"):
+            sid = from_shape_file_element.attrib["id"]
+            fid = int(from_shape_file_element.attrib["FID"])
+
+            reader = shape_files[sid]
+            polygon = reader.readFrom(fid)
+
+            nodes_to_check = spatial_index.queryPolygon(polygon)
+            for proxy in nodes_to_check:
+                point = proxy.geometry
+
+                if polygon.intersects(point):
+                    proxy.zone = number
