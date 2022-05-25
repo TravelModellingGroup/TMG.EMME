@@ -82,6 +82,15 @@ namespace TMG.Emme.Test
             }
         }
 
+        internal static void ShutdownEMME()
+        {
+            lock (typeof(Helper))
+            {
+                Helper.Modeller?.Dispose();
+                Helper.Modeller = null;
+            }
+        }
+
         internal static void RunAssignBoardingPenalty(int[] scenarioNumbers)
         {
             Assert.IsTrue(
@@ -125,14 +134,14 @@ namespace TMG.Emme.Test
             Helper.ImportNetwork(scenarioNumber, Path.GetFullPath("TestFiles/test.nwp"));
         }
 
-        internal static void ImportNetwork(int scenarioNumber, string filePath)
+        internal static void ImportNetwork(int scenarioNumber, string filePath, string scenarioDescription = "toolbox2")
         {
             Assert.IsTrue(
                Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteString("network_package_file", Path.GetFullPath(filePath));
-                    writer.WriteString("scenario_description", "toolbox2");
+                    writer.WriteString("scenario_description", scenarioDescription);
                     writer.WriteNumber("scenario_number", scenarioNumber);
                     writer.WriteString("conflict_option", "PRESERVE");
                 }), LogbookLevel.Standard));

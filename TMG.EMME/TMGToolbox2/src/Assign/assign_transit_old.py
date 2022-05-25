@@ -243,6 +243,9 @@ class TransitAssignmentTool(_m.Tool()):
         return acc if acc is not None else ""
 
     def create_surface_transit_speed(self, parameters):
+        #  ignore the surface transit speed array if this is false.
+        if parameters["surface_transit_speed"] == False:
+            return ""
         acc = None
         def extract_stsu(stsu):
             return str(stsu["boarding_duration"]) + ":" \
@@ -337,42 +340,6 @@ class TransitAssignmentTool(_m.Tool()):
         xtmf_XRowTTFRange,
         xtmf_NodeLogitScale,
     ):
-        print(xtmf_ScenarioNumber)
-        print(xtmf_DemandMatrixString)
-        print(xtmf_NameString)
-        print(WalkSpeed)
-        print(xtmf_WalkPerceptionString)
-        print(xtmf_WalkPerceptionAttributeIdString)
-        print(xtmf_ClassWaitPerceptionString)
-        print(xtmf_ClassBoardPerceptionString)
-        print(xtmf_ClassFarePerceptionString)
-        print(xtmf_ClassModeList)
-        print(HeadwayFractionAttributeId)
-        print(xtmf_LinkFareAttributeIdString)
-        print(xtmf_SegmentFareAttributeIdString)
-        print(EffectiveHeadwayAttributeId)
-        print(EffectiveHeadwaySlope)
-        print(AssignmentPeriod)
-        print(Iterations)
-        print(NormGap)
-        print(RelGap)
-        print(xtmf_InVehicleTimeMatrixString)
-        print(xtmf_WaitTimeMatrixString)
-        print(xtmf_WalkTimeMatrixString)
-        print(xtmf_FareMatrixString)
-        print(xtmf_CongestionMatrixString)
-        print(xtmf_PenaltyMatrixString)
-        print(xtmf_ImpedanceMatrixString)
-        print(xtmf_OriginDistributionLogitScale)
-        print(CalculateCongestedIvttFlag)
-        print(CongestionExponentString)
-        print(xtmf_congestedAssignment)
-        print(xtmf_CSVFile)
-        print(xtmf_SurfaceTransitSpeed)
-        print(xtmf_WalkAllWayFlag)
-        print(xtmf_XRowTTFRange)
-        print(xtmf_NodeLogitScale)
-
         if EMME_VERSION < (4, 1, 5):
             raise Exception("Tool not compatible. Please upgrade to version 4.1.5+")
 
@@ -417,7 +384,7 @@ class TransitAssignmentTool(_m.Tool()):
                 ttf_range = ttf_range.split("-")
                 for i in range(int(ttf_range[0]), int(ttf_range[1]) + 1):
                     self.ttfs_xrow.add(int(i))
-            else:
+            elif ttf_range != "":
                 self.ttfs_xrow.add(int(ttf_range))
 
         self.LinkFareAttributeIdList = xtmf_LinkFareAttributeIdString.split(",")
@@ -547,74 +514,73 @@ class TransitAssignmentTool(_m.Tool()):
                     if self.xtmf_congestedAssignment == True:
                         self.usedFunctions = self._AddCongTermToFunc()
                         with _trace(
-                            name="TMG Congested Transit Assignment", attributes=self._GetAttsCongested()
-                        ) as trace:
-                            with _dbUtils.congested_transit_temp_funcs(self.Scenario, self.usedFunctions, False, "us3"):
-                                with _dbUtils.backup_and_restore(self.Scenario, {"TRANSIT_SEGMENT": ["data3"]}):
-                                    self.ttfDict = self._ParseExponentString()
-                                    for iteration in range(0, self.Iterations + 1):
-                                        with _trace("Iteration %d" % iteration):
-                                            print("Starting Iteration %d" % iteration)
-                                            if iteration == 0:
-                                                self._PrepStrategyFiles()
-                                                zeroes = [0.0] * _bank.dimensions["transit_segments"]
-                                                setattr(self.Scenario._net.segment, "data3", zeroes)
-                                                self._RunExtendedTransitAssignment(iteration)
-                                                self.alphas = [1.0]
-                                                assignedClassDemand = self._ComputeAssignedClassDemand()
-                                                assignedTotalDemand = sum(assignedClassDemand)
-                                                network = self._PrepareNetwork(stsu_att)
-                                                if self.SurfaceTransitSpeed != False:
-                                                    network = self._SurfaceTransitSpeedUpdate(
-                                                        network, 1, stsu_att, False
-                                                    )
-                                                averageMinTripImpedence = self._ComputeMinTripImpedence(
-                                                    assignedClassDemand
-                                                )
-                                                congestionCosts = self._GetCongestionCosts(network, assignedTotalDemand)
-                                                previousAverageMinTripImpedence = averageImpedence = (
-                                                    averageMinTripImpedence + congestionCosts
-                                                )
-                                                if self.CSVFile is not None:
-                                                    self._WriteCSVFiles(iteration, network, "", "", "")
-                                            else:
-                                                excessKM = self._ComputeSegmentCosts(network)
-                                                self._RunExtendedTransitAssignment(iteration)
-                                                network = self._UpdateNetwork(network)
-                                                averageMinTripImpedence = self._ComputeMinTripImpedence(
-                                                    assignedClassDemand
-                                                )
-                                                lambdaK = self._FindStepSize(
-                                                    network,
-                                                    averageMinTripImpedence,
-                                                    averageImpedence,
-                                                    assignedTotalDemand,
-                                                )
-                                                if self.SurfaceTransitSpeed != False:
-                                                    network = self._SurfaceTransitSpeedUpdate(
-                                                        network, lambdaK, stsu_att, False
-                                                    )
-                                                self._UpdateVolumes(network, lambdaK)
-                                                (
-                                                    averageImpedence,
-                                                    cngap,
-                                                    crgap,
-                                                    normGapDifference,
-                                                    netCosts,
-                                                ) = self._ComputeGaps(
-                                                    assignedTotalDemand,
-                                                    lambdaK,
-                                                    averageMinTripImpedence,
-                                                    averageImpedence,
-                                                    network,
-                                                )
-                                                previousAverageMinTripImpedence = averageImpedence
-                                                if self.CSVFile is not None:
-                                                    self._WriteCSVFiles(
-                                                        iteration, network, cngap, crgap, normGapDifference
-                                                    )
-                                                if crgap < self.RelGap or normGapDifference >= 0:
-                                                    break
+                                name="TMG Congested Transit Assignment", attributes=self._GetAttsCongested()
+                                ) as trace, _dbUtils.congested_transit_temp_funcs(self.Scenario, self.usedFunctions, False, "us3"), \
+                                _dbUtils.backup_and_restore(self.Scenario, {"TRANSIT_SEGMENT": ["data3"]}):
+                            self.ttfDict = self._ParseExponentString()
+                            for iteration in range(0, self.Iterations + 1):
+                                with _trace("Iteration %d" % iteration):
+                                    print("Starting Iteration %d" % iteration)
+                                    if iteration == 0:
+                                        self._PrepStrategyFiles()
+                                        zeroes = [0.0] * _bank.dimensions["transit_segments"]
+                                        setattr(self.Scenario._net.segment, "data3", zeroes)
+                                        self._RunExtendedTransitAssignment(iteration)
+                                        self.alphas = [1.0]
+                                        assignedClassDemand = self._ComputeAssignedClassDemand()
+                                        assignedTotalDemand = sum(assignedClassDemand)
+                                        network = self._PrepareNetwork(stsu_att)
+                                        if self.SurfaceTransitSpeed != False:
+                                            network = self._SurfaceTransitSpeedUpdate(
+                                                network, 1, stsu_att, False
+                                            )
+                                        averageMinTripImpedence = self._ComputeMinTripImpedence(
+                                            assignedClassDemand
+                                        )
+                                        congestionCosts = self._GetCongestionCosts(network, assignedTotalDemand)
+                                        previousAverageMinTripImpedence = averageImpedence = (
+                                            averageMinTripImpedence + congestionCosts
+                                        )
+                                        if self.CSVFile is not None:
+                                            self._WriteCSVFiles(iteration, network, "", "", "")
+                                    else:
+                                        excessKM = self._ComputeSegmentCosts(network)
+                                        self._RunExtendedTransitAssignment(iteration)
+                                        network = self._UpdateNetwork(network)
+                                        averageMinTripImpedence = self._ComputeMinTripImpedence(
+                                            assignedClassDemand
+                                        )
+                                        lambdaK = self._FindStepSize(
+                                            network,
+                                            averageMinTripImpedence,
+                                            averageImpedence,
+                                            assignedTotalDemand,
+                                        )
+                                        if self.SurfaceTransitSpeed != False:
+                                            network = self._SurfaceTransitSpeedUpdate(
+                                                network, lambdaK, stsu_att, False
+                                            )
+                                        self._UpdateVolumes(network, lambdaK)
+                                        (
+                                            averageImpedence,
+                                            cngap,
+                                            crgap,
+                                            normGapDifference,
+                                            netCosts,
+                                        ) = self._ComputeGaps(
+                                            assignedTotalDemand,
+                                            lambdaK,
+                                            averageMinTripImpedence,
+                                            averageImpedence,
+                                            network,
+                                        )
+                                        previousAverageMinTripImpedence = averageImpedence
+                                        if self.CSVFile is not None:
+                                            self._WriteCSVFiles(
+                                                iteration, network, cngap, crgap, normGapDifference
+                                            )
+                                        if crgap < self.RelGap or normGapDifference >= 0:
+                                            break
                             self._SaveResults(network, stsu_att)
                             trace.write(
                                 name="TMG Congested Transit Assignment",
@@ -632,7 +598,7 @@ class TransitAssignmentTool(_m.Tool()):
                                     add_volumes=(i != 0),
                                 )
                         else:
-                            for iterations in range(0, self.Iterations):
+                            for iterations in range(0, max(1, self.Iterations)):
                                 for i in range(0, len(self.ClassNames)):
                                     specUncongested = self._GetBaseAssignmentSpecUncongested(i)
                                     self.TRACKER.runTool(
@@ -849,11 +815,11 @@ class TransitAssignmentTool(_m.Tool()):
                     segment.dwell_time = 0.0
 
                 if segment.j_node is None:
-                    continue
+                    break
 
                 segment_number = segment.number
                 segment.transit_time_func = self.stsu_ttf_map[segment.transit_time_func]
-                time = segment.link["auto_time"]
+                time = segment.link.auto_time
 
                 if time > 0.0:
                     if segment.transit_time_func in self.ttfs_xrow:
@@ -1359,8 +1325,6 @@ class TransitAssignmentTool(_m.Tool()):
         for link in network.links():
             link.volax = link.volax * alpha + link.aux_transit_volume * lambdaK
         for line in network.transit_lines():
-            capacity = float(line.total_capacity)
-            congested = False
             for segment in line.segments():
                 segment.voltr = segment.voltr * alpha + segment.transit_volume * lambdaK
                 segment.board = segment.board * alpha + segment.transit_boardings * lambdaK

@@ -30,11 +30,12 @@ namespace TMG.Emme.Test.Assign
     public class AssignTransitTest : TestBase
     {
 
-        private static void RunAssignTransitToolPipeline(string toolNamespace, int scenarioNumber)
+        private static void RunAssignTransitToolPipeline(string toolNamespace, int scenarioNumber, string description = "toolbox2")
         {
-            Helper.ImportNetwork(scenarioNumber, "TestFiles/Test.nwp");
+            Helper.ImportNetwork(scenarioNumber, "TestFiles/Test.nwp", description);
             Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
             Helper.RunAssignTraffic(scenarioNumber, "mf10", 11);
+            Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/TestHighDemand.mtx"));
             Helper.RunAssignBoardingPenalty(new[] { scenarioNumber });
             Assert.IsTrue(
                 Helper.Modeller.Run(null, toolNamespace,
@@ -45,9 +46,9 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("effective_headway_attribute", "@ehdw");
                     writer.WriteNumber("effective_headway_slope", 0.165f);
                     writer.WriteString("headway_fraction_attribute", "@hfrac");
-                    writer.WriteNumber("iterations", 0);
-                    writer.WriteNumber("norm_gap", 2.0f);
-                    writer.WriteNumber("rel_gap", 2.0f);
+                    writer.WriteNumber("iterations", 5);
+                    writer.WriteNumber("norm_gap", 0.0f);
+                    writer.WriteNumber("rel_gap", 0.0f);
                     writer.WriteNumber("scenario_number", scenarioNumber);
                     writer.WriteNumber("walk_speed", 4.0f);
                     writer.WriteStartArray("transit_classes");
@@ -109,14 +110,14 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteEndObject();
 
                     writer.WriteEndArray();
-                    writer.WriteNumber("assignment_period", 3.0f);
+                    writer.WriteNumber("assignment_period", 1f);
                     writer.WriteString("name_string", "");
                     writer.WriteBoolean("congested_assignment", true);
                     writer.WriteString("csvfile", "");
                     writer.WriteNumber("origin_distribution_logit_scale", 0.2f);
                     writer.WriteBoolean("surface_transit_speed", true);
                     writer.WriteBoolean("walk_all_way_flag", false);
-                    writer.WriteString("xrow_ttf_range", "2,6");
+                    writer.WriteString("xrow_ttf_range", "2");
 
                 }), LogbookLevel.Standard));
         }
@@ -124,8 +125,8 @@ namespace TMG.Emme.Test.Assign
         [TestMethod]
         public void AssignTransit()
         {
-            RunAssignTransitToolPipeline("tmg2.Assign.assign_transit", 2);
-            RunAssignTransitToolPipeline("tmg2.Assign.assign_transit_old", 7);
+            RunAssignTransitToolPipeline("tmg2.Assign.assign_transit", 2, "newTransit");
+            RunAssignTransitToolPipeline("tmg2.Assign.assign_transit_old", 7, "oldTransit");
         }
 
         [TestMethod]
