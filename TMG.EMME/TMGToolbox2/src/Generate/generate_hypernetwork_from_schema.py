@@ -541,3 +541,29 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             raise
 
         return shape_files
+
+    def _index_node_geometries(self, base_scenario):
+        """
+        Uses get_attribute_values() (Scenario function) to create proxy objects for Emme nodes.
+
+        This is done to allow node locations to be loaded IN THE ORDER SPECIFIED BY THE FILE,
+        regardless of whether those nodes are specified by a selector or by geometry.
+        """
+        indices, xtable, ytable = base_scenario.get_attribute_values("NODE", ["x", "y"])
+
+        extents = min(xtable), min(ytable), max(xtable), max(ytable)
+
+        spatial_index = grid_index(extents, marginSize=1.0)
+        proxies = {}
+
+        for node_number, index in indices.items():
+            x = xtable[index]
+            y = ytable[index]
+
+            # Using a proxy class defined in THIS file, because we don't yet
+            # have the full network loaded.
+            node_proxy = node_spatial_proxy(node_number, x, y)
+            spatial_index.insertPoint(node_proxy)
+            proxies[node_number] = node_proxy
+
+        return spatial_index, proxies
