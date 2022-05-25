@@ -481,9 +481,8 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         Loads node zone numbers. This is a convoluted process in order to allow
         users to apply zones by BOTH selectors AND geometry. The first method
         applies changes directly to the base scenario, which the second requires
-        knowing the node coordindates to work.
+        knowing the node coordinates to work.
 
-        Much of this method (and associated sub-methods) is BLACK MAGIC
         """
         zone_id_2_int = {}
         int_2_zone_id = {}
