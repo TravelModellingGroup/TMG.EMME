@@ -519,3 +519,25 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 reader.close()
 
         return zone_id_2_int, int_2_zone_id, nodes
+
+    def _load_shape_files(self, parameters, zones_element):
+        shape_files = {}
+        try:
+            for shape_file_element in zones_element.findall("shapefile"):
+                id = shape_file_element.attrib["id"]
+                pth = shape_file_element.attrib["path"]
+                # Join the path if it is relative
+                pth = self._get_absolute_filepath(parameters, pth)
+
+                reader = shapely_2_esri(pth, "r")
+                reader.open()
+                if reader.getGeometryType() != "POLYGON":
+                    raise IOError("Shapefile %s does not contain POLYGONS" % pth)
+
+                shape_files[id] = reader
+        except:
+            for reader in shape_files.values():
+                reader.close()
+            raise
+
+        return shape_files
