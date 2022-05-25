@@ -452,3 +452,46 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 station_groups[ids[value - 1]].add(node_number)
 
         return station_groups
+
+    def _LoadZones(self, zones_element, zone_attribute_id):
+        """
+        Loads node zone numbers. This is a convoluted process in order to allow
+        users to apply zones by BOTH selectors AND geometry. The first method
+        applies changes directly to the base scenario, which the second requires
+        knowing the node coordindates to work.
+
+        Much of this method (and associated sub-methods) is BLACK MAGIC
+        """
+        zone_id_2_int = {}
+        int_2_zone_id = {}
+
+        tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
+
+        shape_files = self._zoad_shape_files(zones_element)
+        spatial_index, nodes = self._index_node_geometries()
+
+        try:
+            for number, zone_element in enumerate(zones_element.findall("zone")):
+                id = zone_element.attrib["id"]
+                typ = zone_element.attrib["type"]
+
+                number += 1
+
+                zone_id_2_int[id] = number
+                int_2_zone_id[number] = id
+
+                if typ == "node_selection":
+                    self._load_zone_from_selection(zone_element, zone_attribute_id, tool, number, nodes)
+                elif typ == "from_shapefile":
+                    self._load_zone_from_geometry(zone_element, spatial_index, shape_files, number, nodes)
+
+                msg = "Loaded zone %s: %s" % (number, id)
+                _write(msg)
+                print(msg)
+                self._tracker.complete_subtask()
+        finally:
+            # Close the shapefile readers
+            for reader in shape_files.values():
+                reader.close()
+
+        return zone_id_2_int, int_2_zone_id, nodes
