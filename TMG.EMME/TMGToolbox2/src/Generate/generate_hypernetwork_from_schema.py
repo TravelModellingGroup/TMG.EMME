@@ -73,12 +73,13 @@ Generate Hypernetwork From Schema Tool
     2.0.0 Refactored and improved by WilliamsDiogu for XTMF2, compatible  with Emme 4.6 and base on
         Python 3 . 
 """
+from copy import copy
 from sqlite3 import paramstyle
 import traceback as _traceback
 from xml.etree import ElementTree as _ET
 import time as _time
 import multiprocessing
-
+from itertools import combinations as get_combinations
 from numpy import percentile
 import inro.modeller as _m
 from inro.emme.core.exception import ModuleError
@@ -767,7 +768,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         n_tasks = 2 * (len(base_surface_nodes) + len(base_station_nodes)) + len(line_ids)
         self._tracker.start_process(n_tasks)
         for i, node in enumerate(base_surface_nodes):
-            self._transform_surface_node(node, transfer_grid, transfer_mode)
+            self._transform_surface_node(parameters, node, transfer_grid, transfer_mode)
             self._tracker.complete_subtask()
         print("Processed surface nodes")
         total_nodes_1 = network.element_totals["regular_nodes"]
@@ -775,7 +776,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         _write("Created %s virtual road nodes." % (total_nodes_1 - total_nodes_0))
         _write("Created %s access links to virtual road nodes" % (total_links_1 - total_links_0))
         for i, node in enumerate(base_station_nodes):
-            self._transform_station_node(node, transfer_grid, transfer_mode)
+            self._transform_station_node(parameters, node, transfer_grid, transfer_mode)
             self._tracker.complete_subtask()
         print("Processed station nodes")
         total_nodes_2 = network.element_totals["regular_nodes"]
@@ -791,15 +792,9 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         print("Connected surface and station nodes")
         total_links_3 = network.element_totals["links"]
         _write("Created %s road-to-transit connector links" % (total_links_3 - total_links_2))
-        if parameters["segment_fare_attribute"] is not None:
 
-            def save_function(segment, i_node_id):
-                segment[parameters["segment_fare_attribute"]] = i_node_id
-
-        else:
-
-            def save_function(segment, i_node_id):
-                pass
+        def save_function(segment, i_node_id):
+            pass
 
         for line_id in line_ids:
             self._process_transit_line(line_id, network, zone_crossing_grid, save_function)
@@ -809,3 +804,46 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         _write("Created %s in-line virtual links" % (total_links_4 - total_links_3))
         self._tracker.complete_task()
         return transfer_grid, zone_crossing_grid
+
+    def _transform_surface_node(self, parameters, base_node, transfer_grid, transfer_mode):
+        network = base_node.network
+        created_nodes = []
+        links_created = 0
+        # Create the virtual nodes for stops
+        for group_number in base_node.stopping_groups:
+            new_node = network.create_regular_node(self._get_new_node_number(parameters, network))
+            # Copy the node attributes, including x, y coordinates
+            for att in network.attributes("NODE"):
+                new_node[att] = base_node[att]
+            # newNode.label = "RS%s" %int(groupNumber)
+            new_node.label = base_node.label
+            # Attach the new node to the base node for later
+            base_node.to_hyper_node[group_number] = new_node
+            created_nodes.append((new_node, group_number))
+            # Connect base node to operator node
+            in_bound_link = network.create_link(base_node.number, new_node.number, [transfer_mode])
+            out_bound_link = network.create_link(new_node.number, base_node.number, [transfer_mode])
+            links_created += 2
+            # Attach the transfer links to the grid for indexing
+            transfer_grid[0, group_number].add(in_bound_link)
+            transfer_grid[group_number, 0].add(out_bound_link)
+        # Connect the virtual nodes to each other
+        for tup_a, tup_b in get_combinations(created_nodes, 2):  # Iterate through unique pairs of nodes
+            node_a, group_a = tup_a
+            node_b, group_b = tup_b
+            link_ab = network.create_link(node_a.number, node_b.number, [transfer_mode])
+            link_ba = network.create_link(node_b.number, node_a.number, [transfer_mode])
+            links_created += 2
+            transfer_grid[group_a, group_b].add(link_ab)
+            transfer_grid[group_b, group_a].add(link_ba)
+        # Create any virtual non-stop nodes
+        for group_number in base_node.passing_groups:
+            new_node = network.create_regular_node(self._get_new_node_number(parameters, network))
+            # Copy the node attributes, including x, y coordinates
+            for att in network.attributes("NODE"):
+                new_node[att] = base_node[att]
+            # newNode.label = "RP%s" %int(groupNumber)
+            new_node.label = base_node.label
+            # Attach the new node to the base node for later
+            base_node.to_hyper_node[group_number] = new_node
+            # Don't need to connect the new node to anything right now
