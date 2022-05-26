@@ -950,3 +950,38 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             new_node.label = base_node.label
 
             base_node.to_hyper_node[group] = new_node
+
+    def _connect_surface_or_station_node(self, base_node_1, transfer_grid):
+        network = base_node_1.network
+
+        # Theoretically, we should only need to look at outgoing links,
+        # since one node's outgoing link is another node's incoming link.
+        for link in base_node_1.outgoing_links():
+            if link.role == 0:
+                continue  # Skip non-connector links
+
+            base_node_2 = link.j_node
+
+            for group_number_1 in base_node_1.stopping_groups:
+                virtual_node_1 = base_node_1.to_hyper_node[group_number_1]
+
+                for group_number_2 in base_node_2.stopping_groups:
+                    virtual_node_2 = base_node_2.to_hyper_node[group_number_2]
+
+                    if network.link(virtual_node_1.number, virtual_node_2.number) is not None:
+                        # Link already exists. Index it just in case
+                        if group_number_1 != group_number_2:
+                            transfer_grid[group_number_1, group_number_2].add(
+                                network.link(virtual_node_1.number, virtual_node_2.number)
+                            )
+                        continue
+
+                    new_link = network.create_link(virtual_node_1.number, virtual_node_2.number, link.modes)
+                    for att in network.attributes("LINK"):
+                        new_link[att] = link[att]
+
+                    # Only index if the group numbers are different. Otherwise, this is the only
+                    # part of the code where intra-group transfers are identified, so DON'T do
+                    # it to have the matrix be consistent.
+                    if group_number_1 != group_number_2:
+                        transfer_grid[group_number_1, group_number_2].add(new_link)
