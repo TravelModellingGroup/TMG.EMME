@@ -1030,3 +1030,10 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
 
         network.delete_transit_line(line_id)
         _network_edit.change_transit_line_id(new_line, line_id)
+
+    def _get_new_node_number(self, parameters, network):
+        test_node = network.node(parameters["virtual_node_domain"])
+        while test_node is not None:
+            parameters["virtual_node_domain"] += 1
+            test_node = network.node(parameters["virtual_node_domain"])
+        return parameters["virtual_node_domain"]
