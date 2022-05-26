@@ -109,6 +109,37 @@ class xml_validation_error(Exception):
     pass
 
 
+class grid:
+    """
+    Grid class to support tuple indexing (just for coding convenience).
+
+    Upon construction, it copies the default value into each of its cells.
+    """
+
+    def __init__(self, x_size, y_size, default=None):
+        x_size, y_size = int(x_size), int(y_size)
+        self._data = []
+        self.x = x_size
+        self.y = y_size
+        i = 0
+        total = x_size * y_size
+        while i < total:
+            self._data.append(copy(default))
+            i += 1
+
+    def __getitem__(self, key):
+        x, y = key
+        x, y = int(x), int(y)
+        index = x * self.y + y
+        return self._data[index]
+
+    def __setitem__(self, key, val):
+        x, y = key
+        x, y = int(x), int(y)
+        index = x * self.y + y
+        self._data[index] = val
+
+
 class node_spatial_proxy:
     def __init__(self, id, x, y):
         self.id = id
