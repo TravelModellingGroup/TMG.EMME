@@ -365,7 +365,7 @@ def addReverseLink(link):
 # ===========================================================================================
 
 
-def changeTransitLineId(line, newId):
+def change_transit_line_id(line, newId):
     """
     Modifies an existing line's ID
 
@@ -731,7 +731,7 @@ def mergeLinks(node, deleteStop=False, vertex=True, linkAggregators={}, segmentA
 
     # Revert the original transit line IDs
     for line, originalId in lineRenamingMap:
-        changeTransitLineId(line, originalId)
+        change_transit_line_id(line, originalId)
 
     return createdLinks
 
