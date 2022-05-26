@@ -847,3 +847,106 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             # Attach the new node to the base node for later
             base_node.to_hyper_node[group_number] = new_node
             # Don't need to connect the new node to anything right now
+
+    def _transform_station_node(self, parameters, base_node, transfer_grid, transfer_mode):
+        network = base_node.network
+
+        virtual_nodes = []
+
+        # Catalog and classify inbound and outbound links for copying
+        outgoing_links = []
+        incoming_links = []
+        outgoing_connectors = []
+        incoming_connectors = []
+        for link in base_node.outgoing_links():
+            if link.role == 1:
+                outgoing_links.append(link)
+            elif link.j_node.is_centroid:
+                if parameters["station_connector_flag"]:
+                    outgoing_links.append(link)
+                else:
+                    outgoing_connectors.append(link)
+        for link in base_node.incoming_links():
+            if link.role == 1:
+                incoming_links.append(link)
+            elif link.i_node.is_centroid:
+                if parameters["station_connector_flag"]:
+                    incoming_links.append(link)
+                else:
+                    incoming_connectors.append(link)
+
+        first = True
+        for group_number in base_node.stopping_groups:
+            if first:
+                # Assign the existing node to the first group
+                base_node.to_hyper_node[group_number] = base_node
+                virtual_nodes.append((base_node, group_number))
+
+                # Index the incoming and outgoing links to the Grid
+                for link in incoming_links:
+                    transfer_grid[0, group_number].add(link)
+                for link in outgoing_links:
+                    transfer_grid[group_number, 0].add(link)
+
+                first = False
+                # baseNode.label = "TS%s" %int(groupNumber)
+
+            else:
+                virtual_node = network.create_regular_node(self._get_new_node_number(parameters, network))
+
+                # Copy the node attributes, including x, y coordinates
+                for att in network.attributes("NODE"):
+                    virtual_node[att] = base_node[att]
+                # virtualNode.label = "TS%s" %int(groupNumber)
+                virtual_node.label = base_node.label
+
+                # Assign the new node to its group number
+                base_node.to_hyper_node[group_number] = virtual_node
+                virtual_nodes.append((virtual_node, group_number))
+
+                # Copy the base node's existing centroid connectors to the new virtual node
+                if not parameters["station_connector_flag"]:
+                    for connector in outgoing_connectors:
+                        new_link = network.create_link(virtual_node.number, connector.j_node.number, connector.modes)
+                        for att in network.attributes("LINK"):
+                            new_link[att] = connector[att]
+                    for connector in incoming_connectors:
+                        new_link = network.create_link(connector.i_node.number, virtual_node.number, connector.modes)
+                        for att in network.attributes("LINK"):
+                            new_link[att] = connector[att]
+
+                # Copy the base node's existing station connectors to the new virtual node
+                for connector in outgoing_links:
+                    new_link = network.create_link(virtual_node.number, connector.j_node.number, connector.modes)
+                    for att in network.attributes("LINK"):
+                        new_link[att] = connector[att]
+
+                    transfer_grid[group_number, 0].add(new_link)  # Index the new connector to the Grid
+
+                for connector in incoming_links:
+                    new_link = network.create_link(connector.i_node.number, virtual_node.number, connector.modes)
+                    for att in network.attributes("LINK"):
+                        new_link[att] = connector[att]
+
+                    transfer_grid[0, group_number].add(new_link)  # Index the new connector to the Grid
+
+        # Connect the virtual nodes to each other
+        for tup_a, tup_b in get_combinations(virtual_nodes, 2):  # Iterate through unique pairs of nodes
+            node_a, group_a = tup_a
+            node_b, group_b = tup_b
+
+            link_ab = network.create_link(node_a.number, node_b.number, [transfer_mode])
+            link_ba = network.create_link(node_b.number, node_a.number, [transfer_mode])
+
+            transfer_grid[group_a, group_b].add(link_ab)
+            transfer_grid[group_b, group_a].add(link_ba)
+
+        for group in base_node.passing_groups:
+            new_node = network.create_regular_node(self._get_new_node_number(parameters, network))
+
+            for att in network.attributes("NODE"):
+                new_node[att] = base_node[att]
+            # newNode.label = "TP%s" %int(group)
+            new_node.label = base_node.label
+
+            base_node.to_hyper_node[group] = new_node
