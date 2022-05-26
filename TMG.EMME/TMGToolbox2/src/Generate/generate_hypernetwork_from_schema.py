@@ -682,3 +682,30 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 link.role = 1  # Station connector (egress)
             elif i.role == 2 and j.role == 2 and permits_walk:
                 link.role = 2  # Station transfer
+
+    def apply_node_role(self, node):
+        if not node.stopping_groups and not node.passing_groups:
+            if node.is_centroid == False:
+                #  Surface node without transit
+                node.role = 1
+            # Skip nodes without an incident transit segment
+            return
+
+        for link in node.outgoing_links():
+            if link.i_node.is_centroid or link.j_node.is_centroid:
+                continue
+            for mode in link.modes:
+                if mode.type == "AUTO":
+                    # Surface node
+                    node.role = 1
+                    return
+        for link in node.incoming_links():
+            if link.i_node.is_centroid or link.j_node.is_centroid:
+                continue
+            for mode in link.modes:
+                if mode.type == "AUTO":
+                    node.role = 1
+                    # Surface node
+                    return
+        # Station node is a transit stop, but does NOT connect to any auto links
+        node.role = 2
