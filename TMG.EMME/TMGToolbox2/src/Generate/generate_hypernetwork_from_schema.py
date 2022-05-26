@@ -217,6 +217,16 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     # Complete the group/zone loading task
                     self._tracker.complete_task()
 
+                    # Load and prepare the network.
+                    self._tracker.start_process(2)
+
+                    network = base_scenario.get_network()
+                    print("Network loaded.")
+                    self._tracker.complete_subtask()
+                    self._prepare_network(network, node_proxies, line_group_att.id)
+                    self._tracker.complete_task()
+                    print("Prepared base network.")
+
     def _get_att(self, parameters):
         atts = {
             "Scenario": str(parameters["base_scenario"]),
@@ -606,3 +616,96 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
 
                 if polygon.intersects(point):
                     proxy.zone = number
+
+    # ---
+    # ---HYPER NETWORK GENERATION--------------------------------------------------------------------------
+
+    def _prepare_network(self, network, node_proxies, line_group_att_id):
+        """
+        Prepares network attributes for transformation
+        """
+        network.create_attribute("TRANSIT_LINE", "group", 0)
+        # Set of groups passing through but not stopping at the node
+        network.create_attribute("NODE", "passing_groups", None)
+        # Set of groups stopping at the node
+        network.create_attribute("NODE", "stopping_groups", None)
+        # The number of the fare zone
+        network.create_attribute("NODE", "fare_zone", 0)
+        # Dictionary to get from the node to its hyper nodes
+        network.create_attribute("NODE", "to_hyper_node", None)
+        # Link topological role
+        network.create_attribute("LINK", "role", 0)
+        # Node topological role
+        network.create_attribute("NODE", "role", 0)
+        # Initialize node attributes (incl. copying node zone)
+        # Also, copy the zones loaded into the proxies
+        for node in network.regular_nodes():
+            node.passing_groups = set()
+            node.stopping_groups = set()
+            node.to_hyper_node = {}
+            if node.number in node_proxies:
+                proxy = node_proxies[node.number]
+                node.fare_zone = proxy.zone
+        # Determine stops & assign operators to nodes
+        for line in network.transit_lines():
+            group = int(line[line_group_att_id])
+            line.group = group
+            for segment in line.segments(True):
+                i_node = segment.i_node
+                if segment.allow_boardings or segment.allow_alightings:
+                    i_node.stopping_groups.add(group)
+                    if group in i_node.passing_groups:
+                        i_node.passing_groups.remove(group)
+                else:
+                    if not group in i_node.stopping_groups:
+                        i_node.passing_groups.add(group)
+
+        # Determine node role. This needs to be done AFTER stops have been identified
+        for node in network.regular_nodes():
+            self.apply_node_role(node)
+
+        # Determine link role. Needs to happen after node role's have been identified
+        for link in network.links():
+            i, j = link.i_node, link.j_node
+            if i.is_centroid or j.is_centroid:
+                continue  # Link is a centroid connector
+
+            permits_walk = False
+            for mode in link.modes:
+                if mode.type == "AUX_TRANSIT":
+                    permits_walk = True
+                    break
+
+            if i.role == 1 and j.role == 2 and permits_walk:
+                link.role = 1  # Station connector (access)
+            elif i.role == 2 and j.role == 1 and permits_walk:
+                link.role = 1  # Station connector (egress)
+            elif i.role == 2 and j.role == 2 and permits_walk:
+                link.role = 2  # Station transfer
+
+    def apply_node_role(self, node):
+        if not node.stopping_groups and not node.passing_groups:
+            if node.is_centroid == False:
+                #  Surface node without transit
+                node.role = 1
+            # Skip nodes without an incident transit segment
+            return
+
+        for link in node.outgoing_links():
+            if link.i_node.is_centroid or link.j_node.is_centroid:
+                continue
+            for mode in link.modes:
+                if mode.type == "AUTO":
+                    # Surface node
+                    node.role = 1
+                    return
+        for link in node.incoming_links():
+            if link.i_node.is_centroid or link.j_node.is_centroid:
+                continue
+            for mode in link.modes:
+                if mode.type == "AUTO":
+                    node.role = 1
+                    # Surface node
+                    return
+        # Station node is a transit stop, but does NOT connect to any auto links
+        node.role = 2
