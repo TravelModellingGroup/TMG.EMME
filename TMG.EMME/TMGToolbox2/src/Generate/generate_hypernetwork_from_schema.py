@@ -227,6 +227,15 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     self._tracker.complete_task()
                     print("Prepared base network.")
 
+                    with _trace("Transforming hyper network"):
+                        transfer_grid, zone_crossing_grid = self._transform_network(
+                            parameters, network, n_groups, n_zones
+                        )
+                        print(transfer_grid)
+                        if n_station_groups > 0:
+                            self._index_station_connectors(network, transfer_grid, station_groups, group_ids_2_int)
+                        print("Hyper network generated.")
+
     def _get_att(self, parameters):
         atts = {
             "Scenario": str(parameters["base_scenario"]),
@@ -709,3 +718,63 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     return
         # Station node is a transit stop, but does NOT connect to any auto links
         node.role = 2
+
+    def _transform_network(self, parameters, network, number_of_groups, number_of_zones):
+        total_nodes_0 = network.element_totals["regular_nodes"]
+        total_links_0 = network.element_totals["links"]
+        base_surface_nodes = []
+        base_station_nodes = []
+        for node in network.regular_nodes():
+            if node.role == 1:
+                base_surface_nodes.append(node)
+            elif node.role == 2:
+                base_station_nodes.append(node)
+        transfer_grid = grid(number_of_groups + 1, number_of_groups + 1, set())
+        zone_crossing_grid = grid(number_of_zones + 1, number_of_zones + 1, set())
+        transfer_mode = network.mode(parameters["transfer_mode"])
+        line_ids = [line.id for line in network.transit_lines()]
+        n_tasks = 2 * (len(base_surface_nodes) + len(base_station_nodes)) + len(line_ids)
+        self._tracker.start_process(n_tasks)
+        for i, node in enumerate(base_surface_nodes):
+            self._transform_surface_node(node, transfer_grid, transfer_mode)
+            self._tracker.complete_subtask()
+        print("Processed surface nodes")
+        total_nodes_1 = network.element_totals["regular_nodes"]
+        total_links_1 = network.element_totals["links"]
+        _write("Created %s virtual road nodes." % (total_nodes_1 - total_nodes_0))
+        _write("Created %s access links to virtual road nodes" % (total_links_1 - total_links_0))
+        for i, node in enumerate(base_station_nodes):
+            self._transform_station_node(node, transfer_grid, transfer_mode)
+            self._tracker.complete_subtask()
+        print("Processed station nodes")
+        total_nodes_2 = network.element_totals["regular_nodes"]
+        total_links_2 = network.element_totals["links"]
+        _write("Created %s virtual transit nodes." % (total_nodes_2 - total_nodes_1))
+        _write("Created %s access links to virtual transit nodes" % (total_links_2 - total_links_1))
+        for node in base_surface_nodes:
+            self._connect_surface_or_station_node(node, transfer_grid)
+            self._tracker.complete_subtask()
+        for node in base_station_nodes:
+            self._connect_surface_or_station_node(node, transfer_grid)
+            self._tracker.complete_subtask()
+        print("Connected surface and station nodes")
+        total_links_3 = network.element_totals["links"]
+        _write("Created %s road-to-transit connector links" % (total_links_3 - total_links_2))
+        if parameters["segment_fare_attribute"] is not None:
+
+            def save_function(segment, i_node_id):
+                segment[parameters["segment_fare_attribute"]] = i_node_id
+
+        else:
+
+            def save_function(segment, i_node_id):
+                pass
+
+        for line_id in line_ids:
+            self._process_transit_line(line_id, network, zone_crossing_grid, save_function)
+            self._tracker.complete_subtask()
+        print("Processed transit lines")
+        total_links_4 = network.element_totals["links"]
+        _write("Created %s in-line virtual links" % (total_links_4 - total_links_3))
+        self._tracker.complete_task()
+        return transfer_grid, zone_crossing_grid
