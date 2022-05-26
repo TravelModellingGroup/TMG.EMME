@@ -985,3 +985,48 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     # it to have the matrix be consistent.
                     if group_number_1 != group_number_2:
                         transfer_grid[group_number_1, group_number_2].add(new_link)
+
+    def _process_transit_line(self, line_id, network, zone_transfer_grid, save_function):
+        line = network.transit_line(line_id)
+        group = line.group
+        line_mode = set([line.mode])
+
+        base_links = [segment.link for segment in line.segments(False)]
+        new_itinerary = [base_links[0].i_node.to_hyper_node[group].number]
+        for base_link in base_links:
+            iv = base_link.i_node.to_hyper_node[group].number
+            jv = base_link.j_node.to_hyper_node[group].number
+
+            new_itinerary.append(jv)
+
+            v_link = network.link(iv, jv)
+            if v_link is None:
+                v_link = network.create_link(iv, jv, line_mode)
+                for att in network.attributes("LINK"):
+                    v_link[att] = base_link[att]
+            else:
+                v_link.modes |= line_mode
+
+        new_line = network.create_transit_line("temp", line.vehicle.id, new_itinerary)
+        for att in network.attributes("TRANSIT_LINE"):
+            new_line[att] = line[att]
+
+        for segment in line.segments(True):
+            new_segment = new_line.segment(segment.number)
+            for att in network.attributes("TRANSIT_SEGMENT"):
+                new_segment[att] = segment[att]
+
+            save_function(new_segment, segment.i_node.number)
+
+            link = segment.link
+            if link is not None:
+                fzi = link.i_node.fare_zone
+                fzj = link.j_node.fare_zone
+
+                if fzi != fzj and fzi != 0 and fzj != 0:
+                    # Add the segment's identifier, since change_transit_line_id de-references
+                    # the line copy.
+                    zone_transfer_grid[fzi, fzj].add((line_id, segment.number))
+
+        network.delete_transit_line(line_id)
+        _network_edit.change_transit_line_id(new_line, line_id)
