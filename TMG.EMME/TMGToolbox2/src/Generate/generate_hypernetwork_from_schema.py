@@ -950,3 +950,20 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             parameters["virtual_node_domain"] += 1
             test_node = network.node(parameters["virtual_node_domain"])
         return parameters["virtual_node_domain"]
+
+    def _index_station_connectors(self, network, transfer_grid, station_groups, group_ids_2_int):
+        print("Indexing station connectors")
+        for line_group_id, station_centroids in station_groups.items():
+            idx = group_ids_2_int[line_group_id]
+            for node_id in station_centroids:
+                centroid = network.node(node_id)
+                # Skip non-zones
+                if not centroid.is_centroid:
+                    continue
+                for link in centroid.outgoing_links():
+                    if idx in link.j_node.stopping_groups:
+                        transfer_grid[0, idx].add(link)
+                for link in centroid.incoming_links():
+                    if idx in link.i_node.stopping_groups:
+                        transfer_grid[idx, 0].add(link)
+            print("Indexed connectors for group %s" % line_group_id)
