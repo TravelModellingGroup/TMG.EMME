@@ -73,12 +73,13 @@ Generate Hypernetwork From Schema Tool
     2.0.0 Refactored and improved by WilliamsDiogu for XTMF2, compatible  with Emme 4.6 and base on
         Python 3 . 
 """
+from copy import copy
 from sqlite3 import paramstyle
 import traceback as _traceback
 from xml.etree import ElementTree as _ET
 import time as _time
 import multiprocessing
-
+from itertools import combinations as get_combinations
 from numpy import percentile
 import inro.modeller as _m
 from inro.emme.core.exception import ModuleError
@@ -107,6 +108,37 @@ EMME_VERSION = _util.get_emme_version(tuple)
 
 class xml_validation_error(Exception):
     pass
+
+
+class grid:
+    """
+    Grid class to support tuple indexing (just for coding convenience).
+
+    Upon construction, it copies the default value into each of its cells.
+    """
+
+    def __init__(self, x_size, y_size, default=None):
+        x_size, y_size = int(x_size), int(y_size)
+        self._data = []
+        self.x = x_size
+        self.y = y_size
+        i = 0
+        total = x_size * y_size
+        while i < total:
+            self._data.append(copy(default))
+            i += 1
+
+    def __getitem__(self, key):
+        x, y = key
+        x, y = int(x), int(y)
+        index = x * self.y + y
+        return self._data[index]
+
+    def __setitem__(self, key, val):
+        x, y = key
+        x, y = int(x), int(y)
+        index = x * self.y + y
+        self._data[index] = val
 
 
 class node_spatial_proxy:
@@ -172,7 +204,6 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             attributes=self._get_att(parameters),
         ):
             root_base = _ET.parse(parameters["base_schema_file"]).getroot()
-
             n_groups, n_zones, n_station_groups, valid_group_ids, valid_zone_ids = self._validate_base_schema_file(
                 parameters, root_base
             )
@@ -183,12 +214,10 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 n_rules.append(self._validate_fare_schema_file(root_fare[i], valid_group_ids, valid_zone_ids))
             n_rules = sum(n_rules)
             self._tracker.complete_task()
-
             # Load the line groups and zones
             version = root_base.find("version").attrib["number"]
             _write("Loading Base Schema File version %s" % version)
             print("Loading Base Schema File version %s" % version)
-
             self._tracker.start_process(n_groups + n_zones)
             with _util.temp_extra_attribute_manager(
                 base_scenario, "TRANSIT_LINE", description="Line Group"
@@ -216,16 +245,22 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                         zone_id_2_int, int_2_zone_id, node_proxies = {}, {}, {}
                     # Complete the group/zone loading task
                     self._tracker.complete_task()
-
                     # Load and prepare the network.
                     self._tracker.start_process(2)
-
                     network = base_scenario.get_network()
                     print("Network loaded.")
                     self._tracker.complete_subtask()
                     self._prepare_network(network, node_proxies, line_group_att.id)
                     self._tracker.complete_task()
                     print("Prepared base network.")
+                    with _trace("Transforming hyper network"):
+                        transfer_grid, zone_crossing_grid = self._transform_network(
+                            parameters, network, n_groups, n_zones
+                        )
+                        print(transfer_grid)
+                        if n_station_groups > 0:
+                            self._index_station_connectors(network, transfer_grid, station_groups, group_ids_2_int)
+                        print("Hyper network generated.")
 
     def _get_att(self, parameters):
         atts = {
@@ -244,13 +279,11 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         if groups_element is None:
             raise xml_validation_error("Base schema must specify a 'group' element.")
         zones_element = root.find("zones")
-
         # Validate version
         try:
             version = version_element.attrib["number"]
         except KeyError:
             raise xml_validation_error("Version element must specify a 'number' attribute.")
-
         # Validate groups
         group_elements = groups_element.findall("group")
         valid_group_ids = set()
@@ -263,22 +296,18 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             if id in valid_group_ids:
                 raise xml_validation_error("Group id '%s' found more than once. Each id must be unique." % id)
             valid_group_ids.add(id)
-
             selection_elements = group_element.findall("selection")
             if len(selection_elements) == 0:
                 raise xml_validation_error("Group element '%s' does not specify any 'selection' sub-elements" % id)
-
         # Validate zones, if required
         valid_zone_ids = set()
         if zones_element is not None:
             shape_file_elements = zones_element.findall("shapefile")
             zone_elements = zones_element.findall("zone")
-
             shape_file_ids = set()
             for i, shape_file_element in enumerate(shape_file_elements):
                 if not "id" in shape_file_element.attrib:
                     raise xml_validation_error("Shapefile #%s element must specify an 'id' attribute" % i)
-
                 id = shape_file_element.attrib["id"]
                 if id in shape_file_ids:
                     raise xml_validation_error("Shapefile id '%' found more than once. Each id must be unique" % id)
@@ -333,12 +362,10 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                         raise xml_validation_error("FID attribute must be a positive integer.")
         else:
             zone_elements = []
-
         n_station_groups = 0
         station_groups_element = root.find("station_groups")
         if station_groups_element is not None:
             station_group_elements = station_groups_element.findall("station_group")
-
             for element in station_group_elements:
                 forGroup = element.attrib["for"]
                 if not forGroup in valid_group_ids:
@@ -421,7 +448,6 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
     def _load_groups(self, base_scenario, groups_element, line_group_att_id):
         group_ids_2_int = {}
         int_2_group_ids = {}
-
         tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 
         def get_spec(number, selection):
@@ -435,11 +461,9 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
 
         for i, group_element in enumerate(groups_element.findall("group")):
             group_number = i + 1
-
             id = group_element.attrib["id"]
             group_ids_2_int[id] = group_number
             int_2_group_ids[group_number] = id
-
             for selection_element in group_element.findall("selection"):
                 selector = selection_element.text
                 spec = get_spec(group_number, selector)
@@ -449,7 +473,6 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     msg = "Emme runtime error processing line group '%s'." % id
                     _write(msg)
                     print(msg)
-
             msg = "Loaded group %s: %s" % (group_number, id)
             print(msg)
             _write(msg)
@@ -458,14 +481,11 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
 
     def _load_station_groups(self, base_scenario, station_groups_element):
         tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
-
         station_groups, ids = {}, []
         with _util.temp_extra_attribute_manager(base_scenario, "NODE", returnId=True) as attr:
-
             for i, station_group_element in enumerate(station_groups_element.findall("station_group")):
                 for_group = station_group_element.attrib["for"]
                 selector = station_group_element.attrib["selection"]
-
                 spec = {
                     "result": attr,
                     "expression": str(i + 1),  # Plus one since the attribute is initialized to 0
@@ -476,14 +496,12 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 tool(spec, scenario=base_scenario)
                 station_groups[for_group] = set()
                 ids.append(for_group)
-
             indices, table = base_scenario.get_attribute_values("NODE", [attr])
             for node_number, index in indices.items():
                 value = int(table[index])
                 if value == 0:
                     continue
                 station_groups[ids[value - 1]].add(node_number)
-
         return station_groups
 
     def _load_zones(self, parameters, base_scenario, zones_element, zone_attribute_id):
@@ -492,33 +510,25 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         users to apply zones by BOTH selectors AND geometry. The first method
         applies changes directly to the base scenario, which the second requires
         knowing the node coordinates to work.
-
         """
         zone_id_2_int = {}
         int_2_zone_id = {}
-
         tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
-
         shape_files = self._load_shape_files(parameters, zones_element)
         spatial_index, nodes = self._index_node_geometries(base_scenario)
-
         try:
             for number, zone_element in enumerate(zones_element.findall("zone")):
                 id = zone_element.attrib["id"]
                 typ = zone_element.attrib["type"]
-
                 number += 1
-
                 zone_id_2_int[id] = number
                 int_2_zone_id[number] = id
-
                 if typ == "node_selection":
                     self._load_zone_from_selection(base_scenario, zone_element, zone_attribute_id, tool, number, nodes)
                 elif typ == "from_shapefile":
                     self._load_zone_from_geometry(zone_element, spatial_index, shape_files, number)
                 else:
                     raise Exception("Zone element type '%s' is not node_selection or from_shapefile!" % typ)
-
                 msg = "Loaded zone %s: %s" % (number, id)
                 _write(msg)
                 print(msg)
@@ -527,7 +537,6 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             # Close the shapefile readers
             for reader in shape_files.values():
                 reader.close()
-
         return zone_id_2_int, int_2_zone_id, nodes
 
     def _load_shape_files(self, parameters, zones_element):
@@ -538,49 +547,39 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 pth = shape_file_element.attrib["path"]
                 # Join the path if it is relative
                 pth = self._get_absolute_filepath(parameters, pth)
-
                 reader = shapely_2_esri(pth, "r")
                 reader.open()
                 if reader.getGeometryType() != "POLYGON":
                     raise IOError("Shapefile %s does not contain POLYGONS" % pth)
-
                 shape_files[id] = reader
         except:
             for reader in shape_files.values():
                 reader.close()
             raise
-
         return shape_files
 
     def _index_node_geometries(self, base_scenario):
         """
-        Uses get_attribute_values() (Scenario function) to create proxy objects for Emme nodes.
-
-        This is done to allow node locations to be loaded IN THE ORDER SPECIFIED BY THE FILE,
+        -> Uses get_attribute_values() (Scenario function) to create proxy objects for Emme nodes.
+        -> This is done to allow node locations to be loaded IN THE ORDER SPECIFIED BY THE FILE,
         regardless of whether those nodes are specified by a selector or by geometry.
         """
         indices, xtable, ytable = base_scenario.get_attribute_values("NODE", ["x", "y"])
-
         extents = min(xtable), min(ytable), max(xtable), max(ytable)
-
         spatial_index = grid_index(extents, marginSize=1.0)
         proxies = {}
-
         for node_number, index in indices.items():
             x = xtable[index]
             y = ytable[index]
-
             # Using a proxy class defined in THIS file, because we don't yet
             # have the full network loaded.
             node_proxy = node_spatial_proxy(node_number, x, y)
             spatial_index.insertPoint(node_proxy)
             proxies[node_number] = node_proxy
-
         return spatial_index, proxies
 
     def _load_zone_from_selection(self, base_scenario, zone_element, zone_attribute_id, tool, number, nodes):
         id = zone_element.attrib["id"]
-
         for selection_element in zone_element.findall("node_selector"):
             spec = {
                 "result": zone_attribute_id,
@@ -589,12 +588,10 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 "selections": {"node": selection_element.text},
                 "type": "NETWORK_CALCULATION",
             }
-
             try:
                 tool(spec, scenario=base_scenario)
             except ModuleError as me:
                 raise IOError("Error loading zone '%s': %s" % (id, me))
-
         # Update the list of proxy nodes with the network's newly-loaded zones attribute
         indices, table = base_scenario.get_attribute_values("NODE", [zone_attribute_id])
         for number, index in indices.items():
@@ -602,24 +599,18 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
 
     def _load_zone_from_geometry(self, zone_element, spatial_index, shape_files, number):
         id = zone_element.attrib["id"]
-
         for from_shape_file_element in zone_element.findall("from_shapefile"):
             sid = from_shape_file_element.attrib["id"]
             fid = int(from_shape_file_element.attrib["FID"])
-
             reader = shape_files[sid]
             polygon = reader.readFrom(fid)
-
             nodes_to_check = spatial_index.queryPolygon(polygon)
             for proxy in nodes_to_check:
                 point = proxy.geometry
-
                 if polygon.intersects(point):
                     proxy.zone = number
 
-    # ---
     # ---HYPER NETWORK GENERATION--------------------------------------------------------------------------
-
     def _prepare_network(self, network, node_proxies, line_group_att_id):
         """
         Prepares network attributes for transformation
@@ -659,23 +650,20 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 else:
                     if not group in i_node.stopping_groups:
                         i_node.passing_groups.add(group)
-
         # Determine node role. This needs to be done AFTER stops have been identified
         for node in network.regular_nodes():
             self.apply_node_role(node)
-
         # Determine link role. Needs to happen after node role's have been identified
         for link in network.links():
             i, j = link.i_node, link.j_node
             if i.is_centroid or j.is_centroid:
-                continue  # Link is a centroid connector
-
+                # Link is a centroid connector
+                continue
             permits_walk = False
             for mode in link.modes:
                 if mode.type == "AUX_TRANSIT":
                     permits_walk = True
                     break
-
             if i.role == 1 and j.role == 2 and permits_walk:
                 link.role = 1  # Station connector (access)
             elif i.role == 2 and j.role == 1 and permits_walk:
@@ -690,7 +678,6 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 node.role = 1
             # Skip nodes without an incident transit segment
             return
-
         for link in node.outgoing_links():
             if link.i_node.is_centroid or link.j_node.is_centroid:
                 continue
@@ -709,3 +696,257 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     return
         # Station node is a transit stop, but does NOT connect to any auto links
         node.role = 2
+
+    def _transform_network(self, parameters, network, number_of_groups, number_of_zones):
+        total_nodes_0 = network.element_totals["regular_nodes"]
+        total_links_0 = network.element_totals["links"]
+        base_surface_nodes = []
+        base_station_nodes = []
+        for node in network.regular_nodes():
+            if node.role == 1:
+                base_surface_nodes.append(node)
+            elif node.role == 2:
+                base_station_nodes.append(node)
+        transfer_grid = grid(number_of_groups + 1, number_of_groups + 1, set())
+        zone_crossing_grid = grid(number_of_zones + 1, number_of_zones + 1, set())
+        transfer_mode = network.mode(parameters["transfer_mode"])
+        line_ids = [line.id for line in network.transit_lines()]
+        n_tasks = 2 * (len(base_surface_nodes) + len(base_station_nodes)) + len(line_ids)
+        self._tracker.start_process(n_tasks)
+        for i, node in enumerate(base_surface_nodes):
+            self._transform_surface_node(parameters, node, transfer_grid, transfer_mode)
+            self._tracker.complete_subtask()
+        print("Processed surface nodes")
+        total_nodes_1 = network.element_totals["regular_nodes"]
+        total_links_1 = network.element_totals["links"]
+        _write("Created %s virtual road nodes." % (total_nodes_1 - total_nodes_0))
+        _write("Created %s access links to virtual road nodes" % (total_links_1 - total_links_0))
+        for i, node in enumerate(base_station_nodes):
+            self._transform_station_node(parameters, node, transfer_grid, transfer_mode)
+            self._tracker.complete_subtask()
+        print("Processed station nodes")
+        total_nodes_2 = network.element_totals["regular_nodes"]
+        total_links_2 = network.element_totals["links"]
+        _write("Created %s virtual transit nodes." % (total_nodes_2 - total_nodes_1))
+        _write("Created %s access links to virtual transit nodes" % (total_links_2 - total_links_1))
+        for node in base_surface_nodes:
+            self._connect_surface_or_station_node(node, transfer_grid)
+            self._tracker.complete_subtask()
+        for node in base_station_nodes:
+            self._connect_surface_or_station_node(node, transfer_grid)
+            self._tracker.complete_subtask()
+        print("Connected surface and station nodes")
+        total_links_3 = network.element_totals["links"]
+        _write("Created %s road-to-transit connector links" % (total_links_3 - total_links_2))
+
+        def save_function(segment, i_node_id):
+            pass
+
+        for line_id in line_ids:
+            self._process_transit_line(line_id, network, zone_crossing_grid, save_function)
+            self._tracker.complete_subtask()
+        print("Processed transit lines")
+        total_links_4 = network.element_totals["links"]
+        _write("Created %s in-line virtual links" % (total_links_4 - total_links_3))
+        self._tracker.complete_task()
+        return transfer_grid, zone_crossing_grid
+
+    def _transform_surface_node(self, parameters, base_node, transfer_grid, transfer_mode):
+        network = base_node.network
+        created_nodes = []
+        links_created = 0
+        # Create the virtual nodes for stops
+        for group_number in base_node.stopping_groups:
+            new_node = network.create_regular_node(self._get_new_node_number(parameters, network))
+            # Copy the node attributes, including x, y coordinates
+            for att in network.attributes("NODE"):
+                new_node[att] = base_node[att]
+            # newNode.label = "RS%s" %int(groupNumber)
+            new_node.label = base_node.label
+            # Attach the new node to the base node for later
+            base_node.to_hyper_node[group_number] = new_node
+            created_nodes.append((new_node, group_number))
+            # Connect base node to operator node
+            in_bound_link = network.create_link(base_node.number, new_node.number, [transfer_mode])
+            out_bound_link = network.create_link(new_node.number, base_node.number, [transfer_mode])
+            links_created += 2
+            # Attach the transfer links to the grid for indexing
+            transfer_grid[0, group_number].add(in_bound_link)
+            transfer_grid[group_number, 0].add(out_bound_link)
+        # Connect the virtual nodes to each other
+        for tup_a, tup_b in get_combinations(created_nodes, 2):  # Iterate through unique pairs of nodes
+            node_a, group_a = tup_a
+            node_b, group_b = tup_b
+            link_ab = network.create_link(node_a.number, node_b.number, [transfer_mode])
+            link_ba = network.create_link(node_b.number, node_a.number, [transfer_mode])
+            links_created += 2
+            transfer_grid[group_a, group_b].add(link_ab)
+            transfer_grid[group_b, group_a].add(link_ba)
+        # Create any virtual non-stop nodes
+        for group_number in base_node.passing_groups:
+            new_node = network.create_regular_node(self._get_new_node_number(parameters, network))
+            # Copy the node attributes, including x, y coordinates
+            for att in network.attributes("NODE"):
+                new_node[att] = base_node[att]
+            # newNode.label = "RP%s" %int(groupNumber)
+            new_node.label = base_node.label
+            # Attach the new node to the base node for later
+            base_node.to_hyper_node[group_number] = new_node
+            # Don't need to connect the new node to anything right now
+
+    def _transform_station_node(self, parameters, base_node, transfer_grid, transfer_mode):
+        network = base_node.network
+        virtual_nodes = []
+        # Catalog and classify inbound and outbound links for copying
+        outgoing_links = []
+        incoming_links = []
+        outgoing_connectors = []
+        incoming_connectors = []
+        for link in base_node.outgoing_links():
+            if link.role == 1:
+                outgoing_links.append(link)
+            elif link.j_node.is_centroid:
+                if parameters["station_connector_flag"]:
+                    outgoing_links.append(link)
+                else:
+                    outgoing_connectors.append(link)
+        for link in base_node.incoming_links():
+            if link.role == 1:
+                incoming_links.append(link)
+            elif link.i_node.is_centroid:
+                if parameters["station_connector_flag"]:
+                    incoming_links.append(link)
+                else:
+                    incoming_connectors.append(link)
+        first = True
+        for group_number in base_node.stopping_groups:
+            if first:
+                # Assign the existing node to the first group
+                base_node.to_hyper_node[group_number] = base_node
+                virtual_nodes.append((base_node, group_number))
+                # Index the incoming and outgoing links to the Grid
+                for link in incoming_links:
+                    transfer_grid[0, group_number].add(link)
+                for link in outgoing_links:
+                    transfer_grid[group_number, 0].add(link)
+                first = False
+            else:
+                virtual_node = network.create_regular_node(self._get_new_node_number(parameters, network))
+                # Copy the node attributes, including x, y coordinates
+                for att in network.attributes("NODE"):
+                    virtual_node[att] = base_node[att]
+                # virtualNode.label = "TS%s" %int(groupNumber)
+                virtual_node.label = base_node.label
+                # Assign the new node to its group number
+                base_node.to_hyper_node[group_number] = virtual_node
+                virtual_nodes.append((virtual_node, group_number))
+                # Copy the base node's existing centroid connectors to the new virtual node
+                if not parameters["station_connector_flag"]:
+                    for connector in outgoing_connectors:
+                        new_link = network.create_link(virtual_node.number, connector.j_node.number, connector.modes)
+                        for att in network.attributes("LINK"):
+                            new_link[att] = connector[att]
+                    for connector in incoming_connectors:
+                        new_link = network.create_link(connector.i_node.number, virtual_node.number, connector.modes)
+                        for att in network.attributes("LINK"):
+                            new_link[att] = connector[att]
+                # Copy the base node's existing station connectors to the new virtual node
+                for connector in outgoing_links:
+                    new_link = network.create_link(virtual_node.number, connector.j_node.number, connector.modes)
+                    for att in network.attributes("LINK"):
+                        new_link[att] = connector[att]
+                    # Index the new connector to the Grid
+                    transfer_grid[group_number, 0].add(new_link)
+                for connector in incoming_links:
+                    new_link = network.create_link(connector.i_node.number, virtual_node.number, connector.modes)
+                    for att in network.attributes("LINK"):
+                        new_link[att] = connector[att]
+                    # Index the new connector to the Grid
+                    transfer_grid[0, group_number].add(new_link)
+        # Connect the virtual nodes to each other
+        # Iterate through unique pairs of nodes
+        for tup_a, tup_b in get_combinations(virtual_nodes, 2):
+            node_a, group_a = tup_a
+            node_b, group_b = tup_b
+            link_ab = network.create_link(node_a.number, node_b.number, [transfer_mode])
+            link_ba = network.create_link(node_b.number, node_a.number, [transfer_mode])
+            transfer_grid[group_a, group_b].add(link_ab)
+            transfer_grid[group_b, group_a].add(link_ba)
+        for group in base_node.passing_groups:
+            new_node = network.create_regular_node(self._get_new_node_number(parameters, network))
+            for att in network.attributes("NODE"):
+                new_node[att] = base_node[att]
+            new_node.label = base_node.label
+            base_node.to_hyper_node[group] = new_node
+
+    def _connect_surface_or_station_node(self, base_node_1, transfer_grid):
+        network = base_node_1.network
+        # Theoretically, we should only need to look at outgoing links,
+        # since one node's outgoing link is another node's incoming link.
+        for link in base_node_1.outgoing_links():
+            if link.role == 0:
+                # Skip non-connector links
+                continue
+            base_node_2 = link.j_node
+            for group_number_1 in base_node_1.stopping_groups:
+                virtual_node_1 = base_node_1.to_hyper_node[group_number_1]
+                for group_number_2 in base_node_2.stopping_groups:
+                    virtual_node_2 = base_node_2.to_hyper_node[group_number_2]
+                    if network.link(virtual_node_1.number, virtual_node_2.number) is not None:
+                        # Link already exists. Index it just in case
+                        if group_number_1 != group_number_2:
+                            transfer_grid[group_number_1, group_number_2].add(
+                                network.link(virtual_node_1.number, virtual_node_2.number)
+                            )
+                        continue
+                    new_link = network.create_link(virtual_node_1.number, virtual_node_2.number, link.modes)
+                    for att in network.attributes("LINK"):
+                        new_link[att] = link[att]
+                    # Only index if the group numbers are different. Otherwise, this is the only
+                    # part of the code where intra-group transfers are identified, so DON'T do
+                    # it to have the matrix be consistent.
+                    if group_number_1 != group_number_2:
+                        transfer_grid[group_number_1, group_number_2].add(new_link)
+
+    def _process_transit_line(self, line_id, network, zone_transfer_grid, save_function):
+        line = network.transit_line(line_id)
+        group = line.group
+        line_mode = set([line.mode])
+        base_links = [segment.link for segment in line.segments(False)]
+        new_itinerary = [base_links[0].i_node.to_hyper_node[group].number]
+        for base_link in base_links:
+            iv = base_link.i_node.to_hyper_node[group].number
+            jv = base_link.j_node.to_hyper_node[group].number
+            new_itinerary.append(jv)
+            v_link = network.link(iv, jv)
+            if v_link is None:
+                v_link = network.create_link(iv, jv, line_mode)
+                for att in network.attributes("LINK"):
+                    v_link[att] = base_link[att]
+            else:
+                v_link.modes |= line_mode
+        new_line = network.create_transit_line("temp", line.vehicle.id, new_itinerary)
+        for att in network.attributes("TRANSIT_LINE"):
+            new_line[att] = line[att]
+        for segment in line.segments(True):
+            new_segment = new_line.segment(segment.number)
+            for att in network.attributes("TRANSIT_SEGMENT"):
+                new_segment[att] = segment[att]
+            save_function(new_segment, segment.i_node.number)
+            link = segment.link
+            if link is not None:
+                fzi = link.i_node.fare_zone
+                fzj = link.j_node.fare_zone
+                if fzi != fzj and fzi != 0 and fzj != 0:
+                    # Add the segment's identifier, since change_transit_line_id de-references
+                    # the line copy.
+                    zone_transfer_grid[fzi, fzj].add((line_id, segment.number))
+        network.delete_transit_line(line_id)
+        _network_edit.change_transit_line_id(new_line, line_id)
+
+    def _get_new_node_number(self, parameters, network):
+        test_node = network.node(parameters["virtual_node_domain"])
+        while test_node is not None:
+            parameters["virtual_node_domain"] += 1
+            test_node = network.node(parameters["virtual_node_domain"])
+        return parameters["virtual_node_domain"]

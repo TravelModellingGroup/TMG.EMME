@@ -365,7 +365,7 @@ def addReverseLink(link):
 # ===========================================================================================
 
 
-def changeTransitLineId(line, newId):
+def change_transit_line_id(line, newId):
     """
     Modifies an existing line's ID
 
@@ -489,10 +489,10 @@ def lineConcatenator(network, lineSet, newId):
 
     for num, segment in enumerate(newLine.segments(False)):
         d = combinedSegmentAttributes[num]
-        for attName, value in d.iteritems():
+        for attName, value in d.items():
             segment[attName] = value
 
-    for attName, value in lineAttributes.iteritems():
+    for attName, value in lineAttributes.items():
         newLine[attName] = value
 
 
@@ -687,11 +687,11 @@ def mergeLinks(node, deleteStop=False, vertex=True, linkAggregators={}, segmentA
     pairsToMerge = _getLinkPairs(incomingLinks, outgoingLinks)
 
     # Setup the aggregator functions.
-    for key, val in __LINK_ATTRIBUTE_AGGREGATORS.iteritems():
+    for key, val in __LINK_ATTRIBUTE_AGGREGATORS.items():
         if not key in linkAggregators:
             linkAggregators[key] = val
 
-    for key, val in __SEGMENT_ATTRIBUTE_AGGREGATORS.iteritems():
+    for key, val in __SEGMENT_ATTRIBUTE_AGGREGATORS.items():
         if not key in segmentAggregators:
             segmentAggregators[key] = val
 
@@ -710,7 +710,7 @@ def mergeLinks(node, deleteStop=False, vertex=True, linkAggregators={}, segmentA
                 newLink.vertices = verticesList
                 # newLink.vertices.insert(len(link1.vertices), (node.x, node.y))
 
-        for line, segmentNumbersToRemove in lineQueue.iteritems():
+        for line, segmentNumbersToRemove in lineQueue.items():
             _mergeLineSegments(
                 network,
                 line,
@@ -731,7 +731,7 @@ def mergeLinks(node, deleteStop=False, vertex=True, linkAggregators={}, segmentA
 
     # Revert the original transit line IDs
     for line, originalId in lineRenamingMap:
-        changeTransitLineId(line, originalId)
+        change_transit_line_id(line, originalId)
 
     return createdLinks
 
@@ -960,7 +960,7 @@ class TransitLineProxy:
         copy.data2 = self.data2
         copy.data3 = self.data3
 
-        for key, val in self.exatts.iteritems():
+        for key, val in self.exatts.items():
             copy[key] = val
 
         try:
@@ -1056,7 +1056,7 @@ class TransitSegmentProxy:
         segment.data2 = self.data2
         segment.data3 = self.data3
 
-        for key, val in self.exatts.iteritems():
+        for key, val in self.exatts.items():
             segment[key] = val
 
 
