@@ -1084,3 +1084,16 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     link[link_fare_attribute] += cost
                     count += 1
             _write("Applied to %s links." % count)
+
+    def _apply_fare_by_distance(self, fare_element, group_ids_2_int, lines_id_exed_by_group, segment_fare_attribute):
+        cost = float(fare_element.attrib["cost"])
+        with _trace("Fare by Distance of %s" % cost):
+            group_id = fare_element.find("group").text
+            group_number = group_ids_2_int[group_id]
+            _write("Group: %s" % group_id)
+            count = 0
+            for line in lines_id_exed_by_group[group_number]:
+                for segment in line.segments(False):
+                    segment[segment_fare_attribute] += segment.link.length * cost
+                    count += 1
+            _write("Applied to %s segments." % count)
