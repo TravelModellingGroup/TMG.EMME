@@ -1058,3 +1058,29 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                         link[link_fare_attribute] += cost
                         count += 1
             _write("Applied to %s links." % count)
+
+    def _apply_transfer_boarding_fare(self, fare_element, group_ids_2_int, transfer_grid, link_fare_attribute):
+        cost = float(fare_element.attrib["cost"])
+
+        with _trace("Transfer Boarding Fare of %s" % cost):
+            from_group_id = fare_element.find("from_group").text
+            from_number = group_ids_2_int[from_group_id]
+            _write("From Group: %s" % from_group_id)
+            to_group_id = fare_element.find("to_group").text
+            to_number = group_ids_2_int[to_group_id]
+            _write("To Group: %s" % to_group_id)
+            bi_directional_element = fare_element.find("bidirectional")
+            if bi_directional_element is not None:
+                bi_directional = self.__BOOL_PARSER[bi_directional_element.text.upper()]
+                _write("Bidirectional: %s" % bi_directional)
+            else:
+                bi_directional = False
+            count = 0
+            for link in transfer_grid[from_number, to_number]:
+                link[link_fare_attribute] += cost
+                count += 1
+            if bi_directional:
+                for link in transfer_grid[to_number, from_number]:
+                    link[link_fare_attribute] += cost
+                    count += 1
+            _write("Applied to %s links." % count)
