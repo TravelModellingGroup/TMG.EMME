@@ -158,6 +158,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
     tool_run_msg = ""
     number_of_tasks = 5
     __ZONE_TYPES = ["node_selection", "from_shapefile"]
+    __BOOL_PARSER = {"TRUE": True, "T": True, "FALSE": False, "F": False}
 
     def __init__(self):
         self._tracker = _util.progress_tracker(self.number_of_tasks)
@@ -261,6 +262,21 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                         if n_station_groups > 0:
                             self._index_station_connectors(network, transfer_grid, station_groups, group_ids_2_int)
                         print("Hyper network generated.")
+                    # Apply fare rules to network.
+                    with _trace("Applying fare rules"):
+                        self._tracker.start_process(n_rules + 1)
+                        for i, fare_class in enumerate(parameters["fare_classes"]):
+                            fare_rules_element = root_fare[i].find("fare_rules")
+                            self._apply_fare_rules(
+                                network,
+                                fare_rules_element,
+                                transfer_grid,
+                                zone_crossing_grid,
+                                group_ids_2_int,
+                                zone_id_2_int,
+                                fare_class["segment_fare_attribute"],
+                                fare_class["link_fare_attribute"],
+                            )
 
     def _get_att(self, parameters):
         atts = {
@@ -967,3 +983,154 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     if idx in link.i_node.stopping_groups:
                         transfer_grid[idx, 0].add(link)
             print("Indexed connectors for group %s" % line_group_id)
+
+    # ---LOAD FARE RULES-----------------------------------------------------------------------------------
+
+    def _apply_fare_rules(
+        self,
+        network,
+        fare_rules_element,
+        group_transfer_grid,
+        zone_crossing_grid,
+        group_ids_2_int,
+        zone_ids_2_int,
+        segment_fare_attribute,
+        link_fare_attribute,
+    ):
+        lines_id_exed_by_group = {}
+        for line in network.transit_lines():
+            group = line.group
+            if group in lines_id_exed_by_group:
+                lines_id_exed_by_group[group].append(line)
+            else:
+                lines_id_exed_by_group[group] = [line]
+        for fare_element in fare_rules_element.findall("fare"):
+            typ = fare_element.attrib["type"]
+            if typ == "initial_boarding":
+                self._apply_initial_boarding_fare(
+                    fare_element, group_ids_2_int, zone_ids_2_int, group_transfer_grid, link_fare_attribute
+                )
+            elif typ == "transfer":
+                self._apply_transfer_boarding_fare(
+                    fare_element, group_ids_2_int, group_transfer_grid, link_fare_attribute
+                )
+            elif typ == "distance_in_vehicle":
+                self._apply_fare_by_distance(
+                    fare_element, group_ids_2_int, lines_id_exed_by_group, segment_fare_attribute
+                )
+            elif typ == "zone_crossing":
+                self._apply_zone_crossing_fare(
+                    fare_element, group_ids_2_int, zone_ids_2_int, zone_crossing_grid, network, segment_fare_attribute
+                )
+            self._tracker.complete_subtask()
+
+    def _apply_initial_boarding_fare(
+        self, fare_element, group_ids_2_int, zone_ids_2_int, transfer_grid, link_fare_attribute
+    ):
+        cost = float(fare_element.attrib["cost"])
+        with _trace("Initial Boarding Fare of %s" % cost):
+            group_id = fare_element.find("group").text
+            _write("Group: %s" % group_id)
+            group_number = group_ids_2_int[group_id]
+            in_zone_element = fare_element.find("in_zone")
+            if in_zone_element is not None:
+                zone_id = in_zone_element.text
+                zone_number = zone_ids_2_int[zone_id]
+                _write("In zone: %s" % zone_id)
+                check_link = lambda link: link.i_node.fare_zone == zone_number
+            else:
+                check_link = lambda link: True
+            include_all_element = fare_element.find("include_all_groups")
+            if include_all_element is not None:
+                include_all = self.__BOOL_PARSER[include_all_element.text]
+                _write("Include all groups: %s" % include_all)
+            else:
+                include_all = True
+            count = 0
+            if include_all:
+                for x_index in range(transfer_grid.x):
+                    for link in transfer_grid[x_index, group_number]:
+                        if check_link(link):
+                            link[link_fare_attribute] += cost
+                            count += 1
+            else:
+                for link in transfer_grid[0, group_number]:
+                    if check_link(link):
+                        link[link_fare_attribute] += cost
+                        count += 1
+            _write("Applied to %s links." % count)
+
+    def _apply_transfer_boarding_fare(self, fare_element, group_ids_2_int, transfer_grid, link_fare_attribute):
+        cost = float(fare_element.attrib["cost"])
+
+        with _trace("Transfer Boarding Fare of %s" % cost):
+            from_group_id = fare_element.find("from_group").text
+            from_number = group_ids_2_int[from_group_id]
+            _write("From Group: %s" % from_group_id)
+            to_group_id = fare_element.find("to_group").text
+            to_number = group_ids_2_int[to_group_id]
+            _write("To Group: %s" % to_group_id)
+            bi_directional_element = fare_element.find("bidirectional")
+            if bi_directional_element is not None:
+                bi_directional = self.__BOOL_PARSER[bi_directional_element.text.upper()]
+                _write("Bidirectional: %s" % bi_directional)
+            else:
+                bi_directional = False
+            count = 0
+            for link in transfer_grid[from_number, to_number]:
+                link[link_fare_attribute] += cost
+                count += 1
+            if bi_directional:
+                for link in transfer_grid[to_number, from_number]:
+                    link[link_fare_attribute] += cost
+                    count += 1
+            _write("Applied to %s links." % count)
+
+    def _apply_fare_by_distance(self, fare_element, group_ids_2_int, lines_id_exed_by_group, segment_fare_attribute):
+        cost = float(fare_element.attrib["cost"])
+        with _trace("Fare by Distance of %s" % cost):
+            group_id = fare_element.find("group").text
+            group_number = group_ids_2_int[group_id]
+            _write("Group: %s" % group_id)
+            count = 0
+            for line in lines_id_exed_by_group[group_number]:
+                for segment in line.segments(False):
+                    segment[segment_fare_attribute] += segment.link.length * cost
+                    count += 1
+            _write("Applied to %s segments." % count)
+
+    def _apply_zone_crossing_fare(
+        self, fare_element, group_ids_2_int, zone_ids_2_int, crossing_grid, network, segment_fare_attribute
+    ):
+        cost = float(fare_element.attrib["cost"])
+        with _trace("Zone Crossing Fare of %s" % cost):
+            group_id = fare_element.find("group").text
+            group_number = group_ids_2_int[group_id]
+            _write("Group: %s" % group_id)
+            from_zone_id = fare_element.find("from_zone").text
+            from_number = zone_ids_2_int[from_zone_id]
+            _write("From Zone: %s" % from_zone_id)
+            to_zone_id = fare_element.find("to_zone").text
+            to_number = zone_ids_2_int[to_zone_id]
+            _write("To Zone: %s" % to_zone_id)
+            bi_directional_element = fare_element.find("bidirectional")
+            if bi_directional_element is not None:
+                bi_directional = self.__BOOL_PARSER[bi_directional_element.text.upper()]
+                _write("Bidirectional: %s" % bi_directional)
+            else:
+                bi_directional = False
+            count = 0
+            for line_id, segment_number in crossing_grid[from_number, to_number]:
+                line = network.transit_line(line_id)
+                if line.group != group_number:
+                    continue
+                line.segment(segment_number)[segment_fare_attribute] += cost
+                count += 1
+            if bi_directional:
+                for line_id, segment_number in crossing_grid[to_number, from_number]:
+                    line = network.transit_line(line_id)
+                    if line.group != group_number:
+                        continue
+                    line.segment(segment_number)[segment_fare_attribute] += cost
+                    count += 1
+            _write("Applied to %s segments." % count)
