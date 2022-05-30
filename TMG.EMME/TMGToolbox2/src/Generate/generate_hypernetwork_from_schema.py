@@ -158,6 +158,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
     tool_run_msg = ""
     number_of_tasks = 5
     __ZONE_TYPES = ["node_selection", "from_shapefile"]
+    __BOOL_PARSER = {"TRUE": True, "T": True, "FALSE": False, "F": False}
 
     def __init__(self):
         self._tracker = _util.progress_tracker(self.number_of_tasks)
@@ -1095,5 +1096,41 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             for line in lines_id_exed_by_group[group_number]:
                 for segment in line.segments(False):
                     segment[segment_fare_attribute] += segment.link.length * cost
+                    count += 1
+            _write("Applied to %s segments." % count)
+
+    def _apply_zone_crossing_fare(
+        self, fare_element, group_ids_2_int, zone_ids_2_int, crossing_grid, network, segment_fare_attribute
+    ):
+        cost = float(fare_element.attrib["cost"])
+        with _trace("Zone Crossing Fare of %s" % cost):
+            group_id = fare_element.find("group").text
+            group_number = group_ids_2_int[group_id]
+            _write("Group: %s" % group_id)
+            from_zone_id = fare_element.find("from_zone").text
+            from_number = zone_ids_2_int[from_zone_id]
+            _write("From Zone: %s" % from_zone_id)
+            to_zone_id = fare_element.find("to_zone").text
+            to_number = zone_ids_2_int[to_zone_id]
+            _write("To Zone: %s" % to_zone_id)
+            bi_directional_element = fare_element.find("bidirectional")
+            if bi_directional_element is not None:
+                bi_directional = self.__BOOL_PARSER[bi_directional_element.text.upper()]
+                _write("Bidirectional: %s" % bi_directional)
+            else:
+                bi_directional = False
+            count = 0
+            for line_id, segment_number in crossing_grid[from_number, to_number]:
+                line = network.transit_line(line_id)
+                if line.group != group_number:
+                    continue
+                line.segment(segment_number)[segment_fare_attribute] += cost
+                count += 1
+            if bi_directional:
+                for line_id, segment_number in crossing_grid[to_number, from_number]:
+                    line = network.transit_line(line_id)
+                    if line.group != group_number:
+                        continue
+                    line.segment(segment_number)[segment_fare_attribute] += cost
                     count += 1
             _write("Applied to %s segments." % count)
