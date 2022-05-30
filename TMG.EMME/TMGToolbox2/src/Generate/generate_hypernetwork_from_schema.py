@@ -1022,3 +1022,39 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     fare_element, group_ids_2_int, zone_ids_2_int, zone_crossing_grid, network, segment_fare_attribute
                 )
             self._tracker.complete_subtask()
+
+    def _apply_initial_boarding_fare(
+        self, fare_element, group_ids_2_int, zone_ids_2_int, transfer_grid, link_fare_attribute
+    ):
+        cost = float(fare_element.attrib["cost"])
+        with _trace("Initial Boarding Fare of %s" % cost):
+            group_id = fare_element.find("group").text
+            _write("Group: %s" % group_id)
+            group_number = group_ids_2_int[group_id]
+            in_zone_element = fare_element.find("in_zone")
+            if in_zone_element is not None:
+                zone_id = in_zone_element.text
+                zone_number = zone_ids_2_int[zone_id]
+                _write("In zone: %s" % zone_id)
+                check_link = lambda link: link.i_node.fare_zone == zone_number
+            else:
+                check_link = lambda link: True
+            include_all_element = fare_element.find("include_all_groups")
+            if include_all_element is not None:
+                include_all = self.__BOOL_PARSER[include_all_element.text]
+                _write("Include all groups: %s" % include_all)
+            else:
+                include_all = True
+            count = 0
+            if include_all:
+                for x_index in range(transfer_grid.x):
+                    for link in transfer_grid[x_index, group_number]:
+                        if check_link(link):
+                            link[link_fare_attribute] += cost
+                            count += 1
+            else:
+                for link in transfer_grid[0, group_number]:
+                    if check_link(link):
+                        link[link_fare_attribute] += cost
+                        count += 1
+            _write("Applied to %s links." % count)
