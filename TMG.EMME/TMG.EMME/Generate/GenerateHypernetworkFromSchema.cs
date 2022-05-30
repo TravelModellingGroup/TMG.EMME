@@ -36,20 +36,24 @@ namespace TMG.Emme.Generate
         [Parameter(Name = "New Scenario", Description = "The number of the EMME scenario where Hypernetwork will be created.",
             Index = 1)]
         public IFunction<int> NewScenario;
+        [Parameter(Name = "New Scenario Title", Description = "The title of the EMME scenario where Hypernetwork will be created.",
+            Index = 3)]
+        public IFunction<string> NewScenarioTitle;
         [Parameter(Name = "Station Connector Flag", Description = "Should centroid connectors be automatically integrated with stations?",
             Index = 2)]
         public IFunction<bool> StationConnectorFlag;
         [Parameter(Name = "Transfer Mode", Description = "The mode ID to assign to new virtual connector links.",
-            Index = 3)]
+            Index = 4)]
         public IFunction<string> TransferMode;
         [Parameter(Name = "Virtual Node Domain", Description = "All created virtual nodes will have IDs higher than this number. This will not override an existing node.",
-            Index = 4)]
+            Index = 5)]
         public IFunction<int> VirtualNodeDomain;
         [Parameter(Name = "Base Schema File", Description = "Base Schema File",
-                Index = 5)]
+                Index = 6)]
         public IFunction<string> BaseSchemaFile;
-        [SubModule(Name = "Fare Classes", Description = "Fare Classes", Index = 6)]
+        [SubModule(Name = "Fare Classes", Description = "Fare Classes", Index = 7)]
         public IFunction<FareClass>[] FareClasses;
+
 
         [Module(Name = "Fare Class", Description = "Fare Class", DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
         public class FareClass : XTMF2.IModule
@@ -85,6 +89,7 @@ namespace TMG.Emme.Generate
             {
                 writer.WriteNumber("base_scenario", BaseScenario.Invoke());
                 writer.WriteNumber("new_scenario", NewScenario.Invoke());
+                writer.WriteString("new_scenario_title", NewScenarioTitle.Invoke());
                 writer.WriteBoolean("station_connector_flag", StationConnectorFlag.Invoke());
                 writer.WriteString("transfer_mode", TransferMode.Invoke());
                 writer.WriteNumber("virtual_node_domain", VirtualNodeDomain.Invoke());

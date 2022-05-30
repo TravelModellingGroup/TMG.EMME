@@ -40,6 +40,7 @@ namespace TMG.Emme.Test.Generate
                 {
                     writer.WriteNumber("base_scenario", baseScenario);
                     writer.WriteNumber("new_scenario", 2);
+                    writer.WriteString("new_scenario_title", "GTAModel_Hypernetwork");
                     writer.WriteBoolean("station_connector_flag", true);
                     writer.WriteString("transfer_mode", "t");
                     writer.WriteNumber("virtual_node_domain", 100000);
@@ -74,6 +75,7 @@ namespace TMG.Emme.Test.Generate
                 Name = "Generator",
                 BaseScenario = Helper.CreateParameter(baseScenario),
                 NewScenario = Helper.CreateParameter(2),
+                NewScenarioTitle = Helper.CreateParameter("GTAModel_Hypernetwork"),
                 StationConnectorFlag = Helper.CreateParameter(true),
                 TransferMode = Helper.CreateParameter("t"),
                 VirtualNodeDomain = Helper.CreateParameter(100000),
