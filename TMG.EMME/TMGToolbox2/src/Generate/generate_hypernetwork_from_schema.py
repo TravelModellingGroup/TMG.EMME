@@ -277,6 +277,11 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                                 fare_class["segment_fare_attribute"],
                                 fare_class["link_fare_attribute"],
                             )
+                            self._check_for_negative_fares(
+                                network, fare_class["segment_fare_attribute"], fare_class["link_fare_attribute"]
+                            )
+                            self._tracker.complete_task()
+                    print("Applied fare rules to network.")
 
     def _get_att(self, parameters):
         atts = {
@@ -1134,3 +1139,20 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     line.segment(segment_number)[segment_fare_attribute] += cost
                     count += 1
             _write("Applied to %s segments." % count)
+
+    def _check_for_negative_fares(self, network, segment_fare_attribute, link_fare_attribute):
+        negative_links = []
+        negative_segments = []
+        for link in network.links():
+            cost = link[link_fare_attribute]
+            if cost < 0.0:
+                negative_links.append(link)
+        for segment in network.transit_segments():
+            cost = segment[segment_fare_attribute]
+            if cost < 0.0:
+                negative_segments.append(segment)
+        if (len(negative_links) + len(negative_segments)) > 0:
+            print(
+                "WARNING: Found %s links and %s segments with negative fares"
+                % (len(negative_links), len(negative_segments))
+            )
