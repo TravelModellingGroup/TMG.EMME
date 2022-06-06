@@ -288,7 +288,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     new_scenario = _bank.copy_scenario(
                         base_scenario.id, parameters["new_scenario"], copy_path_files=False, copy_strat_files=False
                     )
-                    new_scenario.title = parameters["new_scenario_title"]
+                    new_scenario.title = parameters["new_scenario_title"] + " - FBTN"
                     new_scenario.publish_network(network, resolve_attributes=True)
                     _MODELLER.desktop.refresh_needed(True)
 
