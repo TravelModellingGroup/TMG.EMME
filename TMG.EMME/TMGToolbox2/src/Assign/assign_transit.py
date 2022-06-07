@@ -89,13 +89,11 @@ class AssignTransit(_m.Tool()):
         self.use_logit_connector_choice = True
 
     def page(self):
-        if EMME_VERSION < (4, 1, 5):
-            raise ValueError("Tool not compatible. Please upgrade to version 4.1.5+")
         pb = _tmg_tpb.TmgToolPageBuilder(
             self,
             title="Multi-Class Transit Assignment v%s" % self.version,
             description="Executes a congested transit assignment procedure\
-                        for GTAModel V4.0.\
+                        for GTAModel V4.2.\
                         <br><br><b>Cannot be called from Modeller.</b>\
                         <br><br>Hard-coded assumptions:\
                         <ul><li> Boarding penalties are assumed stored in <b>UT3</b></li>\
@@ -216,8 +214,9 @@ class AssignTransit(_m.Tool()):
                         with self._temp_stsu_ttfs(scenario, parameters) as temp_stsu_ttf:
                             stsu_ttf_map = temp_stsu_ttf[0]
                             ttfs_changed = temp_stsu_ttf[1]
+                            ttf_xrows = temp_stsu_ttf[2]
                             if parameters["surface_transit_speed"] == True:
-                                self._set_base_speed(scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed)
+                                self._set_base_speed(scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed, ttf_xrows)
                             self._run_transit_assignment(
                                 scenario,
                                 parameters,
@@ -525,43 +524,44 @@ class AssignTransit(_m.Tool()):
         scenario.publish_network(network)
         return network
 
-    def _set_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed):
+    def _set_base_speed(self, scenario, parameters, stsu_att, stsu_ttf_map, ttfs_changed, ttfs_xrow):
         erow_defined = self._check_attributes_and_get_erow(scenario)
         self._set_up_line_attributes(scenario, parameters, stsu_att)
-        ttfs_xrow = self._process_ttfs_xrow(parameters)
         network = scenario.get_network()
         for line in network.transit_lines():
-            # index = line[stsu_att.id]
-            if line[stsu_att.id] != 0.0:
-                index = int(line[str(stsu_att.id)]) - 1
-                stsu = parameters["surface_transit_speeds"][index]
-                default_duration = stsu["default_duration"]
-                correlation = stsu["transit_auto_correlation"]
-                erow_speed_global = stsu["global_erow_speed"]
+            index = int(line[stsu_att.id])
+            if index > 0.0:
+                stsu = parameters["surface_transit_speeds"][index - 1]
+                default_duration = float(stsu["default_duration"])
+                correlation = float(stsu["transit_auto_correlation"])
+                erow_speed_global = float(stsu["global_erow_speed"])
             else:
                 continue
             segments = line.segments()
             number_of_segments = segments.__length_hint__()
             for segment in segments:
-                if segment.allow_alightings == True and segment.allow_boardings == True:
+                if segment.allow_alightings is True and segment.allow_boardings is True:
                     segment.dwell_time = 0.01
                 else:
                     segment.dwell_time = 0.0
+
                 if segment.j_node is None:
-                    continue
+                    break
+
                 segment_number = segment.number
                 segment.transit_time_func = stsu_ttf_map[segment.transit_time_func]
-                time = segment.link["auto_time"]
+                time = segment.link.auto_time
+
                 if time > 0.0:
                     if segment.transit_time_func in ttfs_xrow:
-                        if erow_defined == True and segment["@erow_speed"] > 0.0:
+                        if erow_defined is True and segment["@erow_speed"] > 0.0:
                             segment.data1 = segment["@erow_speed"]
                         else:
                             segment.data1 = erow_speed_global
                     else:
                         segment.data1 = (segment.link.length * 60.0) / (time * correlation)
                 if time <= 0.0:
-                    if erow_defined == True and segment["@erow_speed"] > 0.0:
+                    if erow_defined is True and segment["@erow_speed"] > 0.0:
                         segment.data1 = segment["@erow_speed"]
                     else:
                         if segment_number <= 1 or segment_number >= (number_of_segments - 1):
@@ -578,13 +578,15 @@ class AssignTransit(_m.Tool()):
     def _process_ttfs_xrow(self, parameters):
         ttfs_xrow = set()
         parameter_xrow_range = parameters["xrow_ttf_range"].split(",")
+
         for ttf_range in parameter_xrow_range:
             if "-" in ttf_range:
                 ttf_range = ttf_range.split("-")
                 for i in range(int(ttf_range[0]), int(ttf_range[1]) + 1):
                     ttfs_xrow.add(i)
-            else:
+            elif ttf_range != "":
                 ttfs_xrow.add(int(ttf_range))
+               
         return ttfs_xrow
 
     def _check_attributes_and_get_erow(self, scenario):
@@ -714,7 +716,7 @@ class AssignTransit(_m.Tool()):
                 walk_time_perception_attribute_list,
             )
         else:
-            for itr in range(0, parameters["iterations"]):
+            for itr in range(0, max(1, parameters["iterations"])):
                 self._run_spec_uncongested(
                     scenario,
                     parameters,
@@ -802,7 +804,7 @@ class AssignTransit(_m.Tool()):
                     alphas = find_step_size[1]
                     print("iteration %s  lambdaK %s" % (iteration, lambdaK))
                     if parameters["surface_transit_speed"] == True:
-                        network = self._surface_transit_speed_update(scenario, parameters, network, 1, stsu_att)
+                        network = self._surface_transit_speed_update(scenario, parameters, network, lambdaK, stsu_att)
                     self._update_volumes(network, lambdaK)
                     (average_impedance, cngap, crgap, norm_gap_difference, net_cost,) = self._compute_gaps(
                         parameters,
@@ -973,55 +975,35 @@ class AssignTransit(_m.Tool()):
     def _surface_transit_speed_update(self, scenario, parameters, network, lambdaK, stsu_att):
         if "transit_alightings" not in network.attributes("TRANSIT_SEGMENT"):
             network.create_attribute("TRANSIT_SEGMENT", "transit_alightings", 0.0)
-
-        for line in network.transit_lines():
-            prev_volume = 0.0
+        has_doors = scenario.extra_attribute("@doors") is not None
+        for line in network.transit_lines():            
             index = line[stsu_att.id]
             if index <= 0.0:
                 continue
-            headway = line.headway
-            number_of_trips = parameters["assignment_period"] * 60.0 / headway
             stsu = parameters["surface_transit_speeds"][int(index) - 1]
             boarding_duration = stsu["boarding_duration"]
             alighting_duration = stsu["alighting_duration"]
             default_duration = stsu["default_duration"]
-            try:
-                doors = segment.line["@doors"]
-                if doors == 0.0:
-                    number_of_door_pairs = 1.0
-                else:
-                    number_of_door_pairs = doors / 2.0
-            except:
-                number_of_door_pairs = 1.0
 
-            for segment in line.segments(include_hidden=True):
+            door_pairs = max(1.0, segment.line["@doors"] / 2.0) if has_doors else 1.0
+            inv_door_pair_runs = 1.0 / (door_pairs * parameters["assignment_period"] * 60.0 / line.headway)
+            prev_volume = 0.0
+            for segment in line.segments(include_hidden=False):
                 segment_number = segment.number
                 if segment_number > 0 and segment.j_node is not None:
                     segment.transit_alightings = max(
                         prev_volume + segment.transit_boardings - segment.transit_volume,
-                        0.0,
-                    )
+                        0.0)
                 else:
                     continue
                 # prev_volume is used above for the previous segments volume, the first segment is always ignored.
                 prev_volume = segment.transit_volume
-                boarding = segment.transit_boardings / number_of_trips / number_of_door_pairs
-                alighting = segment.transit_alightings / number_of_trips / number_of_door_pairs
-                old_dwell = segment.dwell_time
-                # in seconds
-                segment_dwell_time = (
-                    (boarding_duration * boarding)
-                    + (alighting_duration * alighting)
-                    + (segment["@tstop"] * default_duration)
-                )
-                # in minutes
-                segment_dwell_time /= 60  # minutes
-                if segment_dwell_time >= 99.99:
-                    segment_dwell_time = 99.98
-                alpha = 1 - lambdaK
-                segment.dwell_time = old_dwell * alpha + segment_dwell_time * lambdaK
-        data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"])
-        scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time", "transit_time_func"], data)
+                segment_dwell_time = min(99.8, ((boarding_duration * segment.transit_boardings * inv_door_pair_runs)
+                    + (alighting_duration * segment.transit_alightings * inv_door_pair_runs)
+                    + (segment["@tstop"] * default_duration)) / 60)
+                segment.dwell_time = segment.dwell_time * (1 - lambdaK) + segment_dwell_time * lambdaK
+        data = network.get_attribute_values("TRANSIT_SEGMENT", ["dwell_time"])
+        scenario.set_attribute_values("TRANSIT_SEGMENT", ["dwell_time"], data)
         return network
 
     def _add_cong_term_to_func(self, scenario):
@@ -1069,51 +1051,33 @@ class AssignTransit(_m.Tool()):
 
     def _get_func_spec(self, parameters):
         partial_spec = (
-            "import math \ndef calc_segment_cost(transit_volume, capacity, segment):\n    cap_period = "
-            + str(parameters["assignment_period"])
+            "import math \ndef calc_segment_cost(transit_volume, capacity, segment):"
+            + "\n    one_minus_vc = (1 - transit_volume / capacity)"
         )
         i = 0
         for ttf_def in parameters["ttf_definitions"]:
-            ttf = ttf_def["ttf"]
+            ttf = str(ttf_def["ttf"])
             alpha = ttf_def["congestion_exponent"]
             beta = (2 * alpha - 1) / (2 * alpha - 2)
-            alpha_square = alpha ** 2
-            beta_square = beta ** 2
             perception = ttf_def["congestion_perception"]
-            if i == 0:
-                partial_spec += (
-                    "\n    if segment.transit_time_func == "
-                    + f"{ttf}"
+            partial_spec += (
+                    ("\n    if segment.transit_time_func == " if i == 0 else 
+                     "\n    elif segment.transit_time_func == ")  
+                    + ttf
                     + ": \n        return max(0,("
                     + f"{perception}"
                     + " * (1 + math.sqrt("
-                    + str(alpha_square)
-                    + " * \n            (1 - transit_volume / capacity) ** 2 + "
-                    + str(beta_square)
+                    + str(alpha * alpha)
+                    + " * one_minus_vc * one_minus_vc + "
+                    + str(beta * beta)
                     + ") - "
                     + str(alpha)
-                    + " \n            * (1 - transit_volume / capacity) - "
-                    + str(beta)
-                    + ")))"
-                )
-            else:
-                partial_spec += (
-                    "\n    elif segment.transit_time_func == "
-                    + f"{ttf}"
-                    + ": \n        return max(0,("
-                    + f"{perception}"
-                    + " * (1 + math.sqrt("
-                    + str(alpha_square)
-                    + " *  \n            (1 - transit_volume / capacity) ** 2 + "
-                    + str(beta_square)
-                    + ") - "
-                    + str(alpha)
-                    + " \n            * (1 - transit_volume / capacity) - "
+                    + " * one_minus_vc - "
                     + str(beta)
                     + ")))"
                 )
             i += 1
-        partial_spec += '\n    else: \n        raise Exception("ttf=%s congestion values not defined in input" %s segment.transit_time_func)'
+        partial_spec += '\n    raise Exception("ttf=%s congestion values not defined in input" %segment.transit_time_func)'
         func_spec = {
             "type": "CUSTOM",
             "assignment_period": parameters["assignment_period"],
@@ -1188,7 +1152,7 @@ class AssignTransit(_m.Tool()):
                 "fixed_proportions_on_connectors": None,
             }
             base_spec[i]["performance_settings"] = {"number_of_processors": self.number_of_processors}
-            if scenario.extra_attribute("@node_logit") != None:
+            if scenario.extra_attribute("@node_logit") is not None:
                 base_spec[i]["flow_distribution_at_regular_nodes_with_aux_transit_choices"] = {
                     "choices_at_regular_nodes": {
                         "choice_points": "@node_logit",
@@ -1392,7 +1356,7 @@ class AssignTransit(_m.Tool()):
             ],
         }
         if scenario.extra_attribute("@tstop") is None:
-            if parameters["surface_transit_speed"] == False:
+            if parameters["surface_transit_speed"] is False:
                 attributes_to_copy["TRANSIT_SEGMENT"].remove("@tstop")
             else:
                 raise Exception(
@@ -1571,7 +1535,7 @@ class AssignTransit(_m.Tool()):
                         - beta
                     ),
                 )
-        raise Exception("TTF definitions doesnot contain TTF%s" % str(ttf))
+        raise Exception("TTF definitions do not contain TTF%s" % str(ttf))
 
     def _compute_segment_costs(self, scenario, parameters, network):
         excess_km = 0.0
@@ -1758,7 +1722,7 @@ class AssignTransit(_m.Tool()):
         for type, mapping in attribute_mapping.items():
             data = network.get_attribute_values(type, mapping.values())
             scenario.set_attribute_values(type, mapping.keys(), data)
-        if parameters["surface_transit_speed"] == True:
+        if parameters["surface_transit_speed"] is True:
             data = scenario.get_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"])
             network.set_attribute_values("TRANSIT_SEGMENT", ["transit_volume", "transit_boardings"], data)
             net_edit.create_segment_alightings_attribute(network)
@@ -1787,7 +1751,7 @@ class AssignTransit(_m.Tool()):
                 )
             if in_vehicle_time_matrix_list[i] is not None:
                 with _util.temp_extra_attribute_manager(scenario, "TRANSIT_SEGMENT") as temp_in_vehicle_times_attribute:
-                    if parameters["calculate_congested_ivtt_flag"] == True:
+                    if parameters["calculate_congested_ivtt_flag"] is True:
                         self._extract_in_vehicle_times(
                             i,
                             scenario,
@@ -1809,7 +1773,7 @@ class AssignTransit(_m.Tool()):
                             in_vehicle_time_matrix_list,
                             False,
                         )
-            if parameters["congested_assignment"] == True:
+            if parameters["congested_assignment"] is True:
                 if congestion_matrix_list[i] is not None:
                     self._extract_congestion_matrix(
                         i, scenario, transit_class, congestion_matrix_list[i], demand_matrix_list
@@ -1842,7 +1806,7 @@ class AssignTransit(_m.Tool()):
         in_vehicle_time_matrix_list,
         congested,
     ):
-        if congested == True or parameters["congested_assignment"] == False:
+        if congested is True or parameters["congested_assignment"] is False:
             spec = {
                 "result": str(attribute.id),
                 "expression": "timtr",
@@ -1979,10 +1943,10 @@ class AssignTransit(_m.Tool()):
         for ttf in to_add_list:
             parameters["ttf_definitions"].append(ttf)
         try:
-            yield stsu_ttf_map, ttfs_changed
+            yield stsu_ttf_map, ttfs_changed, ttfs_xrow
         finally:
             for func in created:
-                if created[func] == True:
+                if created[func] is True:
                     scenario.emmebank.delete_function(func)
             if True in ttfs_changed:
                 scenario.set_attribute_values("TRANSIT_SEGMENT", ["transit_time_func"], orig_ttf_values)
