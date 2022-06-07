@@ -126,7 +126,6 @@ namespace TMG.Emme.Test.Assign
         public void AssignTransit()
         {
             RunAssignTransitToolPipeline("tmg2.Assign.assign_transit", 2, "newTransit");
-            RunAssignTransitToolPipeline("tmg2.Assign.assign_transit_old", 7, "oldTransit");
         }
 
         [TestMethod]
