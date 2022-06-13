@@ -42,14 +42,11 @@ namespace TMG.Emme.Test.Convert
                     writer.WriteNumber("new_ncs_scenario", 2);
                     writer.WriteString("station_centroid_file", "TestFiles/zone_centriods.csv");
                     writer.WriteString("zone_centroid_file", "TestFiles/zone_centriods_map.csv");
-
                 }), LogbookLevel.Standard));
-
         }
         [TestMethod]
         public void ConvertOldNCS2NewNCSModule()
         {
-
             const int scenarioNumber = 1;
             Helper.ImportNetwork(scenarioNumber, "TestFiles/base_network.nwp");
             var module = new Emme.Convert.ConvertOldNCS2NewNCS()
@@ -58,9 +55,7 @@ namespace TMG.Emme.Test.Convert
                 NewScenarioNumber = Helper.CreateParameter(2),
                 StationCentroidFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/zone_centriods_map.csv")),
                 ZoneCentroidFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/zone_centriods.csv")),
-
             };
-
             module.Invoke(Helper.Modeller);
         }
     }
