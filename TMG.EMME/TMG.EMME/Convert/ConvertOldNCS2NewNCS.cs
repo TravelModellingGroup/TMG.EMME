@@ -47,9 +47,9 @@ namespace TMG.Emme.Convert
             context.Run(this, "tmg2.Convert.convert_old_ncs_to_new_ncs", JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("old_ncs_scenario", OldScenarioNumber.Invoke());
-                writer.WriteNumber("old_ncs_scenario", NewScenarioNumber.Invoke());
+                writer.WriteNumber("new_ncs_scenario", NewScenarioNumber.Invoke());
                 writer.WriteString("station_centroid_file", Path.GetFullPath(StationCentroidFile.Invoke()));
-                writer.WriteString("station_centroid_file", Path.GetFullPath(ZoneCentroidFile.Invoke()));
+                writer.WriteString("zone_centroid_file", Path.GetFullPath(ZoneCentroidFile.Invoke()));
 
             }), LogbookLevel.Standard);
         }
