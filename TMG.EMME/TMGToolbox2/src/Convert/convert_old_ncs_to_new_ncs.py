@@ -76,3 +76,15 @@ class ConvertOldNCS2NewNCS(_m.Tool()):
         new_ncs_scenario.publish_network(network)
         new_ncs_scenario.title = str(title)
         return new_ncs_scenario
+
+    def update_centroid_lists_with_station_centroids(self, parameters, old_centroid_list, new_centroid_list):
+        with open(parameters["station_centroid_file"], mode="r") as station_centroids:
+            station_centroid_file = csv.reader(station_centroids)
+            next(station_centroid_file)
+            for centroid in station_centroid_file:
+                old_station_centroid = int(centroid[2])
+                new_station_centroid = int(centroid[3])
+                if old_station_centroid <= 0 or new_station_centroid <= 0:
+                    continue
+                old_centroid_list.append(old_station_centroid)
+                new_centroid_list.append(new_station_centroid)
