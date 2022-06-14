@@ -61,12 +61,16 @@ class ConvertOldNCS2NewNCS(_m.Tool()):
         self.update_zone_centroid_numbers(parameters, network, centroid_dict)
 
     def update_zone_centroid_numbers(self, parameters, network, centroid_dict, title="New_NCS_Scenario"):
+        nodes_list = []
+        for item in network.nodes():
+            nodes_list.append(int(item))
+        max_node_number = max(nodes_list) + 1
         for old_centroid in centroid_dict:
             centroid_to_update = network.node(old_centroid)
             if centroid_to_update is not None:
-                centroid_to_update.number = old_centroid + 100000
+                centroid_to_update.number = old_centroid + max_node_number
         for old_centroid_node in centroid_dict:
-            centroid_to_update = network.node(old_centroid_node + 100000)
+            centroid_to_update = network.node(old_centroid_node + max_node_number)
             if centroid_to_update is not None:
                 centroid_to_update.number = centroid_dict[old_centroid_node]
         new_ncs_scenario = _bank.scenario(parameters["new_ncs_scenario"])
