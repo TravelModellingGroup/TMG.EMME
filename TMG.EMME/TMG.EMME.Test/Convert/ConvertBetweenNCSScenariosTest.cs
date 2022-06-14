@@ -27,15 +27,15 @@ using XTMF2;
 namespace TMG.Emme.Test.Convert
 {
     [TestClass]
-    public class ConvertOldNCS2NewNCSTest : TestBase
+    public class ConvertBetweenNCSScenariosTest : TestBase
     {
         [TestMethod]
-        public void ConvertOldNCS2NewNCS()
+        public void ConvertBetweenNCSScenarios()
         {
             const int scenarioNumber = 1;
             Helper.ImportNetwork(scenarioNumber, "TestFiles/base_network.nwp");
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Convert.convert_old_ncs_to_new_ncs",
+                Helper.Modeller.Run(null, "tmg2.Convert.convert_between_ncs_scenarios",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("old_ncs_scenario", scenarioNumber);
@@ -45,11 +45,11 @@ namespace TMG.Emme.Test.Convert
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
-        public void ConvertOldNCS2NewNCSModule()
+        public void ConvertBetweenNCSScenariosModule()
         {
             const int scenarioNumber = 1;
             Helper.ImportNetwork(scenarioNumber, "TestFiles/base_network.nwp");
-            var module = new Emme.Convert.ConvertOldNCS2NewNCS()
+            var module = new Emme.Convert.ConvertBetweenNCSScenarios()
             {
                 OldScenarioNumber = Helper.CreateParameter(scenarioNumber),
                 NewScenarioNumber = Helper.CreateParameter(2),

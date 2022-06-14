@@ -31,7 +31,7 @@ _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 
 
-class ConvertOldNCS2NewNCS(_m.Tool()):
+class ConvertBetweenNCSScenarios(_m.Tool()):
     version = "1.0.0"
     number_of_tasks = 1
     tool_run_msg = ""
