@@ -77,6 +77,22 @@ class ConvertOldNCS2NewNCS(_m.Tool()):
         new_ncs_scenario.title = str(title)
         return new_ncs_scenario
 
+    def update_centroid_lists_with_zone_centroids(self, parameters, old_centroid_list, new_centroid_list):
+        with open(parameters["zone_centroid_file"], mode="r") as zone_centroids:
+            zone_centroid_file = csv.reader(zone_centroids)
+            next(zone_centroid_file)
+            for centroid_range in zone_centroid_file:
+                old_centroid_starts = int(centroid_range[1])
+                old_centroid_ends = int(centroid_range[2])
+                new_centroid_starts = int(centroid_range[3])
+                new_centroid_ends = int(centroid_range[4])
+                old_centroid_range = range(old_centroid_starts, old_centroid_ends + 1)
+                new_centroid_range = range(new_centroid_starts, new_centroid_ends + 1)
+                for centroid in old_centroid_range:
+                    old_centroid_list.append(centroid)
+                for centroid in new_centroid_range:
+                    new_centroid_list.append(centroid)
+
     def update_centroid_lists_with_station_centroids(self, parameters, old_centroid_list, new_centroid_list):
         with open(parameters["station_centroid_file"], mode="r") as station_centroids:
             station_centroid_file = csv.reader(station_centroids)
@@ -88,3 +104,14 @@ class ConvertOldNCS2NewNCS(_m.Tool()):
                     continue
                 old_centroid_list.append(old_station_centroid)
                 new_centroid_list.append(new_station_centroid)
+
+    def create_mapped_centroid_dict(self, parameters):
+        centroid_dict = {}
+        old_centroid_list = []
+        new_centroid_list = []
+        self.update_centroid_lists_with_zone_centroids(parameters, old_centroid_list, new_centroid_list)
+        self.update_centroid_lists_with_station_centroids(parameters, old_centroid_list, new_centroid_list)
+        for old_centroid in old_centroid_list:
+            old_centroids = old_centroid_list.index(old_centroid)
+            centroid_dict[old_centroid] = new_centroid_list[old_centroids]
+        return centroid_dict
