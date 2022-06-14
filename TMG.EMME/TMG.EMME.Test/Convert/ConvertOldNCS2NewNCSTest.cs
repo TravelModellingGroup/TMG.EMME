@@ -40,8 +40,8 @@ namespace TMG.Emme.Test.Convert
                 {
                     writer.WriteNumber("old_ncs_scenario", scenarioNumber);
                     writer.WriteNumber("new_ncs_scenario", 2);
-                    writer.WriteString("station_centroid_file", "TestFiles/zone_centriods.csv");
-                    writer.WriteString("zone_centroid_file", "TestFiles/zone_centriods_map.csv");
+                    writer.WriteString("station_centroid_file", "TestFiles/station_centriods.csv");
+                    writer.WriteString("zone_centroid_file", "TestFiles/zone_centriods.csv");
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
@@ -53,7 +53,7 @@ namespace TMG.Emme.Test.Convert
             {
                 OldScenarioNumber = Helper.CreateParameter(scenarioNumber),
                 NewScenarioNumber = Helper.CreateParameter(2),
-                StationCentroidFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/zone_centriods_map.csv")),
+                StationCentroidFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/station_centriods.csv")),
                 ZoneCentroidFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/zone_centriods.csv")),
             };
             module.Invoke(Helper.Modeller);

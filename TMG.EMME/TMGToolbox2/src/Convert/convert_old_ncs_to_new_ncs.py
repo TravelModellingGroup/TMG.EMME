@@ -19,19 +19,16 @@
 """
 
 
+from click import ParamType
 import inro.modeller as _m
-
+import csv
 
 _m.TupleType = object
 _m.ListType = list
 _m.InstanceType = object
-_trace = _m.logbook_trace
-_write = _m.logbook_write
 _MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
-_tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
-EMME_VERSION = _util.get_emme_version(tuple)
 
 
 class ConvertOldNCS2NewNCS(_m.Tool()):
@@ -50,11 +47,32 @@ class ConvertOldNCS2NewNCS(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def run_xtmf(self, parameters):
-        scenario = _util.load_scenario(parameters["old_ncs_scenario"])
+        old_ncs_scenario = _util.load_scenario(parameters["old_ncs_scenario"])
         try:
-            self._execute(scenario, parameters)
+            self._execute(old_ncs_scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def _execute(self, scenario, parameters):
-        ...
+    def _execute(self, old_ncs_scenario, parameters):
+
+        centroid_dict = self.create_mapped_centroid_dict(parameters)
+
+        network = old_ncs_scenario.get_network()
+        self.update_zone_centroid_numbers(parameters, network, centroid_dict)
+
+    def update_zone_centroid_numbers(self, parameters, network, centroid_dict, title="New_NCS_Scenario"):
+        for old_centroid in centroid_dict:
+            centroid_to_update = network.node(old_centroid)
+            if centroid_to_update is not None:
+                centroid_to_update.number = old_centroid + 100000
+        for old_centroid_node in centroid_dict:
+            centroid_to_update = network.node(old_centroid_node + 100000)
+            if centroid_to_update is not None:
+                centroid_to_update.number = centroid_dict[old_centroid_node]
+        new_ncs_scenario = _bank.scenario(parameters["new_ncs_scenario"])
+        if new_ncs_scenario != None:
+            _bank.delete_scenario(new_ncs_scenario)
+        new_ncs_scenario = _bank.copy_scenario(parameters["old_ncs_scenario"], parameters["new_ncs_scenario"])
+        new_ncs_scenario.publish_network(network)
+        new_ncs_scenario.title = str(title)
+        return new_ncs_scenario
