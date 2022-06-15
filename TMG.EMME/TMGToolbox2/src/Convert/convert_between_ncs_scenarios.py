@@ -59,12 +59,12 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
 
         network = old_ncs_scenario.get_network()
         # Conversion Steps
-        self.update_zone_centroid_numbers(parameters, network, centroid_dict)
+        self.update_zone_centroid_numbers(network, centroid_dict)
 
         # Copy scenario and write a new updated network
         self.copy_ncs_scenario(parameters, network, title="GTAModel - NCS22")
 
-    def update_zone_centroid_numbers(self, parameters, network, centroid_dict, title="New_NCS_Scenario"):
+    def update_zone_centroid_numbers(self, network, centroid_dict):
         nodes_list = []
         for item in network.nodes():
             nodes_list.append(int(item))
