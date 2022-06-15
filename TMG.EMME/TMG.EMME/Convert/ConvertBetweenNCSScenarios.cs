@@ -28,7 +28,7 @@ namespace TMG.Emme.Convert
 {
     [Module(Name = "Convert OldNCS 2 NewNCS Standards", Description = "Converts the old NCS standards to the most recent.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class ConvertOldNCS2NewNCS : BaseAction<ModellerController>
+    public class ConvertBetweenNCSScenarios : BaseAction<ModellerController>
     {
         [Parameter(Name = "Old NCS Scenario", Description = "",
             Index = 0)]
@@ -44,7 +44,7 @@ namespace TMG.Emme.Convert
         public IFunction<string> ZoneCentroidFile;
         public override void Invoke(ModellerController context)
         {
-            context.Run(this, "tmg2.Convert.convert_old_ncs_to_new_ncs", JSONParameterBuilder.BuildParameters(writer =>
+            context.Run(this, "tmg2.Convert.convert_between_ncs_scenarios", JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("old_ncs_scenario", OldScenarioNumber.Invoke());
                 writer.WriteNumber("new_ncs_scenario", NewScenarioNumber.Invoke());
