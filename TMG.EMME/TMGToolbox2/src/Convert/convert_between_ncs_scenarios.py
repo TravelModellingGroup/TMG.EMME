@@ -30,6 +30,22 @@ _MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 
+class TransitVehicle():
+    """
+    The base class that stores the transit vehicle data 
+    """
+    def __init__(self, desc, code, mode, seat_cap, total_cap, auto_equi):
+        self.description = desc  
+        self.code = code
+        self.mode = mode
+        self.seated_capacity = seat_cap
+        self.total_capacity = total_cap
+        self.auto_equivalent = auto_equi
+    
+    def __get__(self):
+        # used for outputting a print statement of the class if need be
+        return self.description, self.code, self.mode, self.seated_capacity, self.total_capacity, self.auto_equi
+
 
 class ConvertBetweenNCSScenarios(_m.Tool()):
     version = "1.0.0"

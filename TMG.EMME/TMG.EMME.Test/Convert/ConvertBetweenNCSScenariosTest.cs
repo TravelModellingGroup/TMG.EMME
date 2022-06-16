@@ -45,7 +45,6 @@ namespace TMG.Emme.Test.Convert
                     writer.WriteString("mode_code_definitions", "TestFiles/mode_code_definitions.csv");
                     writer.WriteString("link_attributes", "TestFiles/link_attributes.csv");
 
-
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
