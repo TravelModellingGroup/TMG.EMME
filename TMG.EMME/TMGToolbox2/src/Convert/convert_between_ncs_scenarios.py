@@ -65,11 +65,8 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         # Copy scenario and write a new updated network
         print("Started copying %s into %s" % (parameters["old_ncs_scenario"], parameters["new_ncs_scenario"]))
         self.copy_ncs_scenario(parameters, network, title="GTAModel - NCS22")
-        (
-            print(
-                "Done! Scenario %s has an updated network with the most recent network coding standard."
-                % old_ncs_scenario
-            )
+        print(
+            "Done! Scenario %s has an updated network with the most recent network coding standard." % old_ncs_scenario
         )
 
     def update_zone_centroid_numbers(self, network, centroid_dict):
