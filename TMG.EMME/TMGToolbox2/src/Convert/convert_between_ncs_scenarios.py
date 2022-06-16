@@ -54,17 +54,19 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def _execute(self, old_ncs_scenario, parameters):
-
         centroid_dict = self.create_mapped_centroid_dict(parameters)
-
         network = old_ncs_scenario.get_network()
         # Conversion Steps
-        self.update_zone_centroid_numbers(parameters, network, centroid_dict)
-
+        print("Updating zone and station centroids")
+        self.update_zone_centroid_numbers(network, centroid_dict)
+        print("Updating mode code definition...")
+        self.update_mode_code_definitions(old_ncs_scenario, parameters, network)
         # Copy scenario and write a new updated network
+        print("Started copying %s into %s" % (parameters["old_ncs_scenario"], parameters["new_ncs_scenario"]))
         self.copy_ncs_scenario(parameters, network, title="GTAModel - NCS22")
+        (print("Done! Scenario %s has an updated network with the most recent network coding standard."))
 
-    def update_zone_centroid_numbers(self, parameters, network, centroid_dict, title="New_NCS_Scenario"):
+    def update_zone_centroid_numbers(self, network, centroid_dict):
         nodes_list = []
         for item in network.nodes():
             nodes_list.append(int(item))
@@ -125,3 +127,22 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
             old_centroids = old_centroid_list.index(old_centroid)
             centroid_dict[old_centroid] = new_centroid_list[old_centroids]
         return centroid_dict
+
+    def update_mode_code_definitions(self, scenario, parameters, network):
+        with open(parameters["mode_code_definitions"], mode="r") as mode_definitions:
+            mode_code_file = csv.reader(mode_definitions)
+            next(mode_code_file)
+            for mode_list in mode_code_file:
+                old_mode_id = str(mode_list[2])
+                if old_mode_id == "":
+                    continue
+                for mode in network.modes():
+                    if str(mode.id) == old_mode_id:
+                        description = str(mode_list[0])
+                        mode_type = str(mode_list[1])
+                        new_mode_id = str(mode_list[3])
+                        mode.id = new_mode_id
+                        if mode.type != mode_type:
+                            raise Exception('There is an issue with mode type "%s"' % mode_list)
+                        # Emme allows description of the mode, up to 10 characters.
+                        mode.description = description[:10]
