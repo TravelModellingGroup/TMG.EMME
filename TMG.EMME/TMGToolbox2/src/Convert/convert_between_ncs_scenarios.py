@@ -65,7 +65,12 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         # Copy scenario and write a new updated network
         print("Started copying %s into %s" % (parameters["old_ncs_scenario"], parameters["new_ncs_scenario"]))
         self.copy_ncs_scenario(parameters, network, title="GTAModel - NCS22")
-        (print("Done! Scenario %s has an updated network with the most recent network coding standard."))
+        (
+            print(
+                "Done! Scenario %s has an updated network with the most recent network coding standard."
+                % old_ncs_scenario
+            )
+        )
 
     def update_zone_centroid_numbers(self, network, centroid_dict):
         nodes_list = []
@@ -86,7 +91,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         if new_ncs_scenario != None:
             _bank.delete_scenario(new_ncs_scenario)
         new_ncs_scenario = _bank.copy_scenario(parameters["old_ncs_scenario"], parameters["new_ncs_scenario"])
-        new_ncs_scenario.publish_network(network)
+        new_ncs_scenario.publish_network(network, resolve_attributes=True)
         new_ncs_scenario.title = str(title)
         return new_ncs_scenario
 
@@ -163,15 +168,11 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 if not new_attribute_id.startswith("@"):
                     new_attribute_id = "@" + new_attribute_id
                 checked_extra_attribute = scenario.extra_attribute(new_attribute_id)
-                if checked_extra_attribute != None and checked_extra_attribute.type != attribute_type:
+                if checked_extra_attribute == None:
+                    new_attribute = scenario.create_extra_attribute(attribute_type, new_attribute_id, default_value)
+                    # maximum length of description is 40 characters
+                    new_attribute.description = new_description[:40]
+                elif checked_extra_attribute != None and checked_extra_attribute.type != attribute_type:
                     raise Exception("Attribute %s already exist or has some issues!" % new_attribute_id)
-                new_attribute = scenario.create_extra_attribute(attribute_type, new_attribute_id, default_value)
-                new_attribute.description = new_description
-
-    def create_attribute_list(self, attributes_file_name):
-        with open(attributes_file_name, mode="r") as attributes:
-            attributes_file = csv.reader(attributes)
-            next(attributes_file)
-            for attrib_list in attributes_file:
-                new_attribute = str(attrib_list[0])
-                new_description = str(attrib_list[1])
+                else:
+                    continue
