@@ -48,6 +48,9 @@ namespace TMG.Emme.Convert
         [Parameter(Name = "Link Attributes File", Description = "",
             Index = 5)]
         public IFunction<string> LinkAttributes;
+        [Parameter(Name = "Transit Vehicle Definition File", Description = "",
+            Index = 6)]
+        public IFunction<string> TransitVehicleFile;
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Convert.convert_between_ncs_scenarios", JSONParameterBuilder.BuildParameters(writer =>
@@ -58,6 +61,7 @@ namespace TMG.Emme.Convert
                 writer.WriteString("zone_centroid_file", Path.GetFullPath(ZoneCentroidFile.Invoke()));
                 writer.WriteString("mode_code_definitions", Path.GetFullPath(ModeCodeDefinition.Invoke()));
                 writer.WriteString("link_attributes", Path.GetFullPath(LinkAttributes.Invoke()));
+                writer.WriteString("transit_vehicle_definitions", Path.GetFullPath(TransitVehicleFile.Invoke()));
             }), LogbookLevel.Standard);
         }
     }

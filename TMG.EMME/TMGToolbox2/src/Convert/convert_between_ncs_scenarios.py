@@ -34,13 +34,26 @@ class TransitVehicle():
     """
     The base class that stores the transit vehicle data 
     """
-    def __init__(self, desc, code, mode, seat_cap, total_cap, auto_equi):
+    def __init__(self, desc, code, mode, seat_cap, total_cap, auto_equi, network):
         self.description = desc  
         self.code = code
         self.mode = mode
         self.seated_capacity = seat_cap
         self.total_capacity = total_cap
         self.auto_equivalent = auto_equi
+        self.network = network
+
+    def copy_data(self, id):
+        """
+        function to change the value and convert the ncs16 standard to ncs22.
+        """
+        # first extract the transit vehicle object using the id
+        vehicle_object = self.network.transit_vehicle(int(id))
+        # change the values of the vehicle object
+        vehicle_object.description = self.code
+        vehicle_object.seated_capacity = int(self.seated_capacity)
+        vehicle_object.total_capacity = int(self.total_capacity)
+        vehicle_object.auto_equivalent = float(self.auto_equivalent)
     
     def __get__(self):
         # used for outputting a print statement of the class if need be
@@ -78,6 +91,8 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         print("Updating mode code definition...")
         self.update_mode_code_definitions(old_ncs_scenario, parameters, network)
         self.update_extra_attributes(old_ncs_scenario, "LINK", parameters["link_attributes"])
+        print("Updating transit vehicle definition...")
+        self.update_transit_vehicle_definitions(old_ncs_scenario, parameters, network)
         # Copy scenario and write a new updated network
         print("Started copying %s into %s" % (parameters["old_ncs_scenario"], parameters["new_ncs_scenario"]))
         self.copy_ncs_scenario(parameters, network, title="GTAModel - NCS22")
@@ -189,3 +204,31 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                     raise Exception("Attribute %s already exist or has some issues!" % new_attribute_id)
                 else:
                     continue
+
+    # code for transit vehicle changes
+    def filter_mode(self, value, network):
+        """
+        extract the id of the vehicles from the transit vehicles list
+        this is used to filter the transit vehicle to change the data
+        """
+        for i in network.transit_vehicles():
+            if value == i.description:
+                return i.id
+        return None
+ 
+    def update_transit_vehicle_definitions(self, scenario, parameters, network):
+        """
+        function to read the csv file 
+        it also runs the change_data() method to change the data
+        """
+        with open(parameters["transit_vehicle_definitions"], mode="r") as trans_veh:
+            transit_op_file = csv.reader(trans_veh)
+            next(transit_op_file)
+            for item in transit_op_file:
+                #get the vehicle id using the ncs16 standard code
+                id = self.filter_mode(item[1].strip(), network)
+                #save the data as a vehicle dictionary
+                nc22_data = TransitVehicle(item[0], item[6].strip(), item[7].strip(), item[8].strip(),
+                                          item[9].strip(), item[10].strip(), network)
+                #change the value
+                nc22_data.copy_data(id)
