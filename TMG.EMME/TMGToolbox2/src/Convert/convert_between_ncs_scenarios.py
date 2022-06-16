@@ -61,10 +61,13 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         self.update_zone_centroid_numbers(network, centroid_dict)
         print("Updating mode code definition...")
         self.update_mode_code_definitions(old_ncs_scenario, parameters, network)
+        self.update_extra_attributes(old_ncs_scenario, "LINK", parameters["link_attributes"])
         # Copy scenario and write a new updated network
         print("Started copying %s into %s" % (parameters["old_ncs_scenario"], parameters["new_ncs_scenario"]))
         self.copy_ncs_scenario(parameters, network, title="GTAModel - NCS22")
-        (print("Done! Scenario %s has an updated network with the most recent network coding standard."))
+        print(
+            "Done! Scenario %s has an updated network with the most recent network coding standard." % old_ncs_scenario
+        )
 
     def update_zone_centroid_numbers(self, network, centroid_dict):
         nodes_list = []
@@ -85,7 +88,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         if new_ncs_scenario != None:
             _bank.delete_scenario(new_ncs_scenario)
         new_ncs_scenario = _bank.copy_scenario(parameters["old_ncs_scenario"], parameters["new_ncs_scenario"])
-        new_ncs_scenario.publish_network(network)
+        new_ncs_scenario.publish_network(network, resolve_attributes=True)
         new_ncs_scenario.title = str(title)
         return new_ncs_scenario
 
@@ -146,3 +149,27 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                             raise Exception('There is an issue with mode type "%s"' % mode_list)
                         # Emme allows description of the mode, up to 10 characters.
                         mode.description = description[:10]
+
+    def update_extra_attributes(self, scenario, attribute_type, attributes_file_name, default_value=0):
+        ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
+        attribute_type = str(attribute_type).upper()
+        # check if the type provided is correct
+        if attribute_type not in ATTRIBUTE_TYPES:
+            raise TypeError("Attribute type '%s' provided is not recognized." % attribute_type)
+        with open(attributes_file_name, mode="r") as attributes:
+            attributes_file = csv.reader(attributes)
+            next(attributes_file)
+            for attrib_list in attributes_file:
+                new_attribute_id = str(attrib_list[0])
+                new_description = str(attrib_list[1])
+                if not new_attribute_id.startswith("@"):
+                    new_attribute_id = "@" + new_attribute_id
+                checked_extra_attribute = scenario.extra_attribute(new_attribute_id)
+                if checked_extra_attribute == None:
+                    new_attribute = scenario.create_extra_attribute(attribute_type, new_attribute_id, default_value)
+                    # maximum length of description is 40 characters
+                    new_attribute.description = new_description[:40]
+                elif checked_extra_attribute != None and checked_extra_attribute.type != attribute_type:
+                    raise Exception("Attribute %s already exist or has some issues!" % new_attribute_id)
+                else:
+                    continue

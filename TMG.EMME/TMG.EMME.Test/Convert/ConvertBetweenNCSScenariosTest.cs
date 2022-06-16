@@ -43,6 +43,7 @@ namespace TMG.Emme.Test.Convert
                     writer.WriteString("station_centroid_file", "TestFiles/station_centriods.csv");
                     writer.WriteString("zone_centroid_file", "TestFiles/zone_centriods.csv");
                     writer.WriteString("mode_code_definitions", "TestFiles/mode_code_definitions.csv");
+                    writer.WriteString("link_attributes", "TestFiles/link_attributes.csv");
 
 
                 }), LogbookLevel.Standard));
@@ -58,7 +59,7 @@ namespace TMG.Emme.Test.Convert
                 NewScenarioNumber = Helper.CreateParameter(2),
                 StationCentroidFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/station_centriods.csv")),
                 ZoneCentroidFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/zone_centriods.csv")),
-                ModeCodeDefinition = Helper.CreateParameter(Path.GetFullPath("TestFiles/mode_code_definitions.csv"))
+                LinkAttributes = Helper.CreateParameter(Path.GetFullPath("TestFiles/link_attributes.csv"))
             };
             module.Invoke(Helper.Modeller);
         }
