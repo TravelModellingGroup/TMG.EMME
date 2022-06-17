@@ -41,6 +41,7 @@
     </Compile>
     <Compile Include="src\Convert\reverse_transit_lines.py" />
     <Compile Include="src\Convert\rotate_network.py" />
+    <Compile Include="src\Convert\traffic_vehicles.py" />
     <Compile Include="src\Convert\__init__.py" />
     <Compile Include="src\Copy\copy_scenario.py">
       <SubType>Code</SubType>
