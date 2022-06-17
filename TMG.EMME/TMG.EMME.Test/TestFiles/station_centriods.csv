@@ -1,0 +1,187 @@
+station,extermal_zone,centroid_2016,centroid_2022
+go_barrie_1,0,0,0
+subway_line1_2,0,0,0
+subway_line1_3,0,0,0
+subway_line1_5,0,0,0
+subway_line1_6,0,0,0
+subway_line1_7,0,0,0
+subway_line1_8,0,0,0
+subway_line1_9,0,0,0
+subway_line1_10,0,0,0
+subway_line1_11,0,0,0
+subway_line1_12,0,0,0
+subway_line1_13,0,0,0
+subway_line1_14,0,0,0
+subway_line1_15,0,0,0
+subway_line1_16,0,0,0
+subway_line1_17,0,0,0
+subway_line1_18,0,0,0
+subway_line1_19,0,0,0
+subway_line1_20,0,0,0
+subway_line1_21,0,0,0
+subway_line1_22,0,0,0
+subway_line1_23,0,0,0
+subway_line1_24,0,0,0
+subway_line1_25,0,0,0
+subway_line1_26,0,0,0
+subway_line1_27,0,0,0
+subway_line1_28,0,0,0
+subway_line1_29,0,0,0
+subway_line1_33,0,0,0
+subway_line1_34,0,0,0
+subway_line1_35,0,0,0
+subway_line1_36,0,0,0
+subway_line1_37,0,0,0
+subway_line1_38,0,0,0
+subway_line2_4,0,0,0
+subway_line2_5,0,0,0
+subway_line2_6,0,0,0
+subway_line2_7,0,0,0
+subway_line2_8,0,0,0
+subway_line2_9,0,0,0
+subway_line2_10,0,0,0
+subway_line2_11,0,0,0
+subway_line2_12,0,0,0
+subway_line2_13,0,0,0
+subway_line2_14,0,0,0
+subway_line2_15,0,0,0
+subway_line2_16,0,0,0
+subway_line2_17,0,0,0
+subway_line2_18,0,0,0
+subway_line2_19,0,0,0
+subway_line2_20,0,0,0
+subway_line2_21,0,0,0
+subway_line2_22,0,0,0
+subway_line2_23,0,0,0
+subway_line2_25,0,0,0
+subway_line2_26,0,0,0
+subway_line2_27,0,0,0
+subway_line2_28,0,0,0
+subway_line2_29,0,0,0
+subway_line3_1,0,0,0
+subway_line3_4,0,0,0
+subway_line3_5,0,0,0
+subway_line3_6,0,0,0
+subway_line4_1,0,0,0
+subway_line4_2,0,0,0
+subway_line4_3,0,0,0
+go_union_0,0,8000,9618
+subway_line2_31,0,8001,9646
+subway_line2_30,0,8002,9645
+subway_line2_3,0,8003,9643
+subway_line2_2,0,8004,9642
+subway_line2_1,0,8005,9641
+subway_line3_2,0,8006,9654
+subway_line3_3,0,8007,9655
+subway_line1_1,0,8008,9626
+subway_line4_4,0,8009,9660
+subway_line4_5,0,8010,9661
+subway_line1_4,0,8011,9627
+subway_line2_24,0,8012,9644
+subway_line1_30,0,8013,9628
+subway_line1_31,0,8014,9629
+subway_line1_32,0,8015,9630
+go_lakeshore east_1,0,8016,9554
+go_lakeshore east_2,0,8017,9555
+go_lakeshore east_3,0,8018,9556
+go_lakeshore east_4,0,8019,9557
+go_lakeshore east_5,0,8020,9558
+go_lakeshore west_1,0,8021,9568
+go_lakeshore west_2,0,8022,9569
+go_lakeshore west_3,0,8023,9570
+go_kitchener_1,0,8024,9539
+go_milton_1,0,8025,9585
+go_kitchener_2,0,8026,9540
+go_kitchener_3,0,8027,9541
+go_barrie_2,0,8028,9526
+go_richmond hill_1,0,8029,9598
+go_richmond hill_2,0,8030,9599
+go_stouffville_1,0,8031,9607
+go_stouffville_2,0,8032,9608
+go_stouffville_3,0,8033,9609
+go_lakeshore east_6,0,8500,9559
+go_lakeshore east_7,0,8501,9560
+go_lakeshore east_8,0,8502,9561
+go_lakeshore east_9,0,8503,9562
+carpool_0,0,8750,9504
+carpool_0,0,8751,9508
+carpool_0,0,8752,9509
+carpool_0,0,8753,9503
+carpool_0,0,8754,9501
+carpool_0,0,8755,9502
+carpool_0,0,8756,9507
+carpool_0,0,8757,9500
+carpool_0,0,8758,9505
+carpool_0,0,8759,9506
+go_barrie_3,0,8760,9527
+go_barrie_4,0,8761,9528
+go_barrie_5,0,8762,9529
+go_barrie_6,0,8763,9530
+go_barrie_7,0,8764,9531
+go_barrie_8,0,8765,9532
+go_richmond hill_3,0,8766,9600
+go_richmond hill_4,0,8767,9601
+go_stouffville_4,0,8768,9610
+go_stouffville_5,0,8769,9611
+go_stouffville_6,0,8770,9612
+go_stouffville_7,0,8771,9613
+go_stouffville_9,0,8772,9615
+go_stouffville_8,0,8773,9614
+go_richmond hill_5,0,8774,9602
+brt_miway_1,0,9000,9518
+brt_miway_2,0,9001,9519
+brt_miway_3,0,9002,9520
+carpool_0,0,9003,9510
+go_lakeshore west_4,0,9004,9571
+go_lakeshore west_5,0,9005,9572
+go_milton_2,0,9006,9586
+go_milton_3,0,9007,9587
+go_milton_4,0,9008,9588
+go_milton_5,0,9009,9589
+go_milton_6,0,9010,9590
+go_milton_7,0,9011,9591
+go_kitchener_4,0,9012,9542
+go_kitchener_5,0,9013,9543
+go_kitchener_6,0,9014,9544
+go_kitchener_7,0,9015,9545
+pearson_upx_3,0,9016,9664
+go_lakeshore west_6,0,9250,9573
+go_lakeshore west_7,0,9251,9574
+go_lakeshore west_8,0,9252,9575
+go_lakeshore west_9,0,9253,9576
+go_lakeshore west_10,0,9254,9577
+go_milton_8,0,9255,9592
+go_kitchener_8,0,9256,9546
+go_kitchener_9,0,9257,9547
+go_lakeshore west_11,0,9500,9578
+go_lakeshore west_,0,9501,9579
+go_kitchener_10,1,9750,9425
+go_barrie_11,1,9751,9426
+go_kitchener_11,1,9763,9427
+go_barrie_9,1,9764,9428
+go_barrie_10,1,9765,9429
+extermal_zone_1,1,6001,9400
+extermal_zone_2,1,6002,9401
+extermal_zone_3,1,6003,9402
+extermal_zone_4,1,6004,9403
+extermal_zone_5,1,6005,9404
+extermal_zone_6,1,6100,9405
+extermal_zone_7,1,6101,9406
+extermal_zone_8,1,6102,9407
+extermal_zone_9,1,6103,9408
+extermal_zone_10,1,6104,9409
+extermal_zone_11,1,6201,9410
+extermal_zone_12,1,6202,9411
+extermal_zone_13,1,6301,9412
+extermal_zone_14,1,6302,9413
+extermal_zone_15,1,6303,9414
+extermal_zone_16,1,6401,9415
+extermal_zone_17,1,6402,9416
+extermal_zone_18,1,6403,9417
+extermal_zone_19,1,6404,9418
+extermal_zone_20,1,6405,9419
+extermal_zone_21,1,6406,9420
+extermal_zone_22,1,6407,9421
+extermal_zone_23,1,6408,9422
+extermal_zone_24,1,6409,9423
+extermal_zone_25,1,6410,9424

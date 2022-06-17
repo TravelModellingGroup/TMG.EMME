@@ -1,0 +1,7 @@
+region,from_NCS16,to_NCS16,from_NCS22,to_NCS22
+city_of_hamilton,5001,6000,6000,6999
+halton_region,4001,5000,5000,5999
+peel_region,3001,4000,4000,4999
+york_region,2001,3000,3000,3999
+durham_region,1001,2000,2000,2999
+city_of_toronto,1,1000,1000,1999
