@@ -29,6 +29,8 @@ _m.InstanceType = object
 _MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
+_transit_vehicle = _MODELLER.module("tmg2.Convert.traffic_vehicles")
+print ('tfara ', _transit_vehicle)
 
 class TransitVehicle():
     """
