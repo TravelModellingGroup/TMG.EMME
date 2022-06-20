@@ -18,7 +18,6 @@
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
 from click import ParamType
 import inro.modeller as _m
 import csv
@@ -29,38 +28,6 @@ _m.InstanceType = object
 _MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
-_transit_vehicle = _MODELLER.module("tmg2.Convert.traffic_vehicles")
-print ('tfara ', _transit_vehicle)
-
-class TransitVehicle():
-    """
-    The base class that stores the transit vehicle data 
-    """
-    def __init__(self, desc, code, mode, seat_cap, total_cap, auto_equi, network):
-        self.description = desc  
-        self.code = code
-        self.mode = mode
-        self.seated_capacity = seat_cap
-        self.total_capacity = total_cap
-        self.auto_equivalent = auto_equi
-        self.network = network
-
-    def copy_data(self, id):
-        """
-        function to change the value and convert the ncs16 standard to ncs22.
-        """
-        # first extract the transit vehicle object using the id
-        vehicle_object = self.network.transit_vehicle(int(id))
-        # change the values of the vehicle object
-        vehicle_object.description = self.code
-        vehicle_object.seated_capacity = int(self.seated_capacity)
-        vehicle_object.total_capacity = int(self.total_capacity)
-        vehicle_object.auto_equivalent = float(self.auto_equivalent)
-    
-    def __get__(self):
-        # used for outputting a print statement of the class if need be
-        return self.description, self.code, self.mode, self.seated_capacity, self.total_capacity, self.auto_equi
-
 
 class ConvertBetweenNCSScenarios(_m.Tool()):
     version = "1.0.0"
@@ -217,20 +184,31 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
             if value == i.description:
                 return i.id
         return None
- 
+
+    def copy_data(self, id, code, seated_capacity, total_capacity, auto_equivalent, network):
+        """
+        function to change the value and convert the ncs16 standard to ncs22.
+        """
+        # first extract the transit vehicle object using the id
+        vehicle_object = network.transit_vehicle(int(id))
+        # change the values of the vehicle object
+        vehicle_object.description = code
+        vehicle_object.seated_capacity = int(seated_capacity)
+        vehicle_object.total_capacity = int(total_capacity)
+        vehicle_object.auto_equivalent = float(auto_equivalent)
+
     def update_transit_vehicle_definitions(self, scenario, parameters, network):
         """
         function to read the csv file 
-        it also runs the change_data() method to change the data
+        it also runs the copy_data() method to change the traffic vehicle data
         """
         with open(parameters["transit_vehicle_definitions"], mode="r") as trans_veh:
             transit_op_file = csv.reader(trans_veh)
             next(transit_op_file)
             for item in transit_op_file:
-                #get the vehicle id using the ncs16 standard code
+                # get the vehicle id using the ncs16 standard code
                 id = self.filter_mode(item[1].strip(), network)
-                #save the data as a vehicle dictionary
-                nc22_data = TransitVehicle(item[0], item[6].strip(), item[7].strip(), item[8].strip(),
-                                          item[9].strip(), item[10].strip(), network)
-                #change the value
-                nc22_data.copy_data(id)
+                # run the copy_data function to change the data
+                self.copy_data(id=id, code=item[6].strip(), seated_capacity=item[8].strip(),
+                               total_capacity=item[9].strip(), auto_equivalent=item[10].strip(), 
+                               network=network)
