@@ -18,9 +18,9 @@
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from click import ParamType
 import inro.modeller as _m
 import csv
+from contextlib import contextmanager
 
 _m.TupleType = object
 _m.ListType = list
@@ -28,6 +28,7 @@ _m.InstanceType = object
 _MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
+
 
 class ConvertBetweenNCSScenarios(_m.Tool()):
     version = "1.0.0"
@@ -199,7 +200,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
 
     def update_transit_vehicle_definitions(self, scenario, parameters, network):
         """
-        function to read the csv file 
+        function to read the csv file
         it also runs the copy_data() method to change the traffic vehicle data
         """
         with open(parameters["transit_vehicle_definitions"], mode="r") as trans_veh:
@@ -209,6 +210,31 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 # get the vehicle id using the ncs16 standard code
                 id = self.filter_mode(item[1].strip(), network)
                 # run the copy_data function to change the data
-                self.copy_data(id=id, code=item[6].strip(), seated_capacity=item[8].strip(),
-                               total_capacity=item[9].strip(), auto_equivalent=item[10].strip(), 
-                               network=network)
+                self.copy_data(
+                    id=id,
+                    code=item[6].strip(),
+                    seated_capacity=item[8].strip(),
+                    total_capacity=item[9].strip(),
+                    auto_equivalent=item[10].strip(),
+                    network=network,
+                )
+
+    def update_lane_capacity(self, parameters, network):
+        with self.open_csv_reader(parameters["lane_capacities"]) as lane_capacity_file:
+            for line in lane_capacity_file:
+                vdf = int(line[0].strip())
+                new_lane_capacity = int(line[1].strip())
+                for link in network.links():
+                    volume_delay_func = int(link.volume_delay_func)
+                    if vdf == volume_delay_func:
+                        link.data3 = new_lane_capacity
+
+    @contextmanager
+    def open_csv_reader(self, file_path):
+        csv_file = open(file_path, mode="r")
+        file = csv.reader(csv_file)
+        next(file)
+        try:
+            yield file
+        finally:
+            csv_file.close()
