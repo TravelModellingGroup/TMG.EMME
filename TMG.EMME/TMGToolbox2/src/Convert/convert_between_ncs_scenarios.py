@@ -59,10 +59,11 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         print("Updating zone and station centroids")
         self.update_zone_centroid_numbers(network, centroid_dict)
         print("Updating mode code definition...")
-        self.update_mode_code_definitions(old_ncs_scenario, parameters, network)
+        self.update_mode_code_definitions(parameters, network)
         self.update_extra_attributes(old_ncs_scenario, "LINK", parameters["link_attributes"])
         print("Updating transit vehicle definition...")
-        self.update_transit_vehicle_definitions(old_ncs_scenario, parameters, network)
+        self.update_transit_vehicle_definitions(parameters, network)
+        self.update_lane_capacity(parameters, network)
         # Copy scenario and write a new updated network
         print("Started copying %s into %s" % (parameters["old_ncs_scenario"], parameters["new_ncs_scenario"]))
         self.copy_ncs_scenario(parameters, network, title="GTAModel - NCS22")
@@ -94,14 +95,12 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         return new_ncs_scenario
 
     def update_centroid_lists_with_zone_centroids(self, parameters, old_centroid_list, new_centroid_list):
-        with open(parameters["zone_centroid_file"], mode="r") as zone_centroids:
-            zone_centroid_file = csv.reader(zone_centroids)
-            next(zone_centroid_file)
+        with self.open_csv_reader(parameters["zone_centroid_file"]) as zone_centroid_file:
             for centroid_range in zone_centroid_file:
-                old_centroid_starts = int(centroid_range[1])
-                old_centroid_ends = int(centroid_range[2])
-                new_centroid_starts = int(centroid_range[3])
-                new_centroid_ends = int(centroid_range[4])
+                old_centroid_starts = int(centroid_range[1].strip())
+                old_centroid_ends = int(centroid_range[2].strip())
+                new_centroid_starts = int(centroid_range[3].strip())
+                new_centroid_ends = int(centroid_range[4].strip())
                 old_centroid_range = range(old_centroid_starts, old_centroid_ends + 1)
                 new_centroid_range = range(new_centroid_starts, new_centroid_ends + 1)
                 for centroid in old_centroid_range:
@@ -110,12 +109,10 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                     new_centroid_list.append(centroid)
 
     def update_centroid_lists_with_station_centroids(self, parameters, old_centroid_list, new_centroid_list):
-        with open(parameters["station_centroid_file"], mode="r") as station_centroids:
-            station_centroid_file = csv.reader(station_centroids)
-            next(station_centroid_file)
+        with self.open_csv_reader(parameters["station_centroid_file"]) as station_centroid_file:
             for centroid in station_centroid_file:
-                old_station_centroid = int(centroid[2])
-                new_station_centroid = int(centroid[3])
+                old_station_centroid = int(centroid[2].strip())
+                new_station_centroid = int(centroid[3].strip())
                 if old_station_centroid <= 0 or new_station_centroid <= 0:
                     continue
                 old_centroid_list.append(old_station_centroid)
@@ -132,10 +129,8 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
             centroid_dict[old_centroid] = new_centroid_list[old_centroids]
         return centroid_dict
 
-    def update_mode_code_definitions(self, scenario, parameters, network):
-        with open(parameters["mode_code_definitions"], mode="r") as mode_definitions:
-            mode_code_file = csv.reader(mode_definitions)
-            next(mode_code_file)
+    def update_mode_code_definitions(self, parameters, network):
+        with self.open_csv_reader(parameters["mode_code_definitions"]) as mode_code_file:
             for mode_list in mode_code_file:
                 old_mode_id = str(mode_list[2])
                 if old_mode_id == "":
@@ -143,8 +138,8 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 for mode in network.modes():
                     if str(mode.id) == old_mode_id:
                         description = str(mode_list[0])
-                        mode_type = str(mode_list[1])
-                        new_mode_id = str(mode_list[3])
+                        mode_type = str(mode_list[1].strip())
+                        new_mode_id = str(mode_list[3].strip())
                         mode.id = new_mode_id
                         if mode.type != mode_type:
                             raise Exception('There is an issue with mode type "%s"' % mode_list)
@@ -157,11 +152,9 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         # check if the type provided is correct
         if attribute_type not in ATTRIBUTE_TYPES:
             raise TypeError("Attribute type '%s' provided is not recognized." % attribute_type)
-        with open(attributes_file_name, mode="r") as attributes:
-            attributes_file = csv.reader(attributes)
-            next(attributes_file)
+        with self.open_csv_reader(attributes_file_name) as attributes_file:
             for attrib_list in attributes_file:
-                new_attribute_id = str(attrib_list[0])
+                new_attribute_id = str(attrib_list[0].strip())
                 new_description = str(attrib_list[1])
                 if not new_attribute_id.startswith("@"):
                     new_attribute_id = "@" + new_attribute_id
@@ -198,14 +191,12 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         vehicle_object.total_capacity = int(total_capacity)
         vehicle_object.auto_equivalent = float(auto_equivalent)
 
-    def update_transit_vehicle_definitions(self, scenario, parameters, network):
+    def update_transit_vehicle_definitions(self, parameters, network):
         """
         function to read the csv file
         it also runs the copy_data() method to change the traffic vehicle data
         """
-        with open(parameters["transit_vehicle_definitions"], mode="r") as trans_veh:
-            transit_op_file = csv.reader(trans_veh)
-            next(transit_op_file)
+        with self.open_csv_reader(parameters["transit_vehicle_definitions"]) as transit_op_file:
             for item in transit_op_file:
                 # get the vehicle id using the ncs16 standard code
                 id = self.filter_mode(item[1].strip(), network)
