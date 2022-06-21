@@ -183,7 +183,6 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         # check if the type provided is correct
         if attribute_type not in ATTRIBUTE_TYPES:
             raise TypeError("Attribute type '%s' provided is not recognized." % attribute_type)
-        # with self.open_csv_reader(parameters[""]) as lane_capacity_file:
         with self.open_csv_reader(attributes_file_name) as attributes_file:
             for attrib_list in attributes_file:
                 new_attribute_id = str(attrib_list[0].strip())
