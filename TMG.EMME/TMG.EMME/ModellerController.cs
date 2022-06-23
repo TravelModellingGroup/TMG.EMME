@@ -104,6 +104,12 @@ namespace TMG.Emme
         /// </summary>
         private const int SignalIncompatibleTool = 15;
 
+        /// <summary>
+        /// A signal to the modeller bridge saying that it should check all of the loaded toolboxes to ensure
+        /// that all of their unconsolidated tools' script files exist.
+        /// </summary>
+        private const int SignalCheckForMissingTools = 16;
+
         #endregion
 
         public ModellerController(IModule caller, string projectFile, string pipeName,
@@ -203,7 +209,7 @@ namespace TMG.Emme
             Dispose(false);
         }
 
-        private bool WaitForEmmeResponce(IModule caller, ref string returnValue, Action<float> updateProgress)
+        private bool WaitForEmmeResponse(IModule caller, ref string returnValue, Action<float> updateProgress)
         {
             // now we need to wait
             try
@@ -335,7 +341,7 @@ namespace TMG.Emme
                     writer.Write(logbookLevel);
                     writer.Flush();
                     // make sure the tool exists before continuing
-                    if (!WaitForEmmeResponce(caller, ref returnValue, progressUpdate))
+                    if (!WaitForEmmeResponse(caller, ref returnValue, progressUpdate))
                     {
                         // if the tool does not exist, we have failed!
                         return false;
@@ -345,7 +351,34 @@ namespace TMG.Emme
                 {
                     throw new XTMFRuntimeException(caller, "I/O Connection with EMME while sending data, with:\r\n" + e.Message);
                 }
-                return WaitForEmmeResponce(caller, ref returnValue, progressUpdate);
+                return WaitForEmmeResponse(caller, ref returnValue, progressUpdate);
+            }
+        }
+
+        /// <summary>
+        /// Check that all unconsolidated tools have their file paths pointing to python
+        /// script files that exist.
+        /// </summary>
+        /// <param name="caller">The module that is running the check.</param>
+        /// <exception cref="EmmeToolRuntimeException">This gets thrown if there is a tool with source code that was not found.</exception>
+        public void CheckAllToolsExist(IModule caller)
+        {
+            lock (this)
+            {
+                string returnValue = null;
+                try
+                {
+                    EnsureWriteAvailable(caller);
+                    // clear out all of the old input before starting
+                    using var writer = new BinaryWriter(_emmePipe, Encoding.Unicode, true);
+                    writer.Write(SignalCheckForMissingTools);
+                    writer.Flush();
+                }
+                catch (IOException e)
+                {
+                    throw new XTMFRuntimeException(caller, "I/O Connection with EMME while sending data, with:\r\n" + e.Message);
+                }
+                WaitForEmmeResponse(caller, ref returnValue, null);
             }
         }
 
