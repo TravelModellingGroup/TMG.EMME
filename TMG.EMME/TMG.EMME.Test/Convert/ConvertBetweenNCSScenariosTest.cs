@@ -47,6 +47,7 @@ namespace TMG.Emme.Test.Convert
                     writer.WriteString("transit_vehicle_definitions", "TestFiles/transit_vehicles.csv");
                     writer.WriteString("lane_capacities", "TestFiles/lane_capacities.csv");
                     writer.WriteString("transit_line_codes", "TestFiles/transit_line_codes.csv");
+                    writer.WriteString("skip_missing_transit_lines", "False");
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
@@ -64,6 +65,7 @@ namespace TMG.Emme.Test.Convert
                 TransitVehicleFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/transit_vehicles.csv")),
                 LaneCapacityFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/lane_capacities.csv")),
                 TransitLineFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/transit_line_codes.csv")),
+                SkipMissingTransitLines = Helper.CreateParameter("False")
             };
             module.Invoke(Helper.Modeller);
         }
