@@ -467,7 +467,7 @@ class AssignTraffic(_m.Tool()):
             if int(scenario.element_totals["transit_lines"]) > 0:
                 with _trace("Calculating transit background traffic"):
                     network_calculation_tool(
-                        self._get_transit_bg_spec(),
+                        self._get_transit_bg_spec(parameters),
                         scenario=scenario,
                     )
                     extra_parameter_tool(el1="@tvph")
@@ -581,10 +581,11 @@ class AssignTraffic(_m.Tool()):
 
         return SOLA_spec
 
-    def _get_transit_bg_spec(self):
+    def _get_transit_bg_spec(self, parameters):
+        ttf_terms =  str.join(" + ", ["(ttf >="+str(x["start"])+" * ttf <= "+str(x["stop"])+")" for x in parameters["mixed_use_ttf_ranges"]])
         return {
             "result": "@tvph",
-            "expression": "(60 / hdw) * (vauteq) * (ttf >= 3)",
+            "expression": "(60 / hdw) * (vauteq) " + ("* (" + ttf_terms + ")" if ttf_terms else ""),
             "aggregation": "+",
             "selections": {"link": "all", "transit_line": "all"},
             "type": "NETWORK_CALCULATION",
