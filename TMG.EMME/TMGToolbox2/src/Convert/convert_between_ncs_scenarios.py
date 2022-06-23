@@ -230,8 +230,12 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
             for item in transit_line_file:
                 # get the nc16 transit line object id
                 transit_line_object = network.transit_line(item[0])
-                # change the transit line object id to ncs22
-                transit_line_object.id = item[1]
+                # check if the transit line object is None, if it is None give the user an error
+                if transit_line_object != None:
+                    # change the transit line object id to ncs22
+                    transit_line_object.id = item[1]
+                else:
+                    raise NameError("The transit line object {} doesn't exist".format(item[0]))
           
     @contextmanager
     def open_csv_reader(self, file_path):
