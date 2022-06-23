@@ -66,7 +66,11 @@ namespace TMG.Emme.Assign
             Index = 9)]
         public IFunction<bool> SOLAFlag;
 
-        [SubModule(Name = "Traffic Classes", Description = "", Index = 10)]
+        [Parameter(Name = "Mixed Used TTF Ranged", DefaultValue = "3-128", Description = "The TTFs where transit vehicles will occupy some capacity on links. The ranges are inclusive.",
+            Index = 10)]
+        public IFunction<RangeSet> MixedUseTTFRanges;
+
+        [SubModule(Name = "Traffic Classes", Description = "", Index = 11)]
         public IFunction<TrafficClass>[] TrafficClasses;
 
         [Module(Name = "Traffic Class", Description = "",
@@ -228,6 +232,16 @@ namespace TMG.Emme.Assign
                 writer.WriteBoolean("sola_flag", SOLAFlag.Invoke());
                 writer.WriteBoolean("background_transit", BackgroundTransit.Invoke());
                 writer.WriteString("run_title", RunTitle.Invoke());
+                writer.WritePropertyName("mixed_use_ttf_ranges");
+                writer.WriteStartArray();
+                foreach (var range in MixedUseTTFRanges.Invoke())
+                {
+                    writer.WriteStartObject();
+                    writer.WriteNumber("start", range.Start);
+                    writer.WriteNumber("stop", range.Stop);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
                 writer.WriteStartArray("traffic_classes");
                 foreach (var trafficClass in TrafficClasses)
                 {

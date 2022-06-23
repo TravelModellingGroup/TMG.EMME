@@ -47,6 +47,13 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("run_title", "road assignment");
                     writer.WriteNumber("scenario_number", 1);
                     writer.WriteBoolean("sola_flag", true);
+                    writer.WritePropertyName("mixed_use_ttf_ranges");
+                    writer.WriteStartArray();
+                    writer.WriteStartObject();
+                    writer.WriteNumber("start", 3);
+                    writer.WriteNumber("stop", 128);
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();
                     writer.WriteStartArray("traffic_classes");
                     writer.WriteStartObject();
                     writer.WriteString("name", "traffic class 1");
@@ -134,6 +141,7 @@ namespace TMG.Emme.Test.Assign
                 RunTitle = Helper.CreateParameter("road assignment"),
                 ScenarioNumber = Helper.CreateParameter(1),
                 SOLAFlag = Helper.CreateParameter(true),
+                MixedUseTTFRanges = Helper.CreateParameter(new RangeSet(new List<Range> { new Range(3, 128) })),
                 TrafficClasses = Helper.CreateParameters(trafficClasses),
             };
             module.Invoke(Helper.Modeller);
