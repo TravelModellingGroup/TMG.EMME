@@ -228,8 +228,6 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         """
         with self.open_csv_reader(parameters["transit_line_codes"]) as transit_line_file:
             for item in transit_line_file:
-                # get the vehicle id
-                print("id, list and len ", item[0], item[1], len(item))
                 # get the nc16 transit line object id
                 nc16_transit_line_id = network.transit_line(item[0])
                 # now change the transit line id to the new nc22 id 
