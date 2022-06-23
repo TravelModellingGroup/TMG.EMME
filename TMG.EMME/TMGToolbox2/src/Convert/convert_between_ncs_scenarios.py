@@ -64,6 +64,8 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         print("Updating transit vehicle definition...")
         self.update_transit_vehicle_definitions(parameters, network)
         self.update_lane_capacity(parameters, network)
+        print("Updating transit line codes")
+        self.update_transit_line_codes(parameters, network)
         # Copy scenario and write a new updated network
         print("Started copying %s into %s" % (parameters["old_ncs_scenario"], parameters["new_ncs_scenario"]))
         self.copy_ncs_scenario(parameters, network, title="GTAModel - NCS22")
@@ -219,7 +221,23 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                     volume_delay_func = int(link.volume_delay_func)
                     if vdf == volume_delay_func:
                         link.data3 = new_lane_capacity
-
+    
+    def update_transit_line_codes(self, parameters, network):
+        """
+        Function to update the transit line codes
+        """
+        with self.open_csv_reader(parameters["transit_line_codes"]) as transit_line_file:
+            for item in transit_line_file:
+                # get the nc16 transit line object id
+                transit_line_object = network.transit_line(item[0])
+                print (parameters["skip_missing_transit_lines"])
+                # check if the transit line object is None, if it is None give the user an error
+                if transit_line_object is not None:
+                    # change the transit line object id to ncs22
+                    transit_line_object.id = item[1]
+                elif not parameters["skip_missing_transit_lines"]:
+                    raise Exception("The transit line object {} doesn't exist".format(item[0]))
+          
     @contextmanager
     def open_csv_reader(self, file_path):
         csv_file = open(file_path, mode="r")
