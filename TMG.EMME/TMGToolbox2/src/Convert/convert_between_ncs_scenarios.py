@@ -64,6 +64,8 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         print("Updating transit vehicle definition...")
         self.update_transit_vehicle_definitions(parameters, network)
         self.update_lane_capacity(parameters, network)
+        print("Updating transit line codes")
+        self.update_transit_line_codes(parameters, network)
         # Copy scenario and write a new updated network
         print("Started copying %s into %s" % (parameters["old_ncs_scenario"], parameters["new_ncs_scenario"]))
         self.copy_ncs_scenario(parameters, network, title="GTAModel - NCS22")
@@ -220,6 +222,19 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                     if vdf == volume_delay_func:
                         link.data3 = new_lane_capacity
 
+    def update_transit_line_codes(self, parameters, network):
+        """
+        Function to update the transit line codes
+        """
+        with self.open_csv_reader(parameters["transit_line_codes"]) as transit_line_file:
+            for item in transit_line_file:
+                # get the vehicle id
+                print("id, list and len ", item[0], item[1], len(item))
+                # get the nc16 transit line object id
+                nc16_transit_line_id = network.transit_line(item[0])
+                # now change the transit line id to the new nc22 id 
+                nc22_transit_line_id = item[1]
+                
     @contextmanager
     def open_csv_reader(self, file_path):
         csv_file = open(file_path, mode="r")
