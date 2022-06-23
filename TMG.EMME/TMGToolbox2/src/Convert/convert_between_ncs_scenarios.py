@@ -229,10 +229,10 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         with self.open_csv_reader(parameters["transit_line_codes"]) as transit_line_file:
             for item in transit_line_file:
                 # get the nc16 transit line object id
-                nc16_transit_line_id = network.transit_line(item[0])
-                # now change the transit line id to the new nc22 id 
-                nc22_transit_line_id = item[1]
-                
+                transit_line_object = network.transit_line(item[0])
+                # change the transit line object id to ncs22
+                transit_line_object.id = item[1]
+          
     @contextmanager
     def open_csv_reader(self, file_path):
         csv_file = open(file_path, mode="r")
