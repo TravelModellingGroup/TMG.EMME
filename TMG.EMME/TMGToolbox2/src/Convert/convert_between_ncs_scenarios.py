@@ -149,11 +149,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                         mode.description = description[:10]
 
     def update_extra_attributes(self, scenario, attribute_type, attributes_file_name, default_value=0):
-        ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
-        attribute_type = str(attribute_type).upper()
-        # check if the type provided is correct
-        if attribute_type not in ATTRIBUTE_TYPES:
-            raise TypeError("Attribute type '%s' provided is not recognized." % attribute_type)
+        attribute_type = self.check_attribute_type(attribute_type)
         with self.open_csv_reader(attributes_file_name) as attributes_file:
             for attrib_list in attributes_file:
                 new_attribute_id = str(attrib_list[0].strip())
@@ -169,6 +165,14 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                     raise Exception("Attribute %s already exist or has some issues!" % new_attribute_id)
                 else:
                     continue
+
+    def check_attribute_type(self, attribute_type):
+        ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
+        attribute_type = str(attribute_type).upper()
+        # check if the type provided is correct
+        if attribute_type not in ATTRIBUTE_TYPES:
+            raise TypeError("Attribute type '%s' provided is not recognized." % attribute_type)
+        return attribute_type
 
     # code for transit vehicle changes
     def filter_mode(self, value, network):
@@ -221,7 +225,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                     volume_delay_func = int(link.volume_delay_func)
                     if vdf == volume_delay_func:
                         link.data3 = new_lane_capacity
-    
+
     def update_transit_line_codes(self, parameters, network):
         """
         Function to update the transit line codes
@@ -230,14 +234,14 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
             for item in transit_line_file:
                 # get the nc16 transit line object id
                 transit_line_object = network.transit_line(item[0])
-                print (parameters["skip_missing_transit_lines"])
+                print(parameters["skip_missing_transit_lines"])
                 # check if the transit line object is None, if it is None give the user an error
                 if transit_line_object is not None:
                     # change the transit line object id to ncs22
                     transit_line_object.id = item[1]
                 elif not parameters["skip_missing_transit_lines"]:
                     raise Exception("The transit line object {} doesn't exist".format(item[0]))
-          
+
     @contextmanager
     def open_csv_reader(self, file_path):
         csv_file = open(file_path, mode="r")
