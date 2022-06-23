@@ -231,7 +231,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 # get the nc16 transit line object id
                 transit_line_object = network.transit_line(item[0])
                 # check if the transit line object is None, if it is None give the user an error
-                if transit_line_object != None:
+                if transit_line_object is not None:
                     # change the transit line object id to ncs22
                     transit_line_object.id = item[1]
                 else:
