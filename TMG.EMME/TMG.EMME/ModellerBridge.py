@@ -133,14 +133,17 @@ class XTMFBridge:
         sys.stdin.close()
         terminate = False
         # Load up Modeller before continuing on
-        try:
-            self.emmeApplication = TheEmmeEnvironmentXMTF
-            if databank is not None:
-                self.SwitchToDatabank(TheEmmeEnvironmentXMTF, databank)
-            self.Modeller = inro.modeller.Modeller(TheEmmeEnvironmentXMTF)
-            _m.logbook_write("Activated modeller from ModellerBridge for XTMF")
-        except:
-            #Terminate the bridge if we are unable to
+        if TheEmmeEnvironmentXMTF:
+            try:
+                self.emmeApplication = TheEmmeEnvironmentXMTF
+                if databank is not None:
+                    self.SwitchToDatabank(TheEmmeEnvironmentXMTF, databank)
+                self.Modeller = inro.modeller.Modeller(TheEmmeEnvironmentXMTF)
+                _m.logbook_write("Activated modeller from ModellerBridge for XTMF")
+            except:
+                #Terminate the bridge if we are unable to
+                terminate = True
+        else:
             terminate = True
 
         self.XTMFPipe = open('\\\\.\\pipe\\' + pipeName, 'w+b', 0)
@@ -422,9 +425,15 @@ if len(args) > 5:
 #sys.stderr.write(args)
 print (userInitials)
 print (projectFile)
+TheEmmeEnvironmentXMTF = None
 try:
     TheEmmeEnvironmentXMTF = _app.start_dedicated(visible=False, user_initials=userInitials, project=projectFile)
+except Exception as e:
+    # We can just pass here, if we didn't set the environment then the bridge will terminate
+    pass
+try:
     XTMFBridge(databank, TheEmmeEnvironmentXMTF).Run(performanceFlag)
-    TheEmmeEnvironmentXMTF.close()
 except Exception as e:
     pass
+if TheEmmeEnvironmentXMTF:
+    TheEmmeEnvironmentXMTF.close()
