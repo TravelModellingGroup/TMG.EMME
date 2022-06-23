@@ -236,7 +236,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                     # change the transit line object id to ncs22
                     transit_line_object.id = item[1]
                 elif not parameters["skip_missing_transit_lines"]:
-                    raise NameError("The transit line object {} doesn't exist".format(item[0]))
+                    raise Exception("The transit line object {} doesn't exist".format(item[0]))
           
     @contextmanager
     def open_csv_reader(self, file_path):
