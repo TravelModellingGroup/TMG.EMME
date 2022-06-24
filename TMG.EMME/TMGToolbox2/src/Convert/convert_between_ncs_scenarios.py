@@ -20,6 +20,7 @@
 
 import inro.modeller as _m
 import csv
+import traceback as _traceback
 from contextlib import contextmanager
 
 _m.TupleType = object
@@ -28,22 +29,132 @@ _m.InstanceType = object
 _MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
-
+_tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 
 class ConvertBetweenNCSScenarios(_m.Tool()):
-    version = "1.0.0"
+    version = "0.0.1"
     number_of_tasks = 1
     tool_run_msg = ""
 
+    #Emme modeller gui input parameters
+    OldNcsScenario = _m.Attribute(_m.InstanceType) #_m.Attribute(int)
+    NewNcsScenario = _m.Attribute(_m.InstanceType) #_m.Attribute(int)
+    StationCentroidFile = _m.Attribute(str)
+    ZoneCentroidFile = _m.Attribute(str)
+    ModeCodeDefinitionsFile = _m.Attribute(str)
+    LinkAttributesFile  = _m.Attribute(str)
+    TransitVehicleDefinitionsFile = _m.Attribute(str)
+    LaneCapacitiesFile = _m.Attribute(str)
+    TransitLineCodeFile = _m.Attribute(str)
+    SkipMissingTransitLines = _m.Attribute(bool)
+    
     def __init__(self):
-        self._tracker = _util.progress_tracker(self.number_of_tasks)
+        self.TRACKER = _util.progress_tracker(self.number_of_tasks)
 
+    def page(self):
+        pb = _tmgTPB.TmgToolPageBuilder(
+            self, 
+            title="Convert Network v%s" %self.version,
+            description="Converts a network from NCS16 to the NCS22 standard.",
+            branding_text="- TMG Toolbox 2")
+            
+        if self.tool_run_msg != "":  # to display messages in the page
+            pb.tool_run_status(self.tool_run_msg_status)
+
+        # add the inputs to the page
+        pb.add_select_scenario(
+            tool_attribute_name="OldNcsScenario",
+            title="Old NCS Scenario",
+            allow_none=False
+        )
+        pb.add_select_scenario(
+            tool_attribute_name="NewNcsScenario",
+            title="New NCS Scenario",
+            allow_none=False
+        )
+        pb.add_select_file(
+            tool_attribute_name="StationCentroidFile",
+            window_type="file",
+            title="Station Centroid File CSV File Location",
+        )
+        pb.add_select_file(
+            tool_attribute_name="ZoneCentroidFile",
+            window_type="file",
+            title="Zone Centroid CSV File Location",
+        )
+        pb.add_select_file(
+            tool_attribute_name="ModeCodeDefinitionsFile",
+            window_type="file",
+            title="Mode Code Definitions CSV File Location",
+        )
+        pb.add_select_file(
+            tool_attribute_name="LinkAttributesFile",
+            window_type="file",
+            title="Link Attributes CSV File Location",
+        )
+        pb.add_select_file(
+            tool_attribute_name="TransitVehicleDefinitionsFile",
+            window_type="file",
+            title="Transit vehicle definitions CSV File Location",
+        )
+        pb.add_select_file(
+            tool_attribute_name="LaneCapacitiesFile",
+            window_type="file",
+            title="Lane Capacities CSV File Location",
+        )
+        pb.add_select_file(
+            tool_attribute_name="TransitLineCodeFile",
+            window_type="file",
+            title="TransitLineCodeFile CSV File Location",
+        )
+        pb.add_checkbox(
+            tool_attribute_name="SkipMissingTransitLines",
+            label="Boolean to skip missing transit lines default is True",
+        )
+        return pb.render()
+
+    @_m.method(return_type=str)
+    def tool_run_msg_status(self):
+        return self.tool_run_msg
+
+    def run(self):
+        """
+        method to run the tool using the Emme modeller GUI
+        """
+        self.tool_run_msg = ""
+        self.TRACKER.reset()
+
+        # build the data as a python dictionary
+        scenario = _MODELLER.emmebank.scenario(self.OldNcsScenario)
+        parameters = {
+                "old_ncs_scenario": _MODELLER.emmebank.scenario(self.OldNcsScenario),
+                "new_ncs_scenario": _MODELLER.emmebank.scenario(self.NewNcsScenario),
+                "station_centroid_file": self.StationCentroidFile,
+                "zone_centroid_file": self.ZoneCentroidFile,
+                "mode_code_definitions": self.ModeCodeDefinitionsFile,
+                "link_attributes": self.LinkAttributesFile,
+                "transit_vehicle_definitions": self.TransitVehicleDefinitionsFile,
+                "lane_capacities": self.LaneCapacitiesFile,
+                "transit_line_codes": self.TransitLineCodeFile,
+                "skip_missing_transit_lines": self.SkipMissingTransitLines
+            }
+
+        try:
+            self._execute(scenario, parameters)
+        except Exception as e:
+            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
+            raise
+
+        self.tool_run_msg = _m.PageBuilder.format_info("Tool is completed.")
+        
     def __call__(self, parameters):
         scenario = _util.load_scenario(parameters["old_ncs_scenario"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
+
+        self.tool_run_msg = _m.PageBuilder.format_info("Tool is completed.")
 
     def run_xtmf(self, parameters):
         old_ncs_scenario = _util.load_scenario(parameters["old_ncs_scenario"])
@@ -234,7 +345,6 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
             for item in transit_line_file:
                 # get the nc16 transit line object id
                 transit_line_object = network.transit_line(item[0])
-                print(parameters["skip_missing_transit_lines"])
                 # check if the transit line object is None, if it is None give the user an error
                 if transit_line_object is not None:
                     # change the transit line object id to ncs22
