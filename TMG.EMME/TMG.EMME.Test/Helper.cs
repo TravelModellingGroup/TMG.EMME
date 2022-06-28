@@ -161,7 +161,18 @@ namespace TMG.Emme.Test
                  }), LogbookLevel.Standard));
 
         }
+        internal static void ExportNetwork(int scenarioNumber, string filePath)
+        {
 
+            Assert.IsTrue(
+                Helper.Modeller.Run(null, "tmg2.Export.export_network_package",
+                JSONParameterBuilder.BuildParameters(writer =>
+                    {
+                        writer.WriteString("export_file", Path.GetFullPath(filePath));
+                        writer.WriteNumber("scenario_number", scenarioNumber);
+                        writer.WriteString("extra_attributes", "all");
+                    }), LogbookLevel.Standard));
+        }
         internal static void RunAssignTransit(int scenarioNumber, string demandMatrixId)
         {
             Assert.IsTrue(
