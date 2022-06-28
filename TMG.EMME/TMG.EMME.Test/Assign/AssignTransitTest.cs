@@ -32,10 +32,10 @@ namespace TMG.Emme.Test.Assign
 
         private static void RunAssignTransitToolPipeline(string toolNamespace, int scenarioNumber, string description = "toolbox2")
         {
-            Helper.ImportNetwork(scenarioNumber, "TestFiles/AMTransit.nwp", description);
-            Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/AMTransitMatrix.mtx"));
+            Helper.ImportNetwork(scenarioNumber, "TestFiles/test.nwp", description);
+            Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
             Helper.RunAssignTraffic(scenarioNumber, "mf10", 11);
-            Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/xyz.mtx"));
+            Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/TestHighDemand.mtx"));
             Helper.RunAssignBoardingPenalty(new[] { scenarioNumber });
             Assert.IsTrue(
                 Helper.Modeller.Run(null, toolNamespace,
