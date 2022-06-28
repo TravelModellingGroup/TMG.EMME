@@ -57,6 +57,7 @@ import pickle
 import py_compile
 import sqlite3.dbapi2 as sqllib
 import subprocess
+import traceback
 
 import inro.director.util.ucs as ucslib
 
@@ -78,6 +79,7 @@ def capitalize_name(name):
                 new_token = first_char.upper() + remaining
                 new_tokens.append(new_token)
             except Exception as e:
+                traceback.print_exc(limit=None, file=None, chain=True)
                 print(str(tokens))
                 print(str(e))
                 exit()
@@ -165,6 +167,7 @@ class ElementTree(object):
         try:
             node = ToolNode(self.next_id(), title, namespace, script_path, consolidate)
         except Exception as e:
+            traceback.print_exc(limit=None, file=None, chain=True)
             print(type(e), str(e))
             return None
 
@@ -200,6 +203,7 @@ class FolderNode(object):
         try:
             node = ToolNode(self.root.next_id(), title, namespace, script_path, consolidate)
         except Exception as e:
+            traceback.print_exc(limit=None, file=None, chain=True)
             print(type(e), str(e))
             return None
 
@@ -472,6 +476,8 @@ def explore_source_folder(root_folder_path, parent_node, consolidate):
         explore_source_folder(folder_path, folder_node, consolidate)
 
     for file in files:
+        if file == "__init__":
+            continue
         namespace = file
         title = capitalize_name(namespace)
         script_path = os.path.join(root_folder_path, file)
