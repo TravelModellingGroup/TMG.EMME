@@ -251,6 +251,13 @@ namespace TMG.Emme.Test
                     writer.WriteString("run_title", "road assignment");
                     writer.WriteNumber("scenario_number", scenarioNumber);
                     writer.WriteBoolean("sola_flag", true);
+                    writer.WritePropertyName("mixed_use_ttf_ranges");
+                    writer.WriteStartArray();
+                    writer.WriteStartObject();
+                    writer.WriteNumber("start", 3);
+                    writer.WriteNumber("stop", 128);
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();
                     writer.WriteStartArray("traffic_classes");
                     writer.WriteStartObject();
                     writer.WriteString("name", "traffic class 1");
