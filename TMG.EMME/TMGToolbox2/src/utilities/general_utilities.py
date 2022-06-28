@@ -1,4 +1,4 @@
-﻿"""
+"""
     Copyright 2015 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
@@ -52,9 +52,7 @@ class Face(_m.Tool()):
             branding_text="- TMG Toolbox",
         )
 
-        pb.add_text_element(
-            "To import, call inro.modeller.Modeller().module('%s')" % str(self)
-        )
+        pb.add_text_element("To import, call inro.modeller.Modeller().module('%s')" % str(self))
 
         return pb.render()
 
@@ -187,11 +185,7 @@ def getScenarioModes(scenario, types=["AUTO", "AUX_AUTO", "TRANSIT", "AUX_TRANSI
     currently undocumented).
         - @pkucirek 11/03/2014
     """
-    return [
-        (mode.id, mode.type, mode.description)
-        for mode in scenario.modes()
-        if mode.type in types
-    ]
+    return [(mode.id, mode.type, mode.description) for mode in scenario.modes() if mode.type in types]
 
 
 # -------------------------------------------------------------------------------------------
@@ -245,17 +239,12 @@ def initialize_matrix(
         try:
             id = "%s%s" % (_mtxNames[matrix_type], id)
         except KeyError:
-            raise TypeError(
-                "Matrix type '%s' is not a valid matrix type." % matrix_type
-            )
+            raise TypeError("Matrix type '%s' is not a valid matrix type." % matrix_type)
     elif "type" in dir(id):
         # If the matrix id is given as a matrix object
         t = id.type
         if not t in _mtxNames:
-            raise TypeError(
-                "Assumed id was a matrix, but its type value was not recognized %s"
-                % type(id)
-            )
+            raise TypeError("Assumed id was a matrix, but its type value was not recognized %s" % type(id))
         id = id.id  # Set the 'id' variable to the matrix's 'id' property.
     elif not isinstance(id, six.string_types):
         raise TypeError("Id is not a supported type: %s" % type(id))
@@ -269,15 +258,10 @@ def initialize_matrix(
             mtx.name = name[:40]
         if description:
             mtx.description = description[:80]
-        _m.logbook_write(
-            "Created new matrix %s: '%s' (%s)." % (id, mtx.name, mtx.description)
-        )
+        _m.logbook_write("Created new matrix %s: '%s' (%s)." % (id, mtx.name, mtx.description))
     else:
         if mtx.read_only:
-            raise _excep.ProtectionError(
-                "Cannot modify matrix '%s' as it is protected against modifications."
-                % id
-            )
+            raise _excep.ProtectionError("Cannot modify matrix '%s' as it is protected against modifications." % id)
 
         if not preserve_data:
             mtx.initialize(value=default)
@@ -285,10 +269,7 @@ def initialize_matrix(
             mtx.name = name[:6]
         if description and not preserve_description:
             mtx.description = description[:80]
-        _m.logbook_write(
-            "Initialized existing matrix %s: '%s' (%s)."
-            % (id, mtx.name, mtx.description)
-        )
+        _m.logbook_write("Initialized existing matrix %s: '%s' (%s)." % (id, mtx.name, mtx.description))
 
     return mtx
 
@@ -305,9 +286,7 @@ def getAvailableScenarioNumber():
         if _m.Modeller().emmebank.scenario(i + 1) is None:
             return i + 1
 
-    raise inro.emme.core.exception.CapacityError(
-        "No new scenarios are available: databank is full!"
-    )
+    raise inro.emme.core.exception.CapacityError("No new scenarios are available: databank is full!")
 
 
 # -------------------------------------------------------------------------------------------
@@ -322,9 +301,7 @@ TEMP_ATT_PREFIXES = {
 
 
 @contextmanager
-def temp_extra_attribute_manager(
-    scenario, domain, default=0.0, description=None, returnId=False
-):
+def temp_extra_attribute_manager(scenario, domain, default=0.0, description=None, returnId=False):
     """
     Creates a temporary extra attribute in a given scenario, yield-returning the
     attribute object. Designed to be used as a context manager, for cleanup
@@ -350,14 +327,10 @@ def temp_extra_attribute_manager(
 
     domain = str(domain).upper()
     if not domain in TEMP_ATT_PREFIXES:
-        raise TypeError(
-            "Domain '%s' is not a recognized extra attribute domain." % domain
-        )
+        raise TypeError("Domain '%s' is not a recognized extra attribute domain." % domain)
     prefix = TEMP_ATT_PREFIXES[domain]
 
-    existingAttributeSet = set(
-        [att.name for att in scenario.extra_attributes() if att.type == domain]
-    )
+    existingAttributeSet = set([att.name for att in scenario.extra_attributes() if att.type == domain])
 
     index = 1
     id = "@%s%s" % (prefix, index)
@@ -365,9 +338,7 @@ def temp_extra_attribute_manager(
         index += 1
         id = "@%s%s" % (prefix, index)
         if index > 999:
-            raise Exception(
-                "Scenario %s already has 999 temporary extra attributes" % scenario
-            )
+            raise Exception("Scenario %s already has 999 temporary extra attributes" % scenario)
     tempAttribute = scenario.create_extra_attribute(domain, id, default)
     msg = "Created temporary extra attribute %s in scenario %s" % (id, scenario)
     if description:
@@ -391,9 +362,7 @@ def temp_extra_attribute_manager(
 
 
 @contextmanager
-def temp_matrix_manager(
-    description="[No description]", matrix_type="FULL", default=0.0
-):
+def temp_matrix_manager(description="[No description]", matrix_type="FULL", default=0.0):
     """
     Creates a temporary matrix in a context manager.
 
@@ -438,29 +407,17 @@ def create_temp_attribute(
     attribute_type = str(attribute_type).upper()
     # check if the type provided is correct
     if attribute_type not in ATTRIBUTE_TYPES:
-        raise TypeError(
-            "Attribute type '%s' provided is not recognized." % attribute_type
-        )
+        raise TypeError("Attribute type '%s' provided is not recognized." % attribute_type)
     if len(attribute_id) > 18:
-        raise ValueError(
-            "Attribute id '%s' can only be 19 characters long with no spaces plus no '@'."
-            % attribute_id
-        )
+        raise ValueError("Attribute id '%s' can only be 19 characters long with no spaces plus no '@'." % attribute_id)
     prefix = str(attribute_id)
     attrib_id = ""
     if assignment_type == "transit":
-        temp_extra_attribute = process_transit_attribute(
-            scenario, prefix, attribute_type, default_value
-        )
+        temp_extra_attribute = process_transit_attribute(scenario, prefix, attribute_type, default_value)
     elif assignment_type == "traffic":
-        temp_extra_attribute = process_traffic_attribute(
-            scenario, prefix, attribute_type, default_value
-        )
+        temp_extra_attribute = process_traffic_attribute(scenario, prefix, attribute_type, default_value)
     else:
-        raise Exception(
-            "Attribute type is 'None' or 'invalid'."
-            "Type can only be either 'transit' or 'traffic'."
-        )
+        raise Exception("Attribute type is 'None' or 'invalid'." "Type can only be either 'transit' or 'traffic'.")
     attrib_id = temp_extra_attribute[1]
     msg = "Created temporary extra attribute %s in scenario %s" % (
         attrib_id,
@@ -473,23 +430,14 @@ def create_temp_attribute(
     return temp_extra_attribute[0]
 
 
-def process_transit_attribute(
-    scenario, transit_attrib_id, attribute_type, default_value
-):
+def process_transit_attribute(scenario, transit_attrib_id, attribute_type, default_value):
     if not transit_attrib_id.startswith("@"):
         transit_attrib_id = "@" + transit_attrib_id
     checked_extra_attribute = scenario.extra_attribute(transit_attrib_id)
     if checked_extra_attribute == None:
-        temp_transit_attrib = scenario.create_extra_attribute(
-            attribute_type, transit_attrib_id, default_value
-        )
-    elif (
-        checked_extra_attribute != None
-        and checked_extra_attribute.type != attribute_type
-    ):
-        raise Exception(
-            "Attribute %s already exist or has some issues!" % transit_attrib_id
-        )
+        temp_transit_attrib = scenario.create_extra_attribute(attribute_type, transit_attrib_id, default_value)
+    elif checked_extra_attribute != None and checked_extra_attribute.type != attribute_type:
+        raise Exception("Attribute %s already exist or has some issues!" % transit_attrib_id)
     else:
         temp_transit_attrib = scenario.extra_attribute(transit_attrib_id)
         temp_transit_attrib.initialize(default_value)
@@ -506,9 +454,7 @@ def process_traffic_attribute(scenario, prefix, attribute_type, default_value):
                 traffic_attrib_id = "@%s%s" % (prefix, suffix)
 
             if scenario.extra_attribute(traffic_attrib_id) is None:
-                temp_traffic_attrib = scenario.create_extra_attribute(
-                    attribute_type, traffic_attrib_id, default_value
-                )
+                temp_traffic_attrib = scenario.create_extra_attribute(attribute_type, traffic_attrib_id, default_value)
                 break
     else:
         traffic_attrib_id = prefix
@@ -518,9 +464,7 @@ def process_traffic_attribute(scenario, prefix, attribute_type, default_value):
             traffic_attrib_id = "@%s" % (prefix)
 
         if scenario.extra_attribute(traffic_attrib_id) is None:
-            temp_traffic_attrib = scenario.create_extra_attribute(
-                attribute_type, traffic_attrib_id, default_value
-            )
+            temp_traffic_attrib = scenario.create_extra_attribute(attribute_type, traffic_attrib_id, default_value)
             _m.logbook_write("Created extra attribute '@tvph'")
         else:
             temp_traffic_attrib = scenario.extra_attribute(traffic_attrib_id)
@@ -555,9 +499,7 @@ def temporary_attribute_manager(scenario):
         for temp_attribute in temp_attribute_list:
             if temp_attribute is not None:
                 scenario.delete_extra_attribute(temp_attribute.id)
-                _m.logbook_write(
-                    "Deleted temporary '%s' link attribute" % temp_attribute.id
-                )
+                _m.logbook_write("Deleted temporary '%s' link attribute" % temp_attribute.id)
 
 
 # -------------------------------------------------------------------------------------------
@@ -592,16 +534,14 @@ def fastLoadTransitSegmentAttributes(scenario, list_of_attribtues):
     """
     major, minor, release = get_emme_version(tuple)
     if (major, minor, release) >= (4, 1, 2):
-        raise Exception(
-            "fastLoadTransitSegmentAttributes is deprecated in Emme 4.1.2 or newer versions!"
-        )
+        raise Exception("fastLoadTransitSegmentAttributes is deprecated in Emme 4.1.2 or newer versions!")
 
     retval = {}
     root_data = scenario.get_attribute_values("TRANSIT_SEGMENT", list_of_attribtues)
     indices = root_data[0]
     values = root_data[1:]
 
-    for lineId, segmentIndices in indices.iteritems():
+    for lineId, segmentIndices in indices.items():
         segments = []
 
         for number, dataIndex in enumerate(segmentIndices[1]):
@@ -644,11 +584,11 @@ def fastLoadSummedSegmentAttributes(scenario, list_of_attributes):
 
     major, minor, release, beta = get_emme_version(tuple)
     if (major, minor, release) >= (4, 1, 2):
-        get_iter = lambda segmentIndices: segmentIndices.iteritems()
+        get_iter = lambda segmentIndices: segmentIndices.items()
     else:
         get_iter = lambda segmentIndices: itersync(*segmentIndices)
 
-    for lineId, segmentIndices in indices.iteritems():
+    for lineId, segmentIndices in indices.items():
         line = {"id": lineId}
 
         for iNode, dataRow in get_iter(segmentIndices):
@@ -690,7 +630,7 @@ def fastLoadTransitLineAttributes(scenario, list_of_attributes):
     indices = root_data[0]
     values = root_data[1:]
 
-    for lineId, dataIndex in indices.iteritems():
+    for lineId, dataIndex in indices.items():
         line = {"id": lineId}
 
         for attIndex, attName in enumerate(list_of_attributes):
@@ -724,8 +664,8 @@ def fastLoadLinkAttributes(scenario, list_of_attributes):
     attribute_tables = package[1:]
 
     retval = {}
-    for i_node, outgoing_links in indices.iteritems():
-        for j_node, index in outgoing_links.iteritems():
+    for i_node, outgoing_links in indices.items():
+        for j_node, index in outgoing_links.items():
             link = i_node, j_node
             attributes = {"i_node": i_node, "j_node": j_node}
             for att_name, table in itersync(list_of_attributes, attribute_tables):
@@ -895,12 +835,7 @@ class IntRange:
         return len(self)
 
     def overlaps(self, otherRange):
-        return (
-            otherRange.min in self
-            or otherRange.max in self
-            or self.max in otherRange
-            or self.min in otherRange
-        )
+        return otherRange.min in self or otherRange.max in self or self.max in otherRange or self.min in otherRange
 
 
 # -------------------------------------------------------------------------------------------
@@ -926,12 +861,7 @@ class FloatRange:
         return abs(self.max - self.min)
 
     def overlaps(self, otherRange):
-        return (
-            otherRange.min in self
-            or otherRange.max in self
-            or self.max in otherRange
-            or self.min in otherRange
-        )
+        return otherRange.min in self or otherRange.max in self or self.max in otherRange or self.min in otherRange
 
     def __str__(self):
         return "%s - %s" % (self.min, self.max)
@@ -1052,10 +982,7 @@ class progress_tracker:
             return (
                 0,
                 1000,
-                self._progress
-                + self._taskIncr
-                * float(self._completedSubtasks)
-                / float(self._subTasks),
+                self._progress + self._taskIncr * float(self._completedSubtasks) / float(self._subTasks),
             )
         else:
             return (0, 1000, self._progress)
@@ -1074,13 +1001,7 @@ class CSVReader:
 
         # Clean up special characters
         for i in range(len(self.header)):
-            self.header[i] = (
-                self.header[i]
-                .replace(" ", "_")
-                .replace("@", "")
-                .replace("+", "")
-                .replace("*", "")
-            )
+            self.header[i] = self.header[i].replace(" ", "_").replace("@", "").replace("+", "").replace("*", "")
 
         self.__lincount = 1
 
@@ -1184,10 +1105,7 @@ EMME_VERSION is a tuple, scenario is the scenario object.
 
 
 def DetermineAnalyzedTransitDemandId(EMME_VERSION, scenario):
-    configPath = (
-        dirname(_MODELLER.desktop.project_file_name())
-        + "/Database/STRATS_s%s/config" % scenario
-    )
+    configPath = dirname(_MODELLER.desktop.project_file_name()) + "/Database/STRATS_s%s/config" % scenario
     with open(configPath) as reader:
         config = _parsedict(reader.read())
 
@@ -1201,17 +1119,13 @@ def DetermineAnalyzedTransitDemandId(EMME_VERSION, scenario):
             multiclass = "no"
         strat = config["strat_files"]
         demandMatrices = {}
-        if (
-            data["type"] == "MULTICLASS_TRANSIT_ASSIGNMENT"
-        ):  # multiclass extended transit assignment
+        if data["type"] == "MULTICLASS_TRANSIT_ASSIGNMENT":  # multiclass extended transit assignment
             for i in range(len(strat)):
                 demandMatrices[strat[i]["name"]] = strat[i]["data"]["demand"]
             return demandMatrices
         elif multiclass == "yes":  # multiclass congested assignment
             for i in range(len(data["classes"])):
-                demandMatrices[data["classes"][i]["name"]] = data["classes"][i][
-                    "demand"
-                ]
+                demandMatrices[data["classes"][i]["name"]] = data["classes"][i]["demand"]
             return demandMatrices
         else:  # non multiclass congested
             strats = scenario.transit_strategies
