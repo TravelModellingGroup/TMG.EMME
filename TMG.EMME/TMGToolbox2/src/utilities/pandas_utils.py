@@ -82,8 +82,8 @@ try:
         tables = data_pack[1:]
 
         link_indexer = {}
-        for i, outgoing_data in data_positions.iteritems():
-            for j, pos in outgoing_data.iteritems():
+        for i, outgoing_data in data_positions.items():
+            for j, pos in outgoing_data.items():
                 link_indexer[(i, j)] = pos
         link_indexer = pd.Series(link_indexer)
         link_indexer.index.names = "i j".split()
@@ -120,8 +120,8 @@ try:
         turn_index = []
         indexer_values = []
 
-        for (i, j), outgoing_data in index_data.iteritems():
-            for k, pos in outgoing_data.iteritems():
+        for (i, j), outgoing_data in index_data.items():
+            for k, pos in outgoing_data.items():
                 turn_index.append((i, j, k))
                 indexer_values.append(pos)
         if len(turn_index) == 0:
@@ -247,8 +247,8 @@ try:
         tables = package[1:]
 
         segment_indexer = {}
-        for line, segment_data in index_data.iteritems():
-            for tupl, pos in segment_data.iteritems():
+        for line, segment_data in index_data.items():
+            for tupl, pos in segment_data.items():
                 if len(tupl) == 3:
                     i, j, loop = tupl
                 else:

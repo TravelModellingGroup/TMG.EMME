@@ -33,7 +33,7 @@ namespace TMG.Emme.Test.Convert
         public void ConvertBetweenNCSScenarios()
         {
             const int scenarioNumber = 1;
-            Helper.ImportNetwork(scenarioNumber, "TestFiles/base_network.nwp");
+            Helper.ImportNetwork(scenarioNumber, "TestFiles/test.nwp");
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Convert.convert_between_ncs_scenarios",
                 JSONParameterBuilder.BuildParameters(writer =>
@@ -49,7 +49,10 @@ namespace TMG.Emme.Test.Convert
                     writer.WriteString("transit_line_codes", "TestFiles/transit_line_codes.csv");
                     writer.WriteBoolean("skip_missing_transit_lines", false);
                 }), LogbookLevel.Standard));
+            Helper.ExportNetwork(scenarioNumber, "TestFiles/ncs_test.nwp");
         }
+
+
         [TestMethod]
         public void ConvertBetweenNCSScenariosModule()
         {
