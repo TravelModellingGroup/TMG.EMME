@@ -995,8 +995,7 @@ class AssignTransit(_m.Tool()):
             boarding_duration = stsu["boarding_duration"]
             alighting_duration = stsu["alighting_duration"]
             default_duration = stsu["default_duration"]
-
-            door_pairs = max(1.0, segment.line["@doors"] / 2.0) if has_doors else 1.0
+            door_pairs = line["@doors"] / 2.0 if has_doors and line["@doors"] != 0.0 else 1.0
             inv_door_pair_runs = 1.0 / (door_pairs * parameters["assignment_period"] * 60.0 / line.headway)
             prev_volume = 0.0
             for segment in line.segments(include_hidden=False):

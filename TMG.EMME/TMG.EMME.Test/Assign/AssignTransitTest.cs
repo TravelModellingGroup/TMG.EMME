@@ -32,7 +32,7 @@ namespace TMG.Emme.Test.Assign
 
         private static void RunAssignTransitToolPipeline(string toolNamespace, int scenarioNumber, string description = "toolbox2")
         {
-            Helper.ImportNetwork(scenarioNumber, "TestFiles/Test.nwp", description);
+            Helper.ImportNetwork(scenarioNumber, "TestFiles/test.nwp", description);
             Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
             Helper.RunAssignTraffic(scenarioNumber, "mf10", 11);
             Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/TestHighDemand.mtx"));
@@ -106,7 +106,25 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteStartObject();
                     writer.WriteNumber("congestion_exponent", 1.1f);
                     writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 3);
+                    writer.WriteEndObject();
+
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 1.1f);
+                    writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 5);
+                    writer.WriteEndObject();
+
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 1.1f);
+                    writer.WriteNumber("congestion_perception", 1);
                     writer.WriteNumber("ttf", 4);
+                    writer.WriteEndObject();
+
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 1.1f);
+                    writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 6);
                     writer.WriteEndObject();
 
                     writer.WriteEndArray();
