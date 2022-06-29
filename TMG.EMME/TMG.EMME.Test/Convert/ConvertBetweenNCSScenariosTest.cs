@@ -33,20 +33,27 @@ namespace TMG.Emme.Test.Convert
         public void ConvertBetweenNCSScenarios()
         {
             const int scenarioNumber = 1;
-            Helper.ImportNetwork(scenarioNumber, "TestFiles/base_network.nwp");
+            const int writeToScenario = 2;
+            Helper.ImportNetwork(scenarioNumber, "TestFiles/test.nwp");
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Convert.convert_between_ncs_scenarios",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("old_ncs_scenario", scenarioNumber);
-                    writer.WriteNumber("new_ncs_scenario", 2);
+                    writer.WriteNumber("new_ncs_scenario", writeToScenario);
                     writer.WriteString("station_centroid_file", "TestFiles/station_centriods.csv");
                     writer.WriteString("zone_centroid_file", "TestFiles/zone_centriods.csv");
                     writer.WriteString("mode_code_definitions", "TestFiles/mode_code_definitions.csv");
                     writer.WriteString("link_attributes", "TestFiles/link_attributes.csv");
                     writer.WriteString("transit_vehicle_definitions", "TestFiles/transit_vehicles.csv");
+                    writer.WriteString("lane_capacities", "TestFiles/lane_capacities.csv");
+                    writer.WriteString("transit_line_codes", "TestFiles/transit_line_codes.csv");
+                    writer.WriteBoolean("skip_missing_transit_lines", false);
                 }), LogbookLevel.Standard));
+            Helper.ExportNetwork(writeToScenario, "TestFiles/ncs_test.nwp");
         }
+
+
         [TestMethod]
         public void ConvertBetweenNCSScenariosModule()
         {
@@ -60,6 +67,9 @@ namespace TMG.Emme.Test.Convert
                 ZoneCentroidFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/zone_centriods.csv")),
                 LinkAttributes = Helper.CreateParameter(Path.GetFullPath("TestFiles/link_attributes.csv")),
                 TransitVehicleFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/transit_vehicles.csv")),
+                LaneCapacityFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/lane_capacities.csv")),
+                TransitLineFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/transit_line_codes.csv")),
+                SkipMissingTransitLines = Helper.CreateParameter(false)
             };
             module.Invoke(Helper.Modeller);
         }

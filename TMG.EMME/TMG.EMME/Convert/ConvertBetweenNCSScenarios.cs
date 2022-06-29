@@ -51,6 +51,15 @@ namespace TMG.Emme.Convert
         [Parameter(Name = "Transit Vehicle Definition File", Description = "",
             Index = 6)]
         public IFunction<string> TransitVehicleFile;
+        [Parameter(Name = "Lane Capacity File", Description = "",
+            Index = 7)]
+        public IFunction<string> LaneCapacityFile;
+        [Parameter(Name = "Transit Line File", Description = "FilePath to the transit line csv file",
+            Index = 8)]
+        public IFunction<string> TransitLineFile;
+        [Parameter(Name = "Skip Missing Transit Lines", Description = "Boolean to skip the transit lines",
+            Index = 9)]
+        public IFunction<bool> SkipMissingTransitLines;
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Convert.convert_between_ncs_scenarios", JSONParameterBuilder.BuildParameters(writer =>
@@ -62,6 +71,9 @@ namespace TMG.Emme.Convert
                 writer.WriteString("mode_code_definitions", Path.GetFullPath(ModeCodeDefinition.Invoke()));
                 writer.WriteString("link_attributes", Path.GetFullPath(LinkAttributes.Invoke()));
                 writer.WriteString("transit_vehicle_definitions", Path.GetFullPath(TransitVehicleFile.Invoke()));
+                writer.WriteString("lane_capacities", Path.GetFullPath(LaneCapacityFile.Invoke()));
+                writer.WriteString("transit_line_codes", Path.GetFullPath(TransitLineFile.Invoke()));
+                writer.WriteBoolean("skip_missing_transit_lines", SkipMissingTransitLines.Invoke());
             }), LogbookLevel.Standard);
         }
     }
