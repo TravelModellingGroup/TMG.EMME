@@ -220,10 +220,10 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         """
         with self.open_csv_reader(parameters["zone_centroid_file"]) as zone_centroid_file:
             for centroid_range in zone_centroid_file:
-                old_centroid_starts = int(centroid_range[1].strip())
-                old_centroid_ends = int(centroid_range[2].strip())
-                new_centroid_starts = int(centroid_range[3].strip())
-                new_centroid_ends = int(centroid_range[4].strip())
+                old_centroid_starts = int(centroid_range[1])
+                old_centroid_ends = int(centroid_range[2])
+                new_centroid_starts = int(centroid_range[3])
+                new_centroid_ends = int(centroid_range[4])
                 old_centroid_range = range(old_centroid_starts, old_centroid_ends + 1)
                 new_centroid_range = range(new_centroid_starts, new_centroid_ends + 1)
                 for centroid in old_centroid_range:
@@ -238,8 +238,8 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         """
         with self.open_csv_reader(parameters["station_centroid_file"]) as station_centroid_file:
             for centroid in station_centroid_file:
-                old_station_centroid = int(centroid[2].strip())
-                new_station_centroid = int(centroid[3].strip())
+                old_station_centroid = int(centroid[2])
+                new_station_centroid = int(centroid[3])
                 if old_station_centroid <= 0 or new_station_centroid <= 0:
                     continue
                 old_centroid_list.append(old_station_centroid)
@@ -272,8 +272,8 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 for mode in network.modes():
                     if str(mode.id) == old_mode_id:
                         description = str(mode_list[0])
-                        mode_type = str(mode_list[1].strip())
-                        new_mode_id = str(mode_list[3].strip())
+                        mode_type = str(mode_list[1])
+                        new_mode_id = str(mode_list[3])
                         mode.id = new_mode_id
                         if mode.type != mode_type:
                             raise Exception('There is an issue with mode type "%s"' % mode_list)
@@ -287,7 +287,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         attribute_type = self.check_attribute_type(attribute_type)
         with self.open_csv_reader(attributes_file_name) as attributes_file:
             for attrib_list in attributes_file:
-                new_attribute_id = str(attrib_list[0].strip())
+                new_attribute_id = str(attrib_list[0])
                 new_description = str(attrib_list[1])
                 if not new_attribute_id.startswith("@"):
                     new_attribute_id = "@" + new_attribute_id
@@ -342,14 +342,14 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         with self.open_csv_reader(parameters["transit_vehicle_definitions"]) as transit_op_file:
             for item in transit_op_file:
                 # get the vehicle id using the ncs16 standard code
-                id = self.filter_mode(item[1].strip(), network)
+                id = self.filter_mode(item[1], network)
                 # run the copy_data function to change the data
                 self.copy_data(
                     id=id,
-                    code=item[6].strip(),
-                    seated_capacity=item[8].strip(),
-                    total_capacity=item[9].strip(),
-                    auto_equivalent=item[10].strip(),
+                    code=item[6],
+                    seated_capacity=item[8],
+                    total_capacity=item[9],
+                    auto_equivalent=item[10],
                     network=network,
                 )
 
@@ -359,8 +359,8 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         """
         with self.open_csv_reader(parameters["lane_capacities"]) as lane_capacity_file:
             for line in lane_capacity_file:
-                vdf = int(line[0].strip())
-                new_lane_capacity = int(line[1].strip())
+                vdf = int(line[0])
+                new_lane_capacity = int(line[1])
                 for link in network.links():
                     volume_delay_func = int(link.volume_delay_func)
                     if vdf == volume_delay_func:
