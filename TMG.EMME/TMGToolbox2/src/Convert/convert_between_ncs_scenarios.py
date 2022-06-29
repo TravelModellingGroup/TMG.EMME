@@ -31,47 +31,41 @@ _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 
+
 class ConvertBetweenNCSScenarios(_m.Tool()):
     version = "0.0.1"
     number_of_tasks = 1
     tool_run_msg = ""
 
-    #Emme modeller gui input parameters
-    OldNcsScenario = _m.Attribute(_m.InstanceType) #_m.Attribute(int)
-    NewNcsScenario = _m.Attribute(_m.InstanceType) #_m.Attribute(int)
+    # Emme modeller gui input parameters
+    OldNcsScenario = _m.Attribute(_m.InstanceType)
+    NewNcsScenario = _m.Attribute(_m.InstanceType)
     StationCentroidFile = _m.Attribute(str)
     ZoneCentroidFile = _m.Attribute(str)
     ModeCodeDefinitionsFile = _m.Attribute(str)
-    LinkAttributesFile  = _m.Attribute(str)
+    LinkAttributesFile = _m.Attribute(str)
     TransitVehicleDefinitionsFile = _m.Attribute(str)
     LaneCapacitiesFile = _m.Attribute(str)
     TransitLineCodeFile = _m.Attribute(str)
     SkipMissingTransitLines = _m.Attribute(bool)
-    
+
     def __init__(self):
         self.TRACKER = _util.progress_tracker(self.number_of_tasks)
 
     def page(self):
         pb = _tmgTPB.TmgToolPageBuilder(
-            self, 
-            title="Convert Network v%s" %self.version,
+            self,
+            title="Convert Network v%s" % self.version,
             description="Converts a network from NCS16 to the NCS22 standard.",
-            branding_text="- TMG Toolbox 2")
-            
+            branding_text="- TMG Toolbox 2",
+        )
+
         if self.tool_run_msg != "":  # to display messages in the page
             pb.tool_run_status(self.tool_run_msg_status)
 
         # add the inputs to the page
-        pb.add_select_scenario(
-            tool_attribute_name="OldNcsScenario",
-            title="Old NCS Scenario",
-            allow_none=False
-        )
-        pb.add_select_scenario(
-            tool_attribute_name="NewNcsScenario",
-            title="New NCS Scenario",
-            allow_none=False
-        )
+        pb.add_select_scenario(tool_attribute_name="OldNcsScenario", title="Old NCS Scenario", allow_none=False)
+        pb.add_select_scenario(tool_attribute_name="NewNcsScenario", title="New NCS Scenario", allow_none=False)
         pb.add_select_file(
             tool_attribute_name="StationCentroidFile",
             window_type="file",
@@ -127,17 +121,17 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         # build the data as a python dictionary
         scenario = _MODELLER.emmebank.scenario(self.OldNcsScenario)
         parameters = {
-                "old_ncs_scenario": _MODELLER.emmebank.scenario(self.OldNcsScenario),
-                "new_ncs_scenario": _MODELLER.emmebank.scenario(self.NewNcsScenario),
-                "station_centroid_file": self.StationCentroidFile,
-                "zone_centroid_file": self.ZoneCentroidFile,
-                "mode_code_definitions": self.ModeCodeDefinitionsFile,
-                "link_attributes": self.LinkAttributesFile,
-                "transit_vehicle_definitions": self.TransitVehicleDefinitionsFile,
-                "lane_capacities": self.LaneCapacitiesFile,
-                "transit_line_codes": self.TransitLineCodeFile,
-                "skip_missing_transit_lines": self.SkipMissingTransitLines
-            }
+            "old_ncs_scenario": _MODELLER.emmebank.scenario(self.OldNcsScenario),
+            "new_ncs_scenario": _MODELLER.emmebank.scenario(self.NewNcsScenario),
+            "station_centroid_file": self.StationCentroidFile,
+            "zone_centroid_file": self.ZoneCentroidFile,
+            "mode_code_definitions": self.ModeCodeDefinitionsFile,
+            "link_attributes": self.LinkAttributesFile,
+            "transit_vehicle_definitions": self.TransitVehicleDefinitionsFile,
+            "lane_capacities": self.LaneCapacitiesFile,
+            "transit_line_codes": self.TransitLineCodeFile,
+            "skip_missing_transit_lines": self.SkipMissingTransitLines,
+        }
 
         try:
             self._execute(scenario, parameters)
@@ -146,8 +140,11 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
             raise
 
         self.tool_run_msg = _m.PageBuilder.format_info("Tool is completed.")
-        
+
     def __call__(self, parameters):
+        """
+        Method to run the tool using the Python API call
+        """
         scenario = _util.load_scenario(parameters["old_ncs_scenario"])
         try:
             self._execute(scenario, parameters)
@@ -157,6 +154,9 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         self.tool_run_msg = _m.PageBuilder.format_info("Tool is completed.")
 
     def run_xtmf(self, parameters):
+        """
+        Method to run the tool using the XTMF2
+        """
         old_ncs_scenario = _util.load_scenario(parameters["old_ncs_scenario"])
         try:
             self._execute(old_ncs_scenario, parameters)
@@ -185,6 +185,9 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         )
 
     def update_zone_centroid_numbers(self, network, centroid_dict):
+        """
+        Updates zone centroid numbers on the network, Using dictionary created in create_mapped_centroid_dict()
+        """
         nodes_list = []
         for item in network.nodes():
             nodes_list.append(int(item))
@@ -199,6 +202,9 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 centroid_to_update.number = centroid_dict[old_centroid_node]
 
     def copy_ncs_scenario(self, parameters, network, title="New_NCS_Scenario"):
+        """
+        Copies one scenario to another.
+        """
         new_ncs_scenario = _bank.scenario(parameters["new_ncs_scenario"])
         if new_ncs_scenario != None:
             _bank.delete_scenario(new_ncs_scenario)
@@ -208,6 +214,10 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         return new_ncs_scenario
 
     def update_centroid_lists_with_zone_centroids(self, parameters, old_centroid_list, new_centroid_list):
+        """
+        Creates a list of all zone centroids. Used by create mapped centroid dict to create a complete
+        dictionary of all old and new centroids of interest
+        """
         with self.open_csv_reader(parameters["zone_centroid_file"]) as zone_centroid_file:
             for centroid_range in zone_centroid_file:
                 old_centroid_starts = int(centroid_range[1].strip())
@@ -222,6 +232,10 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                     new_centroid_list.append(centroid)
 
     def update_centroid_lists_with_station_centroids(self, parameters, old_centroid_list, new_centroid_list):
+        """
+        Creates a list of all station centroids. Used by create mapped centroid dict to create a complete
+        dictionary of all old and new centroids of interest
+        """
         with self.open_csv_reader(parameters["station_centroid_file"]) as station_centroid_file:
             for centroid in station_centroid_file:
                 old_station_centroid = int(centroid[2].strip())
@@ -232,6 +246,9 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 new_centroid_list.append(new_station_centroid)
 
     def create_mapped_centroid_dict(self, parameters):
+        """
+        Creates a dictionary of all station and zone centroids provided in CSV file containing old and new centroid list
+        """
         centroid_dict = {}
         old_centroid_list = []
         new_centroid_list = []
@@ -243,6 +260,10 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         return centroid_dict
 
     def update_mode_code_definitions(self, parameters, network):
+        """
+        Reads CSV of old and new mode definitions, and updates them on the network.
+        NOTE: Emme allows description of the mode, up to 10 characters.
+        """
         with self.open_csv_reader(parameters["mode_code_definitions"]) as mode_code_file:
             for mode_list in mode_code_file:
                 old_mode_id = str(mode_list[2])
@@ -256,10 +277,13 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                         mode.id = new_mode_id
                         if mode.type != mode_type:
                             raise Exception('There is an issue with mode type "%s"' % mode_list)
-                        # Emme allows description of the mode, up to 10 characters.
                         mode.description = description[:10]
 
     def update_extra_attributes(self, scenario, attribute_type, attributes_file_name, default_value=0):
+        """
+        Reads CSV of old and new attributes, and updates them on the network.
+        NOTE: maximum length of description is 40 characters
+        """
         attribute_type = self.check_attribute_type(attribute_type)
         with self.open_csv_reader(attributes_file_name) as attributes_file:
             for attrib_list in attributes_file:
@@ -270,7 +294,6 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 checked_extra_attribute = scenario.extra_attribute(new_attribute_id)
                 if checked_extra_attribute == None:
                     new_attribute = scenario.create_extra_attribute(attribute_type, new_attribute_id, default_value)
-                    # maximum length of description is 40 characters
                     new_attribute.description = new_description[:40]
                 elif checked_extra_attribute != None and checked_extra_attribute.type != attribute_type:
                     raise Exception("Attribute %s already exist or has some issues!" % new_attribute_id)
@@ -278,9 +301,12 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                     continue
 
     def check_attribute_type(self, attribute_type):
+        """
+        checks if the attribute type provided is correct
+        """
         ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
         attribute_type = str(attribute_type).upper()
-        # check if the type provided is correct
+
         if attribute_type not in ATTRIBUTE_TYPES:
             raise TypeError("Attribute type '%s' provided is not recognized." % attribute_type)
         return attribute_type
@@ -328,6 +354,9 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 )
 
     def update_lane_capacity(self, parameters, network):
+        """
+        Updates the lane capacity by referencing the VDF on the line.
+        """
         with self.open_csv_reader(parameters["lane_capacities"]) as lane_capacity_file:
             for line in lane_capacity_file:
                 vdf = int(line[0].strip())
@@ -354,6 +383,11 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
 
     @contextmanager
     def open_csv_reader(self, file_path):
+        """
+        Open, reads and manages a CSV file
+        NOTE: Does not return the first line of the CSV file
+            Assumption is that the first row is the title of each field
+        """
         csv_file = open(file_path, mode="r")
         file = csv.reader(csv_file)
         next(file)
