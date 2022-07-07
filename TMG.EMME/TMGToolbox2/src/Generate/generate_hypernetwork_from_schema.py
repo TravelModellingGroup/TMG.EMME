@@ -1026,7 +1026,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 )
             elif typ == "transfer":
                 self._apply_transfer_boarding_fare(
-                    fare_element, group_ids_2_int, group_transfer_grid, link_fare_attribute
+                    fare_element, group_ids_2_int, group_transfer_grid, link_fare_attribute, zone_ids_2_int
                 )
             elif typ == "distance_in_vehicle":
                 self._apply_fare_by_distance(
@@ -1074,7 +1074,9 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                         count += 1
             _write("Applied to %s links." % count)
 
-    def _apply_transfer_boarding_fare(self, fare_element, group_ids_2_int, transfer_grid, link_fare_attribute):
+    def _apply_transfer_boarding_fare(
+        self, fare_element, group_ids_2_int, transfer_grid, link_fare_attribute, zone_ids_2_int
+    ):
         cost = float(fare_element.attrib["cost"])
 
         with _trace("Transfer Boarding Fare of %s" % cost):
@@ -1090,14 +1092,26 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 _write("Bidirectional: %s" % bi_directional)
             else:
                 bi_directional = False
+
+            in_zone_element = fare_element.find("in_zone")
+            if in_zone_element is not None:
+                zone_id = in_zone_element.text
+                zone_number = zone_ids_2_int[zone_id]
+                _write("In zone: %s" % zone_id)
+                check_link = lambda link: link.i_node.fare_zone == zone_number
+            else:
+                check_link = lambda link: True
+
             count = 0
             for link in transfer_grid[from_number, to_number]:
-                link[link_fare_attribute] += cost
-                count += 1
-            if bi_directional:
-                for link in transfer_grid[to_number, from_number]:
+                if check_link(link):
                     link[link_fare_attribute] += cost
                     count += 1
+            if bi_directional:
+                for link in transfer_grid[to_number, from_number]:
+                    if check_link(link):
+                        link[link_fare_attribute] += cost
+                        count += 1
             _write("Applied to %s links." % count)
 
     def _apply_fare_by_distance(self, fare_element, group_ids_2_int, lines_id_exed_by_group, segment_fare_attribute):
