@@ -134,12 +134,14 @@ namespace TMG.Emme.Generate
                 writer.WriteString("start_time", StartTime.Invoke());
                 writer.WriteString("end_time", EndTime.Invoke());
                 writer.WriteString("scenario_network_update_file", ScenarioNetworkUpdateFile.Invoke());
+                writer.WriteEndObject();
             }
         }
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Generate.generate_full_network_set", JSONParameterBuilder.BuildParameters(writer =>
             {
+                writer.WriteStartObject();
                 writer.WriteNumber("base_scenario_number", BaseScenarioNumber.Invoke());
                 writer.WriteString("transit_service_table_file", Path.GetFullPath(TransitServiceTableFile.Invoke()));
                 writer.WriteString("attribute_aggregator", AttributeAggregator.Invoke());
@@ -165,6 +167,7 @@ namespace TMG.Emme.Generate
                     additionalTransitAlternativeTable.Invoke().WriteParameters(writer);
                 }
                 writer.WriteEndArray();
+                writer.WriteEndObject();
 
             }), LogbookLevel.Standard);
         }
