@@ -86,7 +86,6 @@ namespace TMG.Emme.Generate
 
         [Module(Name = "Additional Transit Alternative Table Time Periods", Description = "",
             DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-
         public class AdditionalTransitAlternativeTable : XTMF2.IModule
         {
             [Parameter(Name = "Alternative Table File", Description = "",
@@ -111,7 +110,6 @@ namespace TMG.Emme.Generate
 
         [Module(Name = "Time Periods", Description = "Time periods to consider.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-
         public class TimePeriod : XTMF2.IModule
         {
             [Parameter(Name = "Uncleaned Scenario Number", Description = "The scenario number for the uncleaned network",
