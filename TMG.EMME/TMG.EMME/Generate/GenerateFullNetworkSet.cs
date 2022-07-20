@@ -28,7 +28,6 @@ namespace TMG.Emme.Generate
 {
     [Module(Name = "Generate Full Network Set", Description = "",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-
     public class GenerateFullNetworkSet : BaseAction<ModellerController>
     {
         [Parameter(Name = "BaseScenarioNumber", Description = "The scenario number for the base network.",
