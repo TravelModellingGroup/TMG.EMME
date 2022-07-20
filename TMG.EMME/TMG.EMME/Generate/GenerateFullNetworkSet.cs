@@ -28,6 +28,7 @@ namespace TMG.Emme.Generate
 {
     [Module(Name = "Generate Full Network Set", Description = "",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+
     public class GenerateFullNetworkSet : BaseAction<ModellerController>
     {
         [Parameter(Name = "BaseScenarioNumber", Description = "The scenario number for the base network.",
@@ -74,7 +75,8 @@ namespace TMG.Emme.Generate
         [SubModule(Name = "Additional Transit Alternative Tables", Description = "Additional files containing how to modify transit schedules. Each will be applied in order.", Index = 14)]
         public IFunction<AdditionalTransitAlternativeTable>[] AdditionalTransitAlternativeTables;
         [Module(Name = "Additional Transit Alternative Table Time Periods", Description = "",
-       DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+            DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+
         public class AdditionalTransitAlternativeTable : XTMF2.IModule
         {
             [Parameter(Name = "Alternative Table File", Description = "",
@@ -93,8 +95,10 @@ namespace TMG.Emme.Generate
                 writer.WriteEndObject();
             }
         }
+
         [Module(Name = "Time Periods", Description = "Time periods to consider.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+
         public class TimePeriod : XTMF2.IModule
         {
             [Parameter(Name = "Uncleaned Scenario Number", Description = "The scenario number for the uncleaned network",
@@ -119,10 +123,12 @@ namespace TMG.Emme.Generate
                 Index = 6)]
             public IFunction<string> ScenarioNetworkUpdateFile;
             public string Name { get; set; }
+
             public bool RuntimeValidation(ref string error)
             {
                 return true;
             }
+
             public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
             {
                 writer.WriteStartObject();
@@ -137,6 +143,7 @@ namespace TMG.Emme.Generate
                 writer.WriteEndObject();
             }
         }
+
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Generate.generate_full_network_set", JSONParameterBuilder.BuildParameters(writer =>
