@@ -90,6 +90,7 @@ namespace TMG.Emme.Generate
                 writer.WriteStartObject();
                 writer.WriteString("name", Name);
                 writer.WriteString("alternative_table_file", AlternativeTableFile.Invoke());
+                writer.WriteEndObject();
             }
         }
         [Module(Name = "Time Periods", Description = "Time periods to consider.",
