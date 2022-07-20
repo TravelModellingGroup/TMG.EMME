@@ -34,46 +34,57 @@ namespace TMG.Emme.Generate
         [Parameter(Name = "BaseScenarioNumber", Description = "The scenario number for the base network.",
             Index = 0)]
         public IFunction<int> BaseScenarioNumber;
+
         [Parameter(Name = "Transit Service Table File", Description = "A link to the file containing transit service data.",
                 Index = 1)]
         public IFunction<string> TransitServiceTableFile;
+
         [Parameter(Name = "Attribute Aggregator", Description = "The formatted string to aggregate attributes.",
             Index = 2)]
         public IFunction<string> AttributeAggregator;
+
         [Parameter(Name = "Connector Filter Attribute", Description = "The name of the attribute to use as a filter.",
             Index = 3)]
         public IFunction<string> ConnectorFilterAttribute;
+
         [Parameter(Name = "Default Aggregation", Description = "The name of the attribute to use as a filter.",
             Index = 4)]
         public IFunction<string> DefaultAggregation;
+
         [Parameter(Name = "Line Filter Expression", Description = "The formatted string to use as an expression to filter lines. Leave blank to skip prorating transit speeds.",
             Index = 5)]
         public IFunction<string> LineFilterExpression;
+
         [Parameter(Name = "NodeFilterAttribute", Description = "A string of the transfer mode IDs.",
             Index = 6)]
         public IFunction<string> NodeFilterAttribute;
+
         [Parameter(Name = "Stop Filter Attribute", Description = "The name of the attribute to use as a filter.",
             Index = 7)]
         public IFunction<string> StopFilterAttribute;
+
         [Parameter(Name = "Transfer Mode String", Description = "The name of the attribute to use as a filter.",
             Index = 8)]
         public IFunction<string> TransferModeString;
+
         [Parameter(Name = "Batch Edit File", Description = "A path to the batch edit file.",
             Index = 9)]
         public IFunction<string> BatchEditFile;
+
         [Parameter(Name = "Transit Aggreggation Selection Table File", Description = "A link to the file containing how to aggregate schedules.",
             Index = 10)]
         public IFunction<string> TransitAggreggationSelectionTableFile;
+
         [Parameter(Name = "Transit Alternative Table", Description = "A link to the file containing how to modify transit schedules.",
             Index = 11)]
         public IFunction<string> TransitAlternativeTableFile;
-        [Parameter(Name = "Transit Service Table", Description = "A link to the file containing transit service data.",
-            Index = 12)]
-        public IFunction<string> TransitServiceTable;
-        [SubModule(Name = "Time Periods", Description = "Time periods to consider.", Index = 13)]
+
+        [SubModule(Name = "Time Periods", Description = "Time periods to consider.", Index = 12)]
         public IFunction<TimePeriod>[] TimePeriods;
-        [SubModule(Name = "Additional Transit Alternative Tables", Description = "Additional files containing how to modify transit schedules. Each will be applied in order.", Index = 14)]
+
+        [SubModule(Name = "Additional Transit Alternative Tables", Description = "Additional files containing how to modify transit schedules. Each will be applied in order.", Index = 13)]
         public IFunction<AdditionalTransitAlternativeTable>[] AdditionalTransitAlternativeTables;
+
         [Module(Name = "Additional Transit Alternative Table Time Periods", Description = "",
             DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
 
@@ -82,11 +93,14 @@ namespace TMG.Emme.Generate
             [Parameter(Name = "Alternative Table File", Description = "",
                Index = 0)]
             public IFunction<string> AlternativeTableFile;
+
             public string Name { get; set; }
+
             public bool RuntimeValidation(ref string error)
             {
                 return true;
             }
+
             public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
             {
                 writer.WriteStartObject();
@@ -104,24 +118,31 @@ namespace TMG.Emme.Generate
             [Parameter(Name = "Uncleaned Scenario Number", Description = "The scenario number for the uncleaned network",
                Index = 0)]
             public IFunction<int> UncleanedScenarioNumber;
+
             [Parameter(Name = "Uncleaned Description", Description = "The description for the uncleaned scenario",
                 Index = 1)]
             public IFunction<string> UncleanedDescription;
+
             [Parameter(Name = "Cleaned Scenario Number", Description = "The scenario number for the cleaned network",
                Index = 2)]
             public IFunction<int> CleanedScenarioNumber;
+
             [Parameter(Name = "Cleaned Description", Description = "The description for the cleaned scenario",
                 Index = 3)]
             public IFunction<string> CleanedDescription;
+
             [Parameter(Name = "Start Time", Description = "The start time for this scenario",
                Index = 4)]
             public IFunction<string> StartTime;
+
             [Parameter(Name = "End Time", Description = "The end time for this scenario",
                Index = 5)]
             public IFunction<string> EndTime;
+
             [Parameter(Name = "Scenario Network Update File", Description = "The location of the network update file for this time period.",
                 Index = 6)]
             public IFunction<string> ScenarioNetworkUpdateFile;
+
             public string Name { get; set; }
 
             public bool RuntimeValidation(ref string error)
