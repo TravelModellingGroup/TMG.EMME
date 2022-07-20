@@ -178,8 +178,7 @@ namespace TMG.Emme.Generate
                 writer.WriteString("transfer_mode_string", TransferModeString.Invoke());
                 writer.WriteString("batch_edit_file", Path.GetFullPath(BatchEditFile.Invoke()));
                 writer.WriteString("transit_aggregation_selection_table_file", TransitAggreggationSelectionTableFile.Invoke());
-                writer.WriteString("transit_alternative_table_file", TransitAlternativeTableFile.Invoke());
-                writer.WriteString("transit_service_table_file", TransitServiceTableFile.Invoke());
+                writer.WriteString("transit_alternative_table_file", Path.GetFullPath(TransitAlternativeTableFile.Invoke()));
                 writer.WriteStartArray("time_periods");
                 foreach (var timePeriod in TimePeriods)
                 {
