@@ -39,13 +39,18 @@ import multiprocessing
 _MODELLER = _m.Modeller()
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
+_bank = _MODELLER.emmebank
 
 
-class GenerateFullNetworkSet(_m.Tool()):
+class GenerateTimePeriodNetworks(_m.Tool()):
     version = "2.0.0"
     tool_run_msg = ""
+    number_of_task = 1
+    COLON = ":"
+    COMMA = ","
 
     def __init__(self):
+        # self._tracker = _util.progress_tracker(self.number_of_task)
         self.number_of_processors = multiprocessing.cpu_count()
 
     def page(self):
@@ -69,11 +74,26 @@ class GenerateFullNetworkSet(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def run_xtmf(self, parameters):
-        scenario = _util.load_scenario(parameters["base_scenario_number"])
+        base_scenario = _util.load_scenario(parameters["base_scenario_number"])
         try:
-            self._execute(scenario, parameters)
+            self._execute(base_scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def _execute(self, scenario, parameters):
-        pass
+    def _execute(self, base_scenario, parameters):
+        with _m.logbook_trace(
+            name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
+            attributes=self._get_atts(),
+        ):
+
+            for periods in parameters["time_periods"]:
+                self._delete_old_scenario(periods["uncleaned_scenario_number"])
+                self._delete_old_scenario(periods["cleaned_scenario_number"])
+
+    def _delete_old_scenario(self, scenario_number):
+        if _bank.scenario(scenario_number) is not None:
+            _bank.delete_scenario(scenario_number)
+
+    def _get_atts(self):
+        atts = {}
+        return atts

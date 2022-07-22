@@ -27,16 +27,16 @@ using XTMF2;
 namespace TMG.Emme.Test.Generate
 {
     [TestClass]
-    public class GenerateFullNetworkSetTest : TestBase
+    public class GenerateTimePeriodNetworksTest : TestBase
     {
         [TestMethod]
-        public void GenerateFullNetworkSet()
+        public void GenerateTimePeriodNetworks()
         {
             const int baseScenarioNumber = 1;
             Helper.ImportNetwork(baseScenarioNumber, "TestFiles/test.nwp");
 
             Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Generate.generate_full_network_set",
+                Helper.Modeller.Run(null, "tmg2.Generate.generate_time_period_networks",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("base_scenario_number", baseScenarioNumber);
@@ -83,7 +83,7 @@ namespace TMG.Emme.Test.Generate
         }
 
         [TestMethod]
-        public void GenerateFullNetworkSetModule()
+        public void GenerateTimePeriodNetworksModule()
         {
             const int baseScenarioNumber = 1;
             Helper.ImportNetwork(baseScenarioNumber, "TestFiles/base_network.nwp");
@@ -91,7 +91,7 @@ namespace TMG.Emme.Test.Generate
             var timePeriods = new[]
             {
 
-                new Emme.Generate.GenerateFullNetworkSet.TimePeriod()
+                new Emme.Generate.GenerateTimePeriodNetworks.TimePeriod()
                 {
                     Name = "PM",
                     UncleanedScenarioNumber = Helper.CreateParameter(30),
@@ -103,7 +103,7 @@ namespace TMG.Emme.Test.Generate
                     ScenarioNetworkUpdateFile = Helper.CreateParameter(""),
                 },
 
-                new Emme.Generate.GenerateFullNetworkSet.TimePeriod()
+                new Emme.Generate.GenerateTimePeriodNetworks.TimePeriod()
                 {
                     Name = "EV",
                     UncleanedScenarioNumber = Helper.CreateParameter(40),
@@ -119,14 +119,14 @@ namespace TMG.Emme.Test.Generate
 
             var addAltFiles = new[]
             {
-                new Emme.Generate.GenerateFullNetworkSet.AdditionalTransitAlternativeTable()
+                new Emme.Generate.GenerateTimePeriodNetworks.AdditionalTransitAlternativeTable()
                 {
                     Name = "altFile_1",
                     AlternativeTableFile = Helper.CreateParameter(""),
                 }
             };
 
-            var module = new Emme.Generate.GenerateFullNetworkSet()
+            var module = new Emme.Generate.GenerateTimePeriodNetworks()
             {
                 BaseScenarioNumber = Helper.CreateParameter(baseScenarioNumber),
                 TransitServiceTableFile = Helper.CreateParameter(Path.GetFullPath("Service Table.csv")),
