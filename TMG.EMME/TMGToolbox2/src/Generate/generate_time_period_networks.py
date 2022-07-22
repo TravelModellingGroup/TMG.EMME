@@ -93,3 +93,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
     def _delete_old_scenario(self, scenario_number):
         if _bank.scenario(scenario_number) is not None:
             _bank.delete_scenario(scenario_number)
+
+    def _get_atts(self):
+        atts = {}
+        return atts
