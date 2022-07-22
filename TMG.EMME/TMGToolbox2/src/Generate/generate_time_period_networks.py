@@ -41,7 +41,7 @@ _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 
 
-class GenerateFullNetworkSet(_m.Tool()):
+class GenerateTimePeriodNetworks(_m.Tool()):
     version = "2.0.0"
     tool_run_msg = ""
 

@@ -28,7 +28,7 @@ namespace TMG.Emme.Generate
 {
     [Module(Name = "Generate Full Network Set", Description = "",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class GenerateFullNetworkSet : BaseAction<ModellerController>
+    public class GenerateTimePeriodNetworks : BaseAction<ModellerController>
     {
         [Parameter(Name = "BaseScenarioNumber", Description = "The scenario number for the base network.",
             Index = 0)]
@@ -164,7 +164,7 @@ namespace TMG.Emme.Generate
 
         public override void Invoke(ModellerController context)
         {
-            context.Run(this, "tmg2.Generate.generate_full_network_set", JSONParameterBuilder.BuildParameters(writer =>
+            context.Run(this, "tmg2.Generate.generate_time_period_networks", JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteStartObject();
                 writer.WriteNumber("base_scenario_number", BaseScenarioNumber.Invoke());
