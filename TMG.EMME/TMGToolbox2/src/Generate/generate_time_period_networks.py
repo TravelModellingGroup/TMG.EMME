@@ -85,6 +85,11 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._get_atts(),
         ):
+            self._check_filter_attributes(parameters["node_filter_attribute"], base_scenario, description="Node")
+            self._check_filter_attributes(parameters["stop_filter_attribute"], base_scenario, description="Stop")
+            self._check_filter_attributes(
+                parameters["connector_filter_attribute"], base_scenario, description="Connector"
+            )
 
             for periods in parameters["time_periods"]:
                 self._delete_old_scenario(periods["uncleaned_scenario_number"])
@@ -97,3 +102,11 @@ class GenerateTimePeriodNetworks(_m.Tool()):
     def _get_atts(self):
         atts = {}
         return atts
+
+    def _check_filter_attributes(self, base_scenario, filer_attribute_id, description=""):
+        if filer_attribute_id.lower() == "none":
+            filer_attribute_id = None
+        else:
+            if base_scenario.extra_attribute(filer_attribute_id) is None:
+                raise Exception("%s filter attribute %s does not exist" % (filer_attribute_id, description))
+        return filer_attribute_id
