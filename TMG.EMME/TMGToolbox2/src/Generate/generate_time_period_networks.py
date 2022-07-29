@@ -32,12 +32,11 @@ TMG Generate Full Network Set Tool
 
     V 2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2022-07-20 by williamsDiogu   
 """
-from email import header
-from email.mime import base
-import traceback as _traceback
-from turtle import end_fill
+import csv
 import inro.modeller as _m
+import traceback as _traceback
 import multiprocessing
+from contextlib import contextmanager
 
 _MODELLER = _m.Modeller()
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
@@ -141,24 +140,21 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         bad_ids = set()
 
         if transit_service_table_file != "" or transit_service_table_file != "none":
-            with open(transit_service_table_file) as reader:
-                header = reader.readline()
-                cells = header.strip().split(self.COMMA)
-                emme_id_col = cells.index("emme_id")
-                departure_col = cells.index("trip_depart")
-                arrival_col = cells.index("trip_arrive")
-                for num, line in enumerate(reader):
-                    cells = line.strip().split(self.COMMA)
-                    id = cells[emme_id_col]
-                    transit_line = network.transit_line(id)
+            with open(transit_service_table_file) as service_file:
+
+                for line_number, service_file_list in enumerate(service_file):
+                    emme_id_col = service_file_list[0]
+                    departure_col = service_file_list[1]
+                    arrival_col = service_file_list[2]
+                    transit_line = network.transit_line(emme_id_col)
                     if transit_line is None:
-                        bad_ids.add(id)
+                        bad_ids.add(emme_id_col)
                         continue
                     try:
-                        departure = self._parse_string_time(cells[departure_col])
-                        arrival = self._parse_string_time(cells[arrival_col])
+                        departure = self._parse_string_time(departure_col)
+                        arrival = self._parse_string_time(arrival_col)
                     except Exception as e:
-                        print("Line " + str(num) + " skipped: " + str(e))
+                        print("Line " + str(line_number + 1) + " skipped in CSV file: " + str(e))
                         continue
                     if not departure in bounds:
                         continue
@@ -173,27 +169,18 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         network.create_attribute("TRANSIT_LINE", "aggtype", None)
         bad_ids = set()
         if transit_aggregation_selection_table_file != "" or transit_aggregation_selection_table_file != "none":
-            with open(transit_aggregation_selection_table_file) as reader:
-                header = reader.readline()
-                cells = header.strip().split(self.COMMA)
-
-                emme_id_col = cells.index("emme_id")
-                agg_col = cells.index("agg_type")
-
-                for num, line in enumerate(reader):
-                    cells = line.strip().split(self.COMMA)
-
-                    id = cells[emme_id_col]
-                    transit_line = network.transit_line(id)
-
+            with open(transit_aggregation_selection_table_file) as aggregate_file:
+                for line_number, service_file_list in enumerate(aggregate_file):
+                    emme_id_col = service_file_list[0]
+                    agg_col = service_file_list[1]
+                    transit_line = network.transit_line(emme_id_col)
                     if transit_line is None:
-                        bad_ids.add(id)
+                        bad_ids.add(emme_id_col)
                         continue
-
                     try:
-                        aggregation = self._parse_agg_type(cells[agg_col])
+                        aggregation = self._parse_agg_type(agg_col)
                     except Exception as e:
-                        print("Line " + num + " skipped: " + str(e))
+                        print("Line " + line_number + " skipped: " + str(e))
                         continue
 
                     if transit_line.aggtype is None:
@@ -223,3 +210,18 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 return agg
         except Exception as e:
             raise IOError("You must select either naive or average as an aggregation type %s: %s" % (a, e))
+
+    @contextmanager
+    def open_csv_reader(self, file_path):
+        """
+        Open, reads and manages a CSV file
+        NOTE: Does not return the first line of the CSV file
+            Assumption is that the first row is the title of each field
+        """
+        csv_file = open(file_path, mode="r")
+        file = csv.reader(csv_file)
+        next(file)
+        try:
+            yield file
+        finally:
+            csv_file.close()
