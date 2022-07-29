@@ -33,16 +33,16 @@ namespace TMG.Emme.Test.Generate
         public void GenerateTimePeriodNetworks()
         {
             const int baseScenarioNumber = 1;
-            Helper.ImportNetwork(baseScenarioNumber, "TestFiles/test.nwp");
+            Helper.ImportNetwork(baseScenarioNumber, "TestFiles/base_network.nwp");
 
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Generate.generate_time_period_networks",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("base_scenario_number", baseScenarioNumber);
-                    writer.WriteString("transit_service_table_file", "Service Table.csv");
-                    writer.WriteString("batch_edit_file", "Batch Line Edit.csv");
-                    writer.WriteString("transit_aggregation_selection_table_file", "Aggregation.csv");
+                    writer.WriteString("transit_service_table_file", "TestFiles/NewTestNetwork/Service Table.csv");
+                    writer.WriteString("batch_edit_file", "TestFiles/NewTestNetwork/Batch Line Edit.csv");
+                    writer.WriteString("transit_aggregation_selection_table_file", "TestFiles/NewTestNetwork/Aggregation.csv");
                     writer.WriteString("transit_alternative_table_file", "Alt File.csv");
                     writer.WriteString("attribute_aggregator", "vdf: force,length: sum,type: first,lanes: force,ul1: avg,ul2: force,ul3: force,dwt: sum,dwfac: force,ttf: force,us1: avg_by_length,us2: avg,us3: avg,ui1: avg,ui2: avg,ui3: avg,@stop: avg,@lkcap: avg,@lkspd: avg,@stn1: force,@stn2: force,@z407: avg");
                     writer.WriteString("connector_filter_attribute", "None");
@@ -58,8 +58,8 @@ namespace TMG.Emme.Test.Generate
                     writer.WriteNumber("cleaned_scenario_number", 31);
                     writer.WriteString("uncleaned_description", "PM - Uncleaned Network");
                     writer.WriteString("cleaned_description", "PM - Cleaned Network");
-                    writer.WriteString("start_time", "15:00");
-                    writer.WriteString("end_time", "19:00");
+                    writer.WriteNumber("start_time", 1500);
+                    writer.WriteNumber("end_time", 1900);
                     writer.WriteString("scenario_network_update_file", "");
                     writer.WriteEndObject();
                     writer.WriteStartObject();
@@ -68,8 +68,8 @@ namespace TMG.Emme.Test.Generate
                     writer.WriteNumber("cleaned_scenario_number", 41);
                     writer.WriteString("uncleaned_description", "EV - Uncleaned Network");
                     writer.WriteString("cleaned_description", "EV - Cleaned Network");
-                    writer.WriteString("start_time", "19:00");
-                    writer.WriteString("end_time", "24:00");
+                    writer.WriteNumber("start_time", 1900);
+                    writer.WriteNumber("end_time", 2400);
                     writer.WriteString("scenario_network_update_file", "");
                     writer.WriteEndObject();
                     writer.WriteEndArray();
@@ -98,8 +98,8 @@ namespace TMG.Emme.Test.Generate
                     CleanedScenarioNumber = Helper.CreateParameter(31),
                     UncleanedDescription = Helper.CreateParameter("PM - Uncleaned Network"),
                     CleanedDescription = Helper.CreateParameter("PM - Cleaned Network"),
-                    StartTime = Helper.CreateParameter("15:00"),
-                    EndTime = Helper.CreateParameter("19:00"),
+                    StartTime = Helper.CreateParameter(1500),
+                    EndTime = Helper.CreateParameter(1900),
                     ScenarioNetworkUpdateFile = Helper.CreateParameter(""),
                 },
 
@@ -110,8 +110,8 @@ namespace TMG.Emme.Test.Generate
                     CleanedScenarioNumber = Helper.CreateParameter(41),
                     UncleanedDescription = Helper.CreateParameter("EV - Uncleaned Network"),
                     CleanedDescription = Helper.CreateParameter("EV - Cleaned Network"),
-                    StartTime = Helper.CreateParameter("19:00"),
-                    EndTime = Helper.CreateParameter("24:00"),
+                    StartTime = Helper.CreateParameter(1900),
+                    EndTime = Helper.CreateParameter(1900),
                     ScenarioNetworkUpdateFile = Helper.CreateParameter(""),
                 },
 
