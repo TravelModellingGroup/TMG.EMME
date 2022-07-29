@@ -32,7 +32,10 @@ TMG Generate Full Network Set Tool
 
     V 2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2022-07-20 by williamsDiogu   
 """
+from email import header
+from email.mime import base
 import traceback as _traceback
+from turtle import end_fill
 import inro.modeller as _m
 import multiprocessing
 
@@ -40,6 +43,7 @@ _MODELLER = _m.Modeller()
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 _bank = _MODELLER.emmebank
+_write = _m.logbook_write
 
 
 class GenerateTimePeriodNetworks(_m.Tool()):
@@ -50,7 +54,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
     COMMA = ","
 
     def __init__(self):
-        # self._tracker = _util.progress_tracker(self.number_of_task)
+        self._tracker = _util.progress_tracker(self.number_of_task)
         self.number_of_processors = multiprocessing.cpu_count()
 
     def page(self):
@@ -85,15 +89,34 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._get_atts(),
         ):
-            self._check_filter_attributes(parameters["node_filter_attribute"], base_scenario, description="Node")
-            self._check_filter_attributes(parameters["stop_filter_attribute"], base_scenario, description="Stop")
+            network = base_scenario.get_network()
+            self._tracker.complete_task()
+            print("Loaded network")
+
+            self._check_filter_attributes(base_scenario, parameters["node_filter_attribute"], description="Node")
+            self._check_filter_attributes(base_scenario, parameters["stop_filter_attribute"], description="Stop")
             self._check_filter_attributes(
-                parameters["connector_filter_attribute"], base_scenario, description="Connector"
+                base_scenario, parameters["connector_filter_attribute"], description="Connector"
             )
 
             for periods in parameters["time_periods"]:
                 self._delete_old_scenario(periods["uncleaned_scenario_number"])
                 self._delete_old_scenario(periods["cleaned_scenario_number"])
+            self._tracker.complete_task()
+            print("Deleted old scenarios")
+
+            for periods in parameters["time_periods"]:
+                bad_id_set = self._load_service_table(
+                    network, periods["start_time"], periods["end_time"], parameters["transit_service_table_file"]
+                ).union(self._load_agg_type_select(network, parameters["transit_aggregation_selection_table_file"]))
+            self._tracker.complete_task()
+            print("Loaded service table")
+
+            if len(bad_id_set) > 0:
+                print("%s transit line IDs were not found in the network and were skipped." % len(bad_id_set))
+                _write("The following line IDs were not found in the network:")
+                for id in bad_id_set:
+                    _write("%s" % id)
 
     def _delete_old_scenario(self, scenario_number):
         if _bank.scenario(scenario_number) is not None:
@@ -110,3 +133,93 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             if base_scenario.extra_attribute(filer_attribute_id) is None:
                 raise Exception("%s filter attribute %s does not exist" % (filer_attribute_id, description))
         return filer_attribute_id
+
+    def _load_service_table(self, network, start_time, end_time, transit_service_table_file):
+        network.create_attribute("TRANSIT_LINE", "trips", None)
+
+        bounds = _util.float_range(start_time, end_time)
+        bad_ids = set()
+
+        if transit_service_table_file != "" or transit_service_table_file != "none":
+            with open(transit_service_table_file) as reader:
+                header = reader.readline()
+                cells = header.strip().split(self.COMMA)
+                emme_id_col = cells.index("emme_id")
+                departure_col = cells.index("trip_depart")
+                arrival_col = cells.index("trip_arrive")
+                for num, line in enumerate(reader):
+                    cells = line.strip().split(self.COMMA)
+                    id = cells[emme_id_col]
+                    transit_line = network.transit_line(id)
+                    if transit_line is None:
+                        bad_ids.add(id)
+                        continue
+                    try:
+                        departure = self._parse_string_time(cells[departure_col])
+                        arrival = self._parse_string_time(cells[arrival_col])
+                    except Exception as e:
+                        print("Line " + str(num) + " skipped: " + str(e))
+                        continue
+                    if not departure in bounds:
+                        continue
+                    trip = (departure, arrival)
+                    if transit_line.trips is None:
+                        transit_line.trips = [trip]
+                    else:
+                        transit_line.trips.append(trip)
+        return bad_ids
+
+    def _load_agg_type_select(self, network, transit_aggregation_selection_table_file):
+        network.create_attribute("TRANSIT_LINE", "aggtype", None)
+        bad_ids = set()
+        if transit_aggregation_selection_table_file != "" or transit_aggregation_selection_table_file != "none":
+            with open(transit_aggregation_selection_table_file) as reader:
+                header = reader.readline()
+                cells = header.strip().split(self.COMMA)
+
+                emme_id_col = cells.index("emme_id")
+                agg_col = cells.index("agg_type")
+
+                for num, line in enumerate(reader):
+                    cells = line.strip().split(self.COMMA)
+
+                    id = cells[emme_id_col]
+                    transit_line = network.transit_line(id)
+
+                    if transit_line is None:
+                        bad_ids.add(id)
+                        continue
+
+                    try:
+                        aggregation = self._parse_agg_type(cells[agg_col])
+                    except Exception as e:
+                        print("Line " + num + " skipped: " + str(e))
+                        continue
+
+                    if transit_line.aggtype is None:
+                        transit_line.aggtype = aggregation
+
+        return bad_ids
+
+    def _parse_string_time(self, time_string):
+        try:
+            hms = time_string.split(self.COLON)
+            if len(hms) != 3:
+                raise IOError()
+            hours = int(hms[0])
+            minutes = int(hms[1])
+            seconds = int(hms[2])
+            return hours * 3600 + minutes * 60 + float(seconds)
+        except Exception as e:
+            raise IOError("Error passing time %s: %s" % (time_string, e))
+
+    def _parse_agg_type(self, a):
+        choice_set = ("n", "a")
+        try:
+            agg = a[0].lower()
+            if agg not in choice_set:
+                raise IOError()
+            else:
+                return agg
+        except Exception as e:
+            raise IOError("You must select either naive or average as an aggregation type %s: %s" % (a, e))
