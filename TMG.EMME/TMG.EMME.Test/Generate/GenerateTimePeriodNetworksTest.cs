@@ -33,7 +33,7 @@ namespace TMG.Emme.Test.Generate
         public void GenerateTimePeriodNetworks()
         {
             const int baseScenarioNumber = 1;
-            Helper.ImportNetwork(baseScenarioNumber, "TestFiles/base_network.nwp");
+            Helper.ImportNetwork(baseScenarioNumber, "TestFiles/base_network.nwp", "service_tables");
 
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Generate.generate_time_period_networks",

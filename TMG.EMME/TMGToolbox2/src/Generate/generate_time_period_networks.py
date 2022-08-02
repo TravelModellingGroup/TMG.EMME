@@ -104,6 +104,9 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             self._tracker.complete_task()
             print("Deleted old scenarios")
 
+            network.create_attribute("TRANSIT_LINE", "trips", None)
+            network.create_attribute("TRANSIT_LINE", "aggtype", None)
+
             for periods in parameters["time_periods"]:
                 bad_id_set = self._load_service_table(
                     network, periods["start_time"], periods["end_time"], parameters["transit_service_table_file"]
@@ -134,7 +137,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         return filer_attribute_id
 
     def _load_service_table(self, network, start_time, end_time, transit_service_table_file):
-        network.create_attribute("TRANSIT_LINE", "trips", None)
+        # network.create_attribute("TRANSIT_LINE", "trips", None)
 
         bounds = _util.float_range(start_time, end_time)
         bad_ids = set()
@@ -166,7 +169,6 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         return bad_ids
 
     def _load_agg_type_select(self, network, transit_aggregation_selection_table_file):
-        network.create_attribute("TRANSIT_LINE", "aggtype", None)
         bad_ids = set()
         if transit_aggregation_selection_table_file != "" or transit_aggregation_selection_table_file != "none":
             with open(transit_aggregation_selection_table_file) as aggregate_file:
