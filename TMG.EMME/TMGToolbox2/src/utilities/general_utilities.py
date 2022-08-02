@@ -841,7 +841,7 @@ class IntRange:
 # -------------------------------------------------------------------------------------------
 
 
-class FloatRange:
+class float_range:
     """
     Represents a range of float values. Supports containment and
     overlapping boolean operations.

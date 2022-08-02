@@ -130,11 +130,11 @@ namespace TMG.Emme.Generate
 
             [Parameter(Name = "Start Time", Description = "The start time for this scenario",
                Index = 4)]
-            public IFunction<string> StartTime;
+            public IFunction<int> StartTime;
 
             [Parameter(Name = "End Time", Description = "The end time for this scenario",
                Index = 5)]
-            public IFunction<string> EndTime;
+            public IFunction<int> EndTime;
 
             [Parameter(Name = "Scenario Network Update File", Description = "The location of the network update file for this time period.",
                 Index = 6)]
@@ -155,8 +155,8 @@ namespace TMG.Emme.Generate
                 writer.WriteNumber("cleaned_scenario_number", CleanedScenarioNumber.Invoke());
                 writer.WriteString("uncleaned_description", UncleanedDescription.Invoke());
                 writer.WriteString("cleaned_description", CleanedDescription.Invoke());
-                writer.WriteString("start_time", StartTime.Invoke());
-                writer.WriteString("end_time", EndTime.Invoke());
+                writer.WriteNumber("start_time", StartTime.Invoke());
+                writer.WriteNumber("end_time", EndTime.Invoke());
                 writer.WriteString("scenario_network_update_file", ScenarioNetworkUpdateFile.Invoke());
                 writer.WriteEndObject();
             }
