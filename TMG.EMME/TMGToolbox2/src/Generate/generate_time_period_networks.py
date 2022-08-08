@@ -452,20 +452,13 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         line_length = sum([seg.link.length for seg in line.segments()])
         # In minutes
         scheduled_cycle_time = line_length / line.speed * 60.0
-        # All speeds are assumed to be in km/hr
         free_flow_time = 0
         for segment in line.segments():
             speed = segment.link.data2
-            if speed == 0:
-                # Assume nominal speed of 50 km/hr if it's otherwise undefined
-                speed = 50
             free_flow_time += segment.link.length / speed * 60.0
         factor = free_flow_time / scheduled_cycle_time
         for segment in line.segments():
             speed = segment.link.data2
-            if speed == 0:
-                # Assume nominal speed of 50 km/hr if it's otherwise undefined
-                speed = 50.0
             segment.data1 = speed * factor
 
     def _get_net_calc_spec(self, flag_attribute_id, line_filter_expression):
