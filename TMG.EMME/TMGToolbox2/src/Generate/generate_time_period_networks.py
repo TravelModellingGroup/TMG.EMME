@@ -476,6 +476,15 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 speed = 50.0
             segment.data1 = speed * factor
 
+    def _get_net_calc_spec(self, flag_attribute_id, line_filter_expression):
+        return {
+            "result": flag_attribute_id,
+            "expression": "1",
+            "aggregation": None,
+            "selections": {"transit_line": line_filter_expression},
+            "type": "NETWORK_CALCULATION",
+        }
+
     @contextmanager
     def open_csv_reader(self, file_path):
         """
