@@ -44,6 +44,7 @@ _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 _bank = _MODELLER.emmebank
 _write = _m.logbook_write
+_trace = _m.logbook_trace
 
 _m.TupleType = object
 _m.ListType = list
@@ -111,7 +112,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
     def _execute(self, base_scenario, parameters):
         with _m.logbook_trace(
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
-            attributes=self._get_atts(),
+            attributes=self._get_atts(base_scenario),
         ):
             network = base_scenario.get_network()
             self._tracker.complete_task()
@@ -169,24 +170,25 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 network.delete_attribute("TRANSIT_LINE", "aggtype")
                 uncleaned_scenario.publish_network(network)
             print("Created uncleaned time period networks and applied network updates")
+
             for periods in parameters["time_periods"]:
+                uncleaned_scenario = _bank.scenario(periods["uncleaned_scenario_number"])
+                # Apply Batch File to uncleaned scenario numbers
                 if parameters["batch_edit_file"] != "":
-                    uncleaned_scenario = _bank.scenario(periods["uncleaned_scenario_number"])
-                    changes_to_apply = self._load_batch_file(uncleaned_scenario, parameters["batch_edit_file"])
-                    print("Instruction file loaded")
-                    if changes_to_apply:
-                        self._apply_line_changes(uncleaned_scenario, changes_to_apply)
-                        print("Headway and speed changes applied")
-                    else:
-                        print("No changes available in this scenario")
-                self._tracker.complete_task()
+                    self._apply_batch_edit_file(uncleaned_scenario, parameters["batch_edit_file"])
+                    self._tracker.complete_task()
+                    print("Edited transit line data in uncleaned scenario %s" % periods["uncleaned_scenario_number"])
+                # Prorate transit speeds in uncleaned scenario numbers
+                if parameters["line_filter_expression"] != "":
+                    self._prorate_transit_speeds(uncleaned_scenario, parameters["line_filter_expression"])
+                    print("Prorated transit speeds in uncleaned scenario" % periods["uncleaned_scenario_number"])
 
     def _delete_old_scenario(self, scenario_number):
         if _bank.scenario(scenario_number) is not None:
             _bank.delete_scenario(scenario_number)
 
-    def _get_atts(self):
-        atts = {}
+    def _get_atts(self, scenario):
+        atts = {"Scenario": str(scenario.id), "Version": self.version, "self": self.__MODELLER_NAMESPACE__}
         return atts
 
     def _check_filter_attributes(self, base_scenario, filer_attribute_id, description=""):
@@ -198,11 +200,8 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         return filer_attribute_id
 
     def _load_service_table(self, network, start_time, end_time, transit_service_table_file):
-        # network.create_attribute("TRANSIT_LINE", "trips", None)
-
         bounds = _util.float_range(start_time, end_time)
         bad_ids = set()
-
         if transit_service_table_file != "" or transit_service_table_file != "none":
             with self.open_csv_reader(transit_service_table_file) as service_file:
                 for line_number, service_file_list in enumerate(service_file):
@@ -247,7 +246,6 @@ class GenerateTimePeriodNetworks(_m.Tool()):
 
                     if transit_line.aggtype is None:
                         transit_line.aggtype = aggregation
-
         return bad_ids
 
     def _parse_string_time(self, time_string):
@@ -345,8 +343,6 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         else:
             do_not_delete = []
         self._tracker.start_process(network.element_totals["transit_lines"])
-        # self._tracker.start_process(2603)
-
         for line in network.transit_lines():
             # Pick aggregation type for given line
             if line.aggtype == "n":
