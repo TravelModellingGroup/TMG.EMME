@@ -470,6 +470,20 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         finally:
             csv_file.close()
 
+    @contextmanager
+    def _line_attribute_manager(self, scenario):
+        """
+        Context managers for temporary database modifications.
+        """
+        scenario.create_extra_attribute("TRANSIT_LINE", "@tlf1")
+        _write("Created temporary attribute @tlf1")
+
+        try:
+            yield "@tlf1"
+        finally:
+            scenario.delete_extra_attribute("@tlf1")
+            _write("Deleted temporary attribute @tlf1")
+
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
         return self._tracker.get_progress()
