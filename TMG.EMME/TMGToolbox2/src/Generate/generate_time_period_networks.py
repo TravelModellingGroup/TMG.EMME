@@ -451,11 +451,17 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         # In km
         line_length = sum([seg.link.length for seg in line.segments()])
         # In minutes
-        scheduled_cycle_time = line_length / line.speed * 60.0
+        try:
+            scheduled_cycle_time = line_length / line.speed * 60.0
+        except ZeroDivisionError as e:
+            print(e)
         free_flow_time = 0
         for segment in line.segments():
             speed = segment.link.data2
-            free_flow_time += segment.link.length / speed * 60.0
+            try:
+                free_flow_time += segment.link.length / speed * 60.0
+            except ZeroDivisionError as e:
+                print(e)
         factor = free_flow_time / scheduled_cycle_time
         for segment in line.segments():
             speed = segment.link.data2
