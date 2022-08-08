@@ -117,19 +117,16 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             network = base_scenario.get_network()
             self._tracker.complete_task()
             print("Loaded network")
-
             self._check_filter_attributes(base_scenario, parameters["node_filter_attribute"], description="Node")
             self._check_filter_attributes(base_scenario, parameters["stop_filter_attribute"], description="Stop")
             self._check_filter_attributes(
                 base_scenario, parameters["connector_filter_attribute"], description="Connector"
             )
-
             for periods in parameters["time_periods"]:
                 self._delete_old_scenario(periods["uncleaned_scenario_number"])
                 self._delete_old_scenario(periods["cleaned_scenario_number"])
             self._tracker.complete_task()
             print("Deleted old scenarios")
-
             for periods in parameters["time_periods"]:
                 network = base_scenario.get_network()
                 network.create_attribute("TRANSIT_LINE", "trips", None)
@@ -161,10 +158,8 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                     "Done processing transit lines for time period %s to %s"
                     % (periods["start_time"], periods["end_time"])
                 )
-
                 uncleaned_scenario = _bank.copy_scenario(base_scenario.id, periods["uncleaned_scenario_number"])
                 uncleaned_scenario.title = periods["uncleaned_description"]
-
                 print("Publishing network")
                 network.delete_attribute("TRANSIT_LINE", "trips")
                 network.delete_attribute("TRANSIT_LINE", "aggtype")
@@ -181,7 +176,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 # Prorate transit speeds in uncleaned scenario numbers
                 if parameters["line_filter_expression"] != "":
                     self._prorate_transit_speeds(uncleaned_scenario, parameters["line_filter_expression"])
-                    print("Prorated transit speeds in uncleaned scenario" % periods["uncleaned_scenario_number"])
+                    print("Prorated transit speeds in uncleaned scenario %s" % periods["uncleaned_scenario_number"])
 
     def _delete_old_scenario(self, scenario_number):
         if _bank.scenario(scenario_number) is not None:
@@ -243,7 +238,6 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                     except Exception as e:
                         print("Line " + line_number + " skipped: " + str(e))
                         continue
-
                     if transit_line.aggtype is None:
                         transit_line.aggtype = aggregation
         return bad_ids
@@ -337,8 +331,6 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             for k, v in alt_data.items():
                 if v[0] == 0 or v[1] == 0:
                     del alt_data[k]
-                # if v[0] == 9999: #prep an unused line for deletion
-                #    toDelete.add(k)
             do_not_delete = alt_data.keys()
         else:
             do_not_delete = []
