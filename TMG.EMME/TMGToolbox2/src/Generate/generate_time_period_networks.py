@@ -485,6 +485,15 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
+    def _apply_batch_edit_file(self, scenario, batch_edit_file):
+        changes_to_apply = self._load_batch_file(scenario, batch_edit_file)
+        print("Instruction file loaded")
+        if changes_to_apply:
+            self._apply_line_changes(scenario, changes_to_apply)
+            print("Headway and speed changes applied")
+        else:
+            print("No changes available in this scenario")
+
     @contextmanager
     def open_csv_reader(self, file_path):
         """
