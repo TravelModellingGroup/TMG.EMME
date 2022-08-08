@@ -494,6 +494,28 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         else:
             print("No changes available in this scenario")
 
+    def _prorate_transit_speeds(self, scenario, line_filter_expression):
+        if int(scenario.element_totals["transit_lines"]) == 0:
+            return 0
+        with self._line_attribute_manager(scenario) as flag_attribute_id:
+            with _trace("flagging selected lines"):
+                self._tracker.run_tool(
+                    network_calc_tool,
+                    self._get_net_calc_spec(flag_attribute_id, line_filter_expression),
+                    scenario,
+                )
+            network = scenario.get_network()
+            flagged_lines = [line for line in network.transit_lines() if line[flag_attribute_id] == 1]
+            if len(flagged_lines) == 0:
+                return 0
+            self._tracker.start_process(len(flagged_lines))
+            for line in flagged_lines:
+                self._process_line(line)
+                self._tracker.complete_subtask()
+            self._tracker.complete_task()
+            scenario.publish_network(network)
+        return len(flagged_lines)
+
     @contextmanager
     def open_csv_reader(self, file_path):
         """
