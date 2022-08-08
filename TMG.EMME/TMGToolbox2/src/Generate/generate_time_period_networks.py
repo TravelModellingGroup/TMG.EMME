@@ -41,16 +41,41 @@ from contextlib import contextmanager
 _MODELLER = _m.Modeller()
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
+network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 _bank = _MODELLER.emmebank
 _write = _m.logbook_write
+
+_m.TupleType = object
+_m.ListType = list
+_m.InstanceType = object
+
+
+def naive_aggregation(departures, start, end):
+    deltaTime = end - start
+    numDep = len(departures)
+    return deltaTime / numDep
+
+
+def average_aggregation(departures, start, end):
+    sum = 0
+    counter = 0
+    if len(departures) == 1:
+        return end - start
+    iter = departures.__iter__()
+    prev_dep = next(iter)
+    for dep in iter:
+        headway = dep - prev_dep
+        counter += 1
+        sum += headway
+        prev_dep = dep
+
+    return sum / counter
 
 
 class GenerateTimePeriodNetworks(_m.Tool()):
     version = "2.0.0"
     tool_run_msg = ""
-    number_of_task = 1
-    COLON = ":"
-    COMMA = ","
+    number_of_task = 2
 
     def __init__(self):
         self._tracker = _util.progress_tracker(self.number_of_task)
@@ -104,21 +129,57 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             self._tracker.complete_task()
             print("Deleted old scenarios")
 
-            network.create_attribute("TRANSIT_LINE", "trips", None)
-            network.create_attribute("TRANSIT_LINE", "aggtype", None)
-
             for periods in parameters["time_periods"]:
+                network = base_scenario.get_network()
+                network.create_attribute("TRANSIT_LINE", "trips", None)
+                network.create_attribute("TRANSIT_LINE", "aggtype", None)
                 bad_id_set = self._load_service_table(
                     network, periods["start_time"], periods["end_time"], parameters["transit_service_table_file"]
                 ).union(self._load_agg_type_select(network, parameters["transit_aggregation_selection_table_file"]))
-            self._tracker.complete_task()
-            print("Loaded service table")
+                self._tracker.complete_task()
+                print("Loaded service table")
+                if len(bad_id_set) > 0:
+                    print("%s transit line IDs were not found in the network and were skipped." % len(bad_id_set))
+                    _write("The following line IDs were not found in the network:")
+                    for id in bad_id_set:
+                        _write("%s" % id)
+                self._tracker.complete_task()
+                for index, alt_file in enumerate(parameters["additional_transit_alternative_table"]):
+                    if index == 0 and alt_file["alternative_table_file"] is "":
+                        self._process_transit_lines(network, periods["start_time"], periods["end_time"], None)
+                    else:
+                        if parameters["transit_alternative_table_file"] != "":
+                            alt_data = self._load_alt_file(parameters["transit_alternative_table_file"])
+                            self._process_transit_lines(network, periods["start_time"], periods["end_time"], alt_data)
+                        else:
+                            alt_data = None
+                            self._process_transit_lines(network, periods["start_time"], periods["end_time"], alt_data)
+                        if alt_data:
+                            self._process_alt_lines(network, alt_data)
+                print(
+                    "Done processing transit lines for time period %s to %s"
+                    % (periods["start_time"], periods["end_time"])
+                )
 
-            if len(bad_id_set) > 0:
-                print("%s transit line IDs were not found in the network and were skipped." % len(bad_id_set))
-                _write("The following line IDs were not found in the network:")
-                for id in bad_id_set:
-                    _write("%s" % id)
+                uncleaned_scenario = _bank.copy_scenario(base_scenario.id, periods["uncleaned_scenario_number"])
+                uncleaned_scenario.title = periods["uncleaned_description"]
+
+                print("Publishing network")
+                network.delete_attribute("TRANSIT_LINE", "trips")
+                network.delete_attribute("TRANSIT_LINE", "aggtype")
+                uncleaned_scenario.publish_network(network)
+            print("Created uncleaned time period networks and applied network updates")
+            for periods in parameters["time_periods"]:
+                if parameters["batch_edit_file"] != "":
+                    uncleaned_scenario = _bank.scenario(periods["uncleaned_scenario_number"])
+                    changes_to_apply = self._load_batch_file(uncleaned_scenario, parameters["batch_edit_file"])
+                    print("Instruction file loaded")
+                    if changes_to_apply:
+                        self._apply_line_changes(uncleaned_scenario, changes_to_apply)
+                        print("Headway and speed changes applied")
+                    else:
+                        print("No changes available in this scenario")
+                self._tracker.complete_task()
 
     def _delete_old_scenario(self, scenario_number):
         if _bank.scenario(scenario_number) is not None:
@@ -143,8 +204,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         bad_ids = set()
 
         if transit_service_table_file != "" or transit_service_table_file != "none":
-            with open(transit_service_table_file) as service_file:
-
+            with self.open_csv_reader(transit_service_table_file) as service_file:
                 for line_number, service_file_list in enumerate(service_file):
                     emme_id_col = service_file_list[0]
                     departure_col = service_file_list[1]
@@ -171,10 +231,10 @@ class GenerateTimePeriodNetworks(_m.Tool()):
     def _load_agg_type_select(self, network, transit_aggregation_selection_table_file):
         bad_ids = set()
         if transit_aggregation_selection_table_file != "" or transit_aggregation_selection_table_file != "none":
-            with open(transit_aggregation_selection_table_file) as aggregate_file:
-                for line_number, service_file_list in enumerate(aggregate_file):
-                    emme_id_col = service_file_list[0]
-                    agg_col = service_file_list[1]
+            with self.open_csv_reader(transit_aggregation_selection_table_file) as aggregate_file:
+                for line_number, aggregate_file_list in enumerate(aggregate_file):
+                    emme_id_col = aggregate_file_list[0]
+                    agg_col = aggregate_file_list[1]
                     transit_line = network.transit_line(emme_id_col)
                     if transit_line is None:
                         bad_ids.add(emme_id_col)
@@ -192,7 +252,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
 
     def _parse_string_time(self, time_string):
         try:
-            hms = time_string.split(self.COLON)
+            hms = time_string.split(":")
             if len(hms) != 3:
                 raise IOError()
             hours = int(hms[0])
@@ -213,6 +273,192 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         except Exception as e:
             raise IOError("You must select either naive or average as an aggregation type %s: %s" % (a, e))
 
+    def _load_batch_file(self, scenario, batch_edit_file):
+        if batch_edit_file != "" or batch_edit_file != "none":
+            with open(batch_edit_file) as reader:
+                header = reader.readline()
+                cells = header.strip().split(",")
+                filter_col = cells.index("filter")
+                headway_title = scenario.id + "_hdwchange"
+                speed_title = scenario.id + "_spdchange"
+                try:
+                    headway_col = cells.index(headway_title)
+                except Exception as e:
+                    msg = "Error. No headway match for specified scenario: '%s'." % scenario.id
+                    _m._write(msg)
+                    print(msg)
+                    return
+                try:
+                    speed_col = cells.index(speed_title)
+                except Exception as e:
+                    msg = "Error. No speed match for specified scenario: '%s'." % scenario.id
+                    _m._write(msg)
+                    print(msg)
+                    return
+                instruction_data = {}
+                for num, line in enumerate(reader):
+                    cells = line.strip().split(",")
+                    filter = cells[filter_col]
+                    if cells[headway_col]:
+                        hdw = cells[headway_col]
+                    else:
+                        # if the headway column is left blank, carry forward a factor of 1
+                        hdw = 1
+                    if cells[speed_col]:
+                        spd = cells[speed_col]
+                    else:
+                        spd = 1
+                    instruction_data[filter] = (float(hdw), float(spd))
+
+        return instruction_data
+
+    def _apply_line_changes(self, scenario, input_data):
+        for filter, factors in input_data.items():
+            if factors[0] != 1:
+                spec = {
+                    "type": "NETWORK_CALCULATION",
+                    "expression": str(factors[0]) + "*hdw",
+                    "result": "hdw",
+                    "selections": {"transit_line": filter},
+                }
+                network_calc_tool(spec, scenario)
+            if factors[1] != 1:
+                spec = {
+                    "type": "NETWORK_CALCULATION",
+                    "expression": str(factors[1]) + "*speed",
+                    "result": "speed",
+                    "selections": {"transit_line": filter},
+                }
+                network_calc_tool(spec, scenario)
+
+    def _process_transit_lines(self, network, start, end, alt_data):
+        bounds = _util.float_range(0.01, 1000.0)
+        to_delete = set()
+        if alt_data is not None:
+            # check if any headways or speeds are zero. Allow those lines to be deletable
+            for k, v in alt_data.items():
+                if v[0] == 0 or v[1] == 0:
+                    del alt_data[k]
+                # if v[0] == 9999: #prep an unused line for deletion
+                #    toDelete.add(k)
+            do_not_delete = alt_data.keys()
+        else:
+            do_not_delete = []
+        self._tracker.start_process(network.element_totals["transit_lines"])
+        # self._tracker.start_process(2603)
+
+        for line in network.transit_lines():
+            # Pick aggregation type for given line
+            if line.aggtype == "n":
+                aggregator = naive_aggregation
+            elif line.aggtype == "a":
+                aggregator = average_aggregation
+            elif self.DefaultAgg == "n":
+                aggregator = naive_aggregation
+                _write("Default aggregation was used for line %s" % (line.id))
+            else:
+                aggregator = average_aggregation
+                _write("Default aggregation was used for line %s" % (line.id))
+            # Line trips list is empty or None
+            if not line.trips:
+                if do_not_delete:
+                    # don't delete lines whose headways we wish to manually set
+                    if line.id not in do_not_delete:
+                        to_delete.add(line.id)
+                elif line.id not in to_delete:
+                    to_delete.add(line.id)
+                self._tracker.complete_subtask()
+                continue
+            # Calc line headway
+            departures = [dep for dep, arr in line.trips]
+            departures.sort()
+            # Convert from seconds to minutes
+            headway = aggregator(departures, start, end) / 60.0
+            if not headway in bounds:
+                print("%s: %s" % (line.id, headway))
+            line.headway = headway
+            # Calc line speed
+            sumTimes = 0
+            for dep, arr in line.trips:
+                sumTimes += arr - dep
+            # Convert from seconds to hours
+            avgTime = sumTimes / len(line.trips) / 3600.0
+            # Given in km
+            length = sum([seg.link.length for seg in line.segments()])
+            # km/hr
+            speed = length / avgTime
+            if not speed in bounds:
+                print("%s: %s" % (line.id, speed))
+            line.speed = speed
+            self._tracker.complete_subtask()
+        for id in to_delete:
+            network.delete_transit_line(id)
+        self._tracker.complete_task()
+
+    def _load_alt_file(self, alternative_table_file, start_time):
+        alt_data = {}
+        with open(alternative_table_file) as reader:
+            header = reader.readline()
+            cells = header.strip().split(",")
+
+            emme_id_col = cells.index("emme_id")
+            headway_title = "{:0>4.0f}".format(start_time) + "_hdw"
+            speed_title = "{:0>4.0f}".format(start_time) + "_spd"
+            try:
+                headway_col = cells.index(headway_title)
+            except Exception as e:
+                msg = "Error. No headway match for specified time period start: '%s'." % start_time
+                _write(msg)
+                print(msg)
+            try:
+                speed_col = cells.index(speed_title)
+            except Exception as e:
+                msg = "Error. No speed match for specified time period start: '%s'." % start_time
+                _write(msg)
+                print(msg)
+
+            local_alt_data = {}
+
+            for num, line in enumerate(reader):
+                cells = line.strip().split(",")
+
+                id = cells[emme_id_col]
+                hdw = cells[headway_col]
+                spd = cells[speed_col]
+                if id not in local_alt_data:
+                    local_alt_data[id] = (float(hdw), float(spd))
+                else:
+                    raise ValueError("Line %s has multiple entries. Please revise your alt file." % id)
+            # now that the file has been loaded in move it into the combined altFile dictionary
+        for id, data in local_alt_data.items():
+            alt_data[id] = data
+        return alt_data
+
+    def _process_alt_lines(self, network, alt_data):
+        bounds = _util.float_range(0.01, 1000.0)
+        for key, data in alt_data.items():
+            line = network.transit_line(key)
+            if line:
+                # a headway of 9999 indicates an unused line
+                if data[0] == 9999:
+                    network.delete_transit_line(line.id)
+                    continue
+                # a headway of 0 allows for a line to be in the alt data file without changing existing headway
+                elif data[0] == 0:
+                    print("%s: %s" % (line.id, data[0]))
+                    _write("Headway = 0 in alt file. Headway remains as in base.  %s" % line.id)
+                elif not data[0] in bounds:
+                    print("%s: %s" % (line.id, data[0]))
+                    _write("Headway out of bounds line %s: %s minutes. Line removed from network." % (line.id, data[0]))
+                    network.delete_transit_line(line.id)
+                    continue
+                line.headway = data[0]
+                if not data[1] in bounds:
+                    print("%s: %s" % (line.id, data[1]))
+                    _write("Speed out of bounds line %s: %s km/h. Speed remains as in base." % (line.id, data[1]))
+                    continue
+                line.speed = data[1]
+
     @contextmanager
     def open_csv_reader(self, file_path):
         """
@@ -227,3 +473,11 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             yield file
         finally:
             csv_file.close()
+
+    @_m.method(return_type=_m.TupleType)
+    def percent_completed(self):
+        return self._tracker.get_progress()
+
+    @_m.method(return_type=str)
+    def tool_run_msg_status(self):
+        return self.tool_run_msg

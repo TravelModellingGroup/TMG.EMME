@@ -40,10 +40,10 @@ namespace TMG.Emme.Test.Generate
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("base_scenario_number", baseScenarioNumber);
-                    writer.WriteString("transit_service_table_file", "TestFiles/NewTestNetwork/Service Table.csv");
-                    writer.WriteString("batch_edit_file", "TestFiles/NewTestNetwork/Batch Line Edit.csv");
-                    writer.WriteString("transit_aggregation_selection_table_file", "TestFiles/NewTestNetwork/Aggregation.csv");
-                    writer.WriteString("transit_alternative_table_file", "Alt File.csv");
+                    writer.WriteString("transit_service_table_file", Path.GetFullPath("TestFiles/NewTestNetwork/Service Table.csv"));
+                    writer.WriteString("batch_edit_file", Path.GetFullPath("TestFiles/NewTestNetwork/Batch Line Edit.csv"));
+                    writer.WriteString("transit_aggregation_selection_table_file", Path.GetFullPath("TestFiles/NewTestNetwork/Aggregation.csv"));
+                    writer.WriteString("transit_alternative_table_file", Path.GetFullPath("Alt File.csv"));
                     writer.WriteString("attribute_aggregator", "vdf: force,length: sum,type: first,lanes: force,ul1: avg,ul2: force,ul3: force,dwt: sum,dwfac: force,ttf: force,us1: avg_by_length,us2: avg,us3: avg,ui1: avg,ui2: avg,ui3: avg,@stop: avg,@lkcap: avg,@lkspd: avg,@stn1: force,@stn2: force,@z407: avg");
                     writer.WriteString("connector_filter_attribute", "None");
                     writer.WriteString("default_aggregation", "Naive");
@@ -56,7 +56,7 @@ namespace TMG.Emme.Test.Generate
                     writer.WriteString("name", "PM");
                     writer.WriteNumber("uncleaned_scenario_number", 30);
                     writer.WriteNumber("cleaned_scenario_number", 31);
-                    writer.WriteString("uncleaned_description", "PM - Uncleaned Network");
+                    writer.WriteString("uncleaned_description", "PMWW - Uncleaned Network");
                     writer.WriteString("cleaned_description", "PM - Cleaned Network");
                     writer.WriteNumber("start_time", 1500);
                     writer.WriteNumber("end_time", 1900);
@@ -66,7 +66,7 @@ namespace TMG.Emme.Test.Generate
                     writer.WriteString("name", "EV");
                     writer.WriteNumber("uncleaned_scenario_number", 40);
                     writer.WriteNumber("cleaned_scenario_number", 41);
-                    writer.WriteString("uncleaned_description", "EV - Uncleaned Network");
+                    writer.WriteString("uncleaned_description", "EVWW - Uncleaned Network");
                     writer.WriteString("cleaned_description", "EV - Cleaned Network");
                     writer.WriteNumber("start_time", 1900);
                     writer.WriteNumber("end_time", 2400);
