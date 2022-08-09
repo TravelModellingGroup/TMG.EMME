@@ -166,7 +166,6 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 network.delete_attribute("TRANSIT_LINE", "aggtype")
                 uncleaned_scenario.publish_network(network)
             print("Created uncleaned time period networks and applied network updates")
-
             for periods in parameters["time_periods"]:
                 uncleaned_scenario = _bank.scenario(periods["uncleaned_scenario_number"])
                 # Apply Batch File to uncleaned scenario numbers
