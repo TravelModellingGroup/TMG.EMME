@@ -33,7 +33,6 @@ TMG Generate Full Network Set Tool
     V 2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2022-07-20 by williamsDiogu   
 """
 import csv
-from turtle import pos
 import inro.modeller as _m
 import traceback as _traceback
 import multiprocessing
@@ -116,6 +115,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             attributes=self._get_atts(base_scenario),
         ):
             network = base_scenario.get_network()
+            self._check_transfer_mode_in_network(network, parameters["transfer_mode_string"])
             self._tracker.complete_task()
             print("Loaded network")
             self._check_filter_attributes(base_scenario, parameters["node_filter_attribute"], description="Node")
@@ -179,6 +179,19 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                         uncleaned_scenario, parameters["line_filter_expression"], parameters["unposted_speed_limit"]
                     )
                     print("Prorated transit speeds in uncleaned scenario %s" % periods["uncleaned_scenario_number"])
+            base_network = base_scenario.get_network()
+            self._tracker.complete_task()
+            self._remove_extra_links(base_network, parameters["transfer_mode_string"])
+            for periods in parameters["time_periods"]:
+                clean_scenario = _bank.copy_scenario(
+                    base_scenario.id, periods["cleaned_scenario_number"], copy_strat_files=False, copy_path_files=False
+                )
+                clean_scenario.title = periods["cleaned_description"]
+                clean_scenario.publish_network(base_network, True)
+            self._tracker.complete_subtask()
+            _MODELLER.desktop.refresh_needed(True)
+            self._tracker.complete_task()
+            print("Cleaned networks")
 
     def _delete_old_scenario(self, scenario_number):
         if _bank.scenario(scenario_number) is not None:
@@ -511,6 +524,126 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             self._tracker.complete_task()
             scenario.publish_network(network)
         return len(flagged_lines)
+
+    def _remove_extra_links(self, base_network, transfer_mode_string):
+        self._remove_transit_only_links_with_no_lines(base_network)
+        self._remove_dead_end_links(base_network)
+        self._create_transfer_mode_id_string(base_network, transfer_mode_string)
+        self._tracker.complete_task()
+        self._remove_stranded_nodes(base_network)
+        self._tracker.start_process(2)
+
+    def _remove_transit_only_links_with_no_lines(self, network):
+        self._tracker.complete_task()
+        for link in network.links():
+            has_transit = False
+            for segment in link.segments():
+                has_transit = True
+            transit_only = True
+            if has_transit == False:
+                for mode in link.modes:
+                    if mode.type != "TRANSIT":
+                        transit_only = False
+                if transit_only == True:
+                    network.delete_link(link.i_node, link.j_node)
+
+    def _remove_dead_end_links(self, network):
+        for link in network.links():
+            has_transit = False
+            for segment in link.segments():
+                has_transit = True
+            dead_start = True
+            dead_end = True
+            if has_transit == False:
+                start_node = link.i_node
+                end_node = link.j_node
+                if start_node.is_centroid:
+                    dead_start = False
+                else:
+                    for in_link in start_node.incoming_links():
+                        if in_link.i_node != link.j_node:
+                            dead_start = False
+                if end_node.is_centroid:
+                    dead_end = False
+                else:
+                    for out_link in end_node.outgoing_links():
+                        if out_link.j_node != link.i_node:
+                            dead_end = False
+                if dead_start or dead_end:
+                    network.delete_link(start_node, end_node)
+
+    def _create_transfer_mode_id_string(self, network, transfer_mode_string):
+        transfer_modes = set()
+        for m in transfer_mode_string:
+            transfer_modes.add(network.mode(m))
+        for link in network.links():
+            link_modes = link.modes
+            # check if link has at least one transfer mode
+            if len(link_modes.intersection(transfer_modes)) > 0:
+                start_node = link.i_node
+                end_node = link.j_node
+                start_stop = False
+                end_stop = False
+                start_road = False
+                end_road = False
+                for in_link in start_node.incoming_links():
+                    # only check if non-reverse links are on the road network
+                    if in_link.i_node != link.j_node:
+                        for mode in in_link.modes:
+                            if mode.type != "TRANSIT" and mode not in transfer_modes:
+                                start_road = True
+                    # check if start node is end of line stop
+                    for segment in in_link.segments():
+                        if segment.line.segment(str(start_node.number) + "-0") != False:
+                            start_stop = True
+                for out_link in start_node.outgoing_links():
+                    # check if start node has transit stops
+                    for segment in out_link.segments():
+                        if segment.allow_boardings or segment.allow_alightings:
+                            start_stop = True
+                for out_link in end_node.outgoing_links():
+                    # only check if non-reverse links are on the road network
+                    if out_link.j_node != link.i_node:
+                        for mode in out_link.modes:
+                            if mode.type != "TRANSIT" and mode not in transfer_modes:
+                                end_road = True
+                    # check to see if end node has transit stops
+                    for segment in out_link.segments():
+                        if segment.allow_boardings or segment.allow_alightings:
+                            end_stop = True
+                # check to see if node is end-of-line stop
+                for segment in link.segments():
+                    if segment.line.segment(str(end_node.number) + "-0") != False:
+                        end_stop = True
+                keep = False
+                if start_stop == True and end_stop == True:
+                    keep = True
+                elif start_stop == True and end_road == True:
+                    keep = True
+                elif end_stop == True and start_road == True:
+                    keep = True
+                if keep == False:
+                    # check if link has non-transfer modes, in which case these modes are removed from link, otherwise link is deleted
+                    if link.modes.issubset(transfer_modes):
+                        network.delete_link(start_node, end_node)
+                    else:
+                        link.modes = link.modes.difference(transfer_modes)
+
+    def _check_transfer_mode_in_network(self, network, transfer_mode_string):
+        for mode in transfer_mode_string:
+            if network.mode(mode) == None:
+                raise Exception("Transfer mode %s was not found in the network!" % mode)
+
+    def _remove_stranded_nodes(self, network):
+        # removes nodes not connected to any links
+        for node in network.nodes():
+            is_stranded = True
+            for link in node.outgoing_links():
+                is_stranded = False
+            for link in node.incoming_links():
+                is_stranded = False
+            if is_stranded == True:
+                network.delete_node(node.id)
 
     @contextmanager
     def open_csv_reader(self, file_path):
