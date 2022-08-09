@@ -80,7 +80,7 @@ namespace TMG.Emme.Generate
 
         [Parameter(Name = "Unposted Speed Limit", Description = "Unposted Speed Limit in km/h",
             Index = 12)]
-        public IFunction<int> SpeedLimit;
+        public IFunction<int> UnpostedSpeedLimit;
 
         [SubModule(Name = "Time Periods", Description = "Time periods to consider.", Index = 13)]
         public IFunction<TimePeriod>[] TimePeriods;
@@ -183,7 +183,7 @@ namespace TMG.Emme.Generate
                 writer.WriteString("batch_edit_file", Path.GetFullPath(BatchEditFile.Invoke()));
                 writer.WriteString("transit_aggregation_selection_table_file", Path.GetFullPath(TransitAggreggationSelectionTableFile.Invoke()));
                 writer.WriteString("transit_alternative_table_file", Path.GetFullPath(TransitAlternativeTableFile.Invoke()));
-                writer.WriteNumber("speed_limit", SpeedLimit.Invoke());
+                writer.WriteNumber("unposted_speed_limit", UnpostedSpeedLimit.Invoke());
                 writer.WriteStartArray("time_periods");
                 foreach (var timePeriod in TimePeriods)
                 {

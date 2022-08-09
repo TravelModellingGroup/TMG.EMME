@@ -176,7 +176,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 # Prorate transit speeds in uncleaned scenario numbers
                 if parameters["line_filter_expression"] != "":
                     self._prorate_transit_speeds(
-                        uncleaned_scenario, parameters["line_filter_expression"], parameters["posted_speed_limit"]
+                        uncleaned_scenario, parameters["line_filter_expression"], parameters["unposted_speed_limit"]
                     )
                     print("Prorated transit speeds in uncleaned scenario %s" % periods["uncleaned_scenario_number"])
 
@@ -449,12 +449,12 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                     continue
                 line.speed = data[1]
 
-    def _process_line(self, line, posted_speed_limit):
+    def _process_line(self, line, unposted_speed_limit):
         free_flow_time = 0
         for segment in line.segments():
             speed = segment.link.data2
             if speed == 0:
-                speed = posted_speed_limit
+                speed = unposted_speed_limit
             free_flow_time += segment.link.length / speed
         # In km
         line_length = sum([seg.link.length for seg in line.segments()])
@@ -468,7 +468,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         for segment in line.segments():
             speed = segment.link.data2
             if speed == 0:
-                speed = posted_speed_limit
+                speed = unposted_speed_limit
             segment.data1 = speed * factor
 
     def _get_net_calc_spec(self, flag_attribute_id, line_filter_expression):
@@ -489,7 +489,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         else:
             print("No changes available in this scenario")
 
-    def _prorate_transit_speeds(self, scenario, line_filter_expression, posted_speed_limit):
+    def _prorate_transit_speeds(self, scenario, line_filter_expression, unposted_speed_limit):
         if int(scenario.element_totals["transit_lines"]) == 0:
             return 0
         with self._line_attribute_manager(scenario) as flag_attribute_id:
@@ -506,7 +506,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 return 0
             self._tracker.start_process(len(flagged_lines))
             for line in flagged_lines:
-                self._process_line(line, posted_speed_limit)
+                self._process_line(line, unposted_speed_limit)
                 self._tracker.complete_subtask()
             self._tracker.complete_task()
             scenario.publish_network(network)
