@@ -51,6 +51,7 @@ namespace TMG.Emme.Test.Generate
                     writer.WriteString("node_filter_attribute", "None");
                     writer.WriteString("stop_filter_attribute", "@stop");
                     writer.WriteString("transfer_mode_string", "tuy");
+                    writer.WriteNumber("speed_limit", 50);
                     writer.WriteStartArray("time_periods");
                     writer.WriteStartObject();
                     writer.WriteString("name", "PM");
@@ -142,6 +143,7 @@ namespace TMG.Emme.Test.Generate
                 TransferModeString = Helper.CreateParameter(Path.GetFullPath("tuy")),
                 TimePeriods = Helper.CreateParameters(timePeriods),
                 AdditionalTransitAlternativeTables = Helper.CreateParameters(addAltFiles),
+                SpeedLimit = Helper.CreateParameter(50),
             };
             module.Invoke(Helper.Modeller);
         }
