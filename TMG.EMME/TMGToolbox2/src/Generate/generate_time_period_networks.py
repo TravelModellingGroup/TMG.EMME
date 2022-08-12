@@ -33,6 +33,7 @@ TMG Generate Full Network Set Tool
     V 2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2022-07-20 by williamsDiogu   
 """
 import csv
+from re import split as _regex_split
 import inro.modeller as _m
 import traceback as _traceback
 import multiprocessing
@@ -41,11 +42,13 @@ from contextlib import contextmanager
 _MODELLER = _m.Modeller()
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
+_edit = _MODELLER.module("tmg2.utilities.network_editing")
 network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 _bank = _MODELLER.emmebank
 _write = _m.logbook_write
 _trace = _m.logbook_trace
-
+force_error = _edit.ForceError
+invalid_network_operation_error = _edit.InvalidNetworkOperationError
 _m.TupleType = object
 _m.ListType = list
 _m.InstanceType = object
@@ -76,7 +79,27 @@ def average_aggregation(departures, start, end):
 class GenerateTimePeriodNetworks(_m.Tool()):
     version = "2.0.0"
     tool_run_msg = ""
-    number_of_task = 2
+    number_of_task = 10
+
+    NAMED_AGGREGATORS = _edit.NAMED_AGGREGATORS
+
+    @staticmethod
+    def AVERAGE_BY_LENGTH_LINKS(att, link1, link2):
+        a1 = link1[att]
+        a2 = link2[att]
+        l1 = link1.length
+        l2 = link2.length
+
+        return (a1 * l1 + a2 * l2) / (l1 + l2)
+
+    @staticmethod
+    def AVERAGE_BY_LENGTH_SEGMENTS(att, segment1, segment2):
+        a1 = segment1[att]
+        a2 = segment2[att]
+        l1 = segment1.link.length
+        l2 = segment2.link.length
+
+        return (a1 * l1 + a2 * l2) / (l1 + l2)
 
     def __init__(self):
         self._tracker = _util.progress_tracker(self.number_of_task)
@@ -118,9 +141,13 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             self._check_transfer_mode_in_network(network, parameters["transfer_mode_string"])
             self._tracker.complete_task()
             print("Loaded network")
-            self._check_filter_attributes(base_scenario, parameters["node_filter_attribute"], description="Node")
-            self._check_filter_attributes(base_scenario, parameters["stop_filter_attribute"], description="Stop")
-            self._check_filter_attributes(
+            node_filter_attribute = self._check_filter_attributes(
+                base_scenario, parameters["node_filter_attribute"], description="Node"
+            )
+            stop_filter_attribute = self._check_filter_attributes(
+                base_scenario, parameters["stop_filter_attribute"], description="Stop"
+            )
+            connector_filter_attribute = self._check_filter_attributes(
                 base_scenario, parameters["connector_filter_attribute"], description="Connector"
             )
             for periods in parameters["time_periods"]:
@@ -190,7 +217,13 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 clean_scenario.publish_network(base_network, True)
             self._tracker.complete_subtask()
             _MODELLER.desktop.refresh_needed(True)
+
+            self._parse_segment_aggregators(clean_scenario, parameters["attribute_aggregator"])
             self._tracker.complete_task()
+            cleaned_network = clean_scenario.get_network()
+            self._remove_extra_nodes(
+                cleaned_network, node_filter_attribute, stop_filter_attribute, connector_filter_attribute
+            )
             print("Cleaned networks")
 
     def _delete_old_scenario(self, scenario_number):
@@ -644,6 +677,279 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 is_stranded = False
             if is_stranded == True:
                 network.delete_node(node.id)
+
+    def _remove_extra_nodes(
+        self, cleaned_network, node_filter_attribute, stop_filter_attribute, connector_filter_attribute
+    ):
+
+        nodes_to_delete = self._get_candidate_nodes(
+            cleaned_network, node_filter_attribute, stop_filter_attribute, connector_filter_attribute
+        )
+        if len(nodes_to_delete) == 0:
+            raise Exception("Found zero nodes to delete.")
+        if connector_filter_attribute != "none" or connector_filter_attribute != "":
+            self._remove_candidate_centroid_connectors(nodes_to_delete, connector_filter_attribute)
+        log = self._remove_nodes(cleaned_network, nodes_to_delete)
+        self._tracker.complete_task()
+        self._write_report(log)
+
+    def _get_candidate_nodes(self, network, node_filter_attribute, stop_filter_attribute, connector_filter_attribute):
+        network.create_attribute("NODE", "is_stop", False)
+        for segment in network.transit_segments():
+            if segment.allow_boardings or segment.allow_alightings:
+                segment.i_node.is_stop = True
+        # Setup filter functions. True to delete node, False to preserve
+        if node_filter_attribute != None:
+            check_node_1 = lambda n: bool(n[node_filter_attribute])
+        else:
+            check_node_1 = lambda n: True
+
+        if stop_filter_attribute != None:
+            # True if node is not a stop or node is flagged
+            check_node_2 = lambda n: not n.is_stop or n[stop_filter_attribute]
+        else:
+            check_node_2 = lambda n: not n.is_stop
+
+        if connector_filter_attribute != None:
+            check_connector = lambda l: bool(l[connector_filter_attribute])
+        else:
+            check_connector = lambda l: False
+
+        retval = []
+        self._tracker.start_process(network.element_totals["regular_nodes"])
+        for node in network.regular_nodes():
+            if self.check_node(node, check_node_1, check_node_2, check_connector):
+                retval.append(node)
+            self._tracker.complete_subtask()
+        self._tracker.complete_task()
+        _write("%s nodes were selected for deletion." % len(retval))
+        return retval
+
+    def _remove_candidate_centroid_connectors(self, nodes_to_delete, connector_filter_attribute):
+        network = nodes_to_delete[0].network
+        link_ids_to_delete = []
+        for node in nodes_to_delete:
+            for link in node.incoming_links():
+                if link.i_node.is_centroid and link[connector_filter_attribute]:
+                    link_ids_to_delete.append((link.i_node.number, node.number))
+            for link in node.outgoing_links():
+                if link.j_node.is_centroid and link[connector_filter_attribute]:
+                    link_ids_to_delete.append((node.number, link.j_node.number))
+        for i, j in link_ids_to_delete:
+            network.delete_link(i, j, True)
+
+    def _remove_nodes(self, network, nodes_to_delete):
+        log = []
+        deep_errors = []
+        delete_nodes = 0
+        self._tracker.start_process(len(nodes_to_delete))
+        for node in nodes_to_delete:
+            nid = node.number
+            try:
+                _edit.merge_links(
+                    node,
+                    delete_stop=True,
+                    vertex=True,
+                    link_aggregators=self._link_aggregators,
+                    segment_aggregators=self._segment_aggregators,
+                )
+                delete_nodes += 1
+            except force_error as fe:
+                # User specified to keep these nodes
+                log.append("Node %s not deleted. User-specified aggregator for '%s' detected changes." % (nid, fe))
+            except invalid_network_operation_error as inee:
+                log.append(str(inee))
+            except Exception as e:
+                log.append("Deep error processing node %s: %s" % (nid, e))
+                deep_errors.append(_traceback.format_exc())
+            self._tracker.complete_subtask()
+        self._tracker.complete_task()
+        _write("Removed %s nodes from the network." % delete_nodes)
+        return log
+
+    def _write_report(self, log):
+        pb = _m.PageBuilder(title="Error log")
+        doc = "<br>".join(log)
+        pb.wrap_html(body=doc)
+        _write("Error report", value=pb.render())
+
+    def check_node(self, node, check_node_1, check_node_2, check_connector):
+        if check_node_1(node) and check_node_2(node):
+            neighbours = set()
+            n_links = 0
+            for link in node.outgoing_links():
+                # is Connector
+                if link.j_node.is_centroid:
+                    # Make this link 'invisible'
+                    if check_connector(link):
+                        continue
+                    # Connector not flagged for deletion, therefore cannot delete
+                    # this node
+                    return False
+                neighbours.add(link.j_node.number)
+                n_links += 1
+            for link in node.incoming_links():
+                if link.i_node.is_centroid:
+                    if check_connector:
+                        continue
+                    return False
+                neighbours.add(link.i_node.number)
+                n_links += 1
+            # Needs to have a degree of 2
+            if len(neighbours) != 2:
+                return False
+                # Needs to be connected to either 2 or 4 links
+            if n_links != 2 and n_links != 4:
+                return False
+            # Ok, so now we know this node is a candidate for deletion
+            # For it to be selected for deletion, it must pass the two conditions
+            return check_node_1(node) and check_node_2(node)
+
+    def _parse_segment_aggregators(self, scenario, attribute_aggregator):
+        # Setup the translation dictionary to get from Emme Desktop attribute names
+        # to Modeller Python attribute names. Extra attributes are named the same.
+        translator = self._get_translator_dict()
+        multiple_domain_attributes = ["data1", "data2", "data3"]
+        valid_func_names = ["sum", "avg", "or", "and", "min", "max", "first", "last", "zero", "avg_by_length", "force"]
+        # Setup default aggregator function names
+        link_extra_attributes = []
+        segment_extra_attributes = []
+        node_extra_attributes = []
+
+        for exatt in scenario.extra_attributes():
+            id = exatt.name
+            t = exatt.type
+            if t == "NODE":
+                node_extra_attributes.append(id)
+            elif t == "TRANSIT_SEGMENT":
+                segment_extra_attributes.append(id)
+            elif t == "LINK":
+                link_extra_attributes.append(id)
+
+        link_aggregators = {"length": "sum", "data1_l": "zero", "data2_l": "avg_by_length", "data3_l": "avg"}
+        for att in link_extra_attributes:
+            link_aggregators[att] = "avg"
+            translator[att] = att
+
+        segment_aggregators = {
+            "dwell_time": "sum",
+            "factor_dwell_time_by_length": "and",
+            "transit_time_func": "force",
+            "data1_s": "avg_by_length",
+            "data2_s": "zero",
+            "data3_s": "zero",
+        }
+        for att in segment_extra_attributes:
+            segment_aggregators[att] = "avg"
+            # Save extra attribute names into the translator for recognition
+            translator[att] = att
+
+        node_aggregators = {}
+        for att in node_extra_attributes:
+            node_aggregators[att] = "avg"
+            translator[att] = att
+        # Parse the argument string
+        trimmed_string = attribute_aggregator.replace(" ", "")
+        # Supports newline and/or commas
+        components = _regex_split("\n|,", trimmed_string)
+
+        for component in components:
+            if component.isspace():
+                # Skip if totally empty
+                continue
+            parts = component.split(":")
+            if len(parts) != 2:
+                msg = "Error parsing attribute aggregators: Separate attribute name from function with exactly one colon ':'"
+                msg += ". [%s]" % component
+                raise SyntaxError(msg)
+
+            att_name, func_name = parts
+            if att_name not in translator:
+                raise IOError("Error parsing attribute aggregators: attribute '%s' not recognized." % att_name)
+            att_name = translator[att_name]
+
+            if not func_name in valid_func_names:
+                raise IOError(
+                    "Error parsing attribute aggregators: function '%s' not recognized for attribute '%s'"
+                    % (func_name, att_name)
+                )
+
+            if att_name in link_aggregators:
+                link_aggregators[att_name] = func_name
+            elif att_name in segment_aggregators:
+                segment_aggregators[att_name] = func_name
+            elif att_name in node_aggregators:
+                node_aggregators[att_name] = func_name
+            elif att_name in multiple_domain_attributes:
+                link_aggregators[att_name] = func_name
+                segment_aggregators[att_name] = func_name
+                node_aggregators[att_name] = func_name
+
+        for key in link_aggregators.keys():
+            if key.endswith("_l"):
+                new_key = key.replace("_l", "")
+                val = link_aggregators.pop(key)
+                link_aggregators[new_key] = val
+
+        for key in segment_aggregators:
+            if key.endswith("_s"):
+                new_key = key.replace("_s", "")
+                val = segment_aggregators.pop(key)
+                segment_aggregators[new_key] = val
+
+        for key in node_aggregators:
+            if key.endswith("_n"):
+                new_key = key.replace("_n", "")
+                val = node_aggregators.pop(key)
+                node_aggregators[new_key] = val
+
+        for att, func_name in link_aggregators.items():
+            if func_name == "avg_by_length":
+                link_aggregators[att] = self.AVERAGE_BY_LENGTH_LINKS
+            else:
+                link_aggregators[att] = _edit.NAMED_AGGREGATORS[func_name]
+        for att, func_name in segment_aggregators.items():
+            if func_name == "avg_by_length":
+                segment_aggregators[att] = self.AVERAGE_BY_LENGTH_SEGMENTS
+            else:
+                segment_aggregators[att] = _edit.NAMED_AGGREGATORS[func_name]
+        for att, func_name in node_aggregators.items():
+            node_aggregators[att] = _edit.NAMED_AGGREGATORS[func_name]
+
+    def _get_translator_dict(self):
+        translator_dict = {
+            "length": "length",
+            "type": "type",
+            "lanes": "num_lanes",
+            "vdf": "volume_delay_func",
+            "ul1": "data1_l",
+            "ul2": "data2_l",
+            "ul3": "data3_l",
+            "dwt": "dwell_time",
+            "dwfac": "factor_dwell_time_by_length",
+            "ttf": "transit_time_func",
+            "us1": "data1_s",
+            "us2": "data2_s",
+            "us3": "data3_s",
+            "data1_l": "data1_l",
+            "data2_l": "data2_l",
+            "data3_l": "data3_l",
+            "ui1": "data1_n",
+            "ui2": "data2_n",
+            "ui3": "data3_n",
+            "dwell_time": "dwell_time",
+            "factor_dwell_time_by_length": "factor_dwell_time_by_length",
+            "transit_time_func": "transit_time_func",
+            "data1_s": "data1_s",
+            "data2_s": "data2_s",
+            "data3_s": "data3_s",
+            "data1": "data1",
+            "data2": "data2",
+            "data3": "data3",
+            "noali": "allow_alightings",
+            "noboa": "allow_boardings",
+        }
+        return translator_dict
 
     @contextmanager
     def open_csv_reader(self, file_path):
