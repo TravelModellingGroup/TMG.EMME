@@ -32,7 +32,6 @@ TMG Generate Full Network Set Tool
 
     V 2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2022-07-20 by williamsDiogu   
 """
-import csv
 from re import split as _regex_split
 import inro.modeller as _m
 import traceback as _traceback
@@ -246,7 +245,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         bounds = _util.float_range(start_time, end_time)
         bad_ids = set()
         if transit_service_table_file != "" or transit_service_table_file != "none":
-            with self.open_csv_reader(transit_service_table_file) as service_file:
+            with _util.open_csv_reader(transit_service_table_file) as service_file:
                 for line_number, service_file_list in enumerate(service_file):
                     emme_id_col = service_file_list[0]
                     departure_col = service_file_list[1]
@@ -273,7 +272,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
     def _load_agg_type_select(self, network, transit_aggregation_selection_table_file):
         bad_ids = set()
         if transit_aggregation_selection_table_file != "" or transit_aggregation_selection_table_file != "none":
-            with self.open_csv_reader(transit_aggregation_selection_table_file) as aggregate_file:
+            with _util.open_csv_reader(transit_aggregation_selection_table_file) as aggregate_file:
                 for line_number, aggregate_file_list in enumerate(aggregate_file):
                     emme_id_col = aggregate_file_list[0]
                     agg_col = aggregate_file_list[1]
