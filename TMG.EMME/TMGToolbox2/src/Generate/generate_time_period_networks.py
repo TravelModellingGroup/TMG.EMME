@@ -496,6 +496,8 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 line.speed = data[1]
 
     def _process_line(self, line, unposted_speed_limit):
+        if line.speed <= 0:
+            return
         free_flow_time = 0
         for segment in line.segments():
             speed = segment.link.data2
@@ -504,11 +506,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             free_flow_time += segment.link.length / speed
         # In km
         line_length = sum([seg.link.length for seg in line.segments()])
-        # In minutes
-        try:
-            scheduled_cycle_time = line_length / line.speed
-        except ZeroDivisionError as e:
-            print(e)
+        scheduled_cycle_time = line_length / line.speed
         factor = free_flow_time / scheduled_cycle_time
 
         for segment in line.segments():
@@ -950,21 +948,6 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             "noboa": "allow_boardings",
         }
         return translator_dict
-
-    @contextmanager
-    def open_csv_reader(self, file_path):
-        """
-        Open, reads and manages a CSV file
-        NOTE: Does not return the first line of the CSV file
-            Assumption is that the first row is the title of each field
-        """
-        csv_file = open(file_path, mode="r")
-        file = csv.reader(csv_file)
-        next(file)
-        try:
-            yield file
-        finally:
-            csv_file.close()
 
     @contextmanager
     def _line_attribute_manager(self, scenario):
