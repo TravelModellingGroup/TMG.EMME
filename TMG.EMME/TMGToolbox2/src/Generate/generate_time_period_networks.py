@@ -281,10 +281,10 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                     if transit_line is None:
                         bad_ids.add(emme_id_col)
                         continue
-                    try:
-                        aggregation = self._parse_agg_type(agg_col)
-                    except Exception as e:
-                        print("Line " + line_number + " skipped: " + str(e))
+                    aggregation = "n"
+                    if agg_col[0] == "a" or agg_col[0] == "A":
+                        aggregation = "a"
+                    elif agg_col[0] == "":
                         continue
                     if transit_line.aggtype is None:
                         transit_line.aggtype = aggregation
@@ -301,17 +301,6 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             return hours * 3600 + minutes * 60 + float(seconds)
         except Exception as e:
             raise IOError("Error passing time %s: %s" % (time_string, e))
-
-    def _parse_agg_type(self, a):
-        choice_set = ("n", "a")
-        try:
-            agg = a[0].lower()
-            if agg not in choice_set:
-                raise IOError()
-            else:
-                return agg
-        except Exception as e:
-            raise IOError("You must select either naive or average as an aggregation type %s: %s" % (a, e))
 
     def _load_batch_file(self, scenario, batch_edit_file):
         if batch_edit_file != "" or batch_edit_file != "none":
