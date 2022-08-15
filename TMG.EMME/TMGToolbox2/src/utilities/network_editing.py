@@ -640,7 +640,7 @@ __ATTRIBUTE_CASTS = {
 }
 
 
-def mergeLinks(node, deleteStop=False, vertex=True, linkAggregators={}, segmentAggregators={}):
+def merge_links(node, delete_stop=False, vertex=True, link_aggregators={}, segment_aggregators={}):
     """
     Deletes a node and merges its links. This only works for nodes connected to exactly
     2 other nodes with either two or four links. The node can be a transit stop but cannot
@@ -648,10 +648,10 @@ def mergeLinks(node, deleteStop=False, vertex=True, linkAggregators={}, segmentA
 
     Args:
         - node: The Emme node object to remove.
-        - deleteStop (=False): Flag to remove incident stops (or not). If False, this
+        - delete_stop (=False): Flag to remove incident stops (or not). If False, this
                 function will raise an error if any transit line stops at the given node.
         - vertex (=True): Flag to insert the deleted node as a vertex in the merged link(s).
-        - linkAggregators (={}): A dictionary. The keys are the names of link standard
+        - link_aggregators (={}): A dictionary. The keys are the names of link standard
                 or extra attributes, the values are aggregator functions (see
                 static dictionary 'NAMED_AGGREGATORS').If not specified, the default
                 aggregators will be used:
@@ -660,7 +660,7 @@ def mergeLinks(node, deleteStop=False, vertex=True, linkAggregators={}, segmentA
                     FORCE for VDF
                     MAX for lanes
                     AVG for everything else
-        - segmentAggregators (={}): Similar to linkAggregators, but applied to segment
+        - segment_aggregators (={}): Similar to link_aggregators, but applied to segment
                 attributes. If not specified, the default aggregators will be used:
                     SUM for dwell time
                     FORCE for TTF
@@ -682,25 +682,25 @@ def mergeLinks(node, deleteStop=False, vertex=True, linkAggregators={}, segmentA
 
     network = node.network
 
-    incomingLinks, outgoingLinks, lineQueue = _preProcessNodeForMerging(node, deleteStop)
+    incomingLinks, outgoingLinks, lineQueue = _preProcessNodeForMerging(node, delete_stop)
 
     pairsToMerge = _getLinkPairs(incomingLinks, outgoingLinks)
 
     # Setup the aggregator functions.
     for key, val in __LINK_ATTRIBUTE_AGGREGATORS.items():
-        if not key in linkAggregators:
-            linkAggregators[key] = val
+        if not key in link_aggregators:
+            link_aggregators[key] = val
 
     for key, val in __SEGMENT_ATTRIBUTE_AGGREGATORS.items():
-        if not key in segmentAggregators:
-            segmentAggregators[key] = val
+        if not key in segment_aggregators:
+            segment_aggregators[key] = val
 
     createdLinks = []
     lineRenamingMap = []
     try:
         # Merge the links first
         for link1, link2 in pairsToMerge:
-            newLink = _mergeLinkPair(network, link1, link2, linkAggregators, createdLinks)
+            newLink = _mergeLinkPair(network, link1, link2, link_aggregators, createdLinks)
 
             # Optionally insert the deleted node as a vertex in the merged link
             if vertex == True:
@@ -715,7 +715,7 @@ def mergeLinks(node, deleteStop=False, vertex=True, linkAggregators={}, segmentA
                 network,
                 line,
                 segmentNumbersToRemove,
-                segmentAggregators,
+                segment_aggregators,
                 lineRenamingMap,
             )
 
@@ -736,7 +736,7 @@ def mergeLinks(node, deleteStop=False, vertex=True, linkAggregators={}, segmentA
     return createdLinks
 
 
-def _preProcessNodeForMerging(node, deleteStop):
+def _preProcessNodeForMerging(node, delete_stop):
     neighbourSet = set()
     nIncomingLinks = 0
     nOutgoingLinks = 0
@@ -775,7 +775,7 @@ def _preProcessNodeForMerging(node, deleteStop):
                 raise InvalidNetworkOperationError(
                     "Cannot delete node %s: it is the first stop of transit line %s." % (node, segment.line)
                 )
-            if not deleteStop:
+            if not delete_stop:
                 if segment.allow_alightings or segment.allow_boardings:
                     raise InvalidNetworkOperationError(
                         "Cannot delete node%s: it is being used as a transit stop for line %s" % (node, segment.line)
@@ -816,7 +816,7 @@ def _getTempLineId(network):
     return str(n)
 
 
-def _mergeLinkPair(network, link1, link2, linkAggregators, createdLinks):
+def _mergeLinkPair(network, link1, link2, link_aggregators, createdLinks):
     # Check if the merged link already exists
     if network.link(link1.i_node.number, link2.j_node.number) is not None:
         raise InvalidNetworkOperationError(
@@ -829,10 +829,10 @@ def _mergeLinkPair(network, link1, link2, linkAggregators, createdLinks):
 
     # Aggregate link attributes
     for attName in network.attributes("LINK"):
-        if not attName in linkAggregators:
+        if not attName in link_aggregators:
             func = __AVG
         else:
-            func = linkAggregators[attName]
+            func = link_aggregators[attName]
 
         if attName in __ATTRIBUTE_CASTS:
             cast = __ATTRIBUTE_CASTS[attName]
@@ -854,7 +854,7 @@ def _mergeLinkPair(network, link1, link2, linkAggregators, createdLinks):
     return newLink
 
 
-def _mergeLineSegments(network, line, segmentNumbersToRemove, segmentAggregators, lineRenamingMap):
+def _mergeLineSegments(network, line, segmentNumbersToRemove, segment_aggregators, lineRenamingMap):
 
     proxy = TransitLineProxy(line)
 
@@ -870,10 +870,10 @@ def _mergeLineSegments(network, line, segmentNumbersToRemove, segmentAggregators
         proxySegment = proxy.segments[index2 - 1]
 
         for attName in network.attributes("TRANSIT_SEGMENT"):
-            if not attName in segmentAggregators:
+            if not attName in segment_aggregators:
                 func = __AVG
             else:
-                func = segmentAggregators[attName]
+                func = segment_aggregators[attName]
 
             if attName in __ATTRIBUTE_CASTS:
                 cast = __ATTRIBUTE_CASTS[attName]

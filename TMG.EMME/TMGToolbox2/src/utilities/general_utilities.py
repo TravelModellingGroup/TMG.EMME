@@ -32,6 +32,7 @@ import traceback as _tb
 import subprocess as _sp
 import six
 import random
+import csv
 
 if six.PY2:
     from itertools import izip
@@ -1130,3 +1131,19 @@ def DetermineAnalyzedTransitDemandId(EMME_VERSION, scenario):
         else:  # non multiclass congested
             strats = scenario.transit_strategies
             return strats.data["demand"]
+
+
+@contextmanager
+def open_csv_reader(file_path):
+    """
+    Open, reads and manages a CSV file
+    NOTE: Does not return the first line of the CSV file
+        Assumption is that the first row is the title of each field
+    """
+    csv_file = open(file_path, mode="r")
+    file = csv.reader(csv_file)
+    next(file)
+    try:
+        yield file
+    finally:
+        csv_file.close()
