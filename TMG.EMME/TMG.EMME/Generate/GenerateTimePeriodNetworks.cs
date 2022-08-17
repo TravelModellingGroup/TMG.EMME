@@ -46,7 +46,7 @@ namespace TMG.Emme.Generate
             Index = 3)]
         public IFunction<string> ConnectorFilterAttribute;
 
-        [Parameter(Name = "Default Aggregation", Description = "The name of the attribute to use as a filter.",
+        [Parameter(Name = "Default Aggregation", Description = "The name of the attribute to use as a filter. Set to either Agg or naive",
             Index = 4)]
         public IFunction<string> DefaultAggregation;
 
@@ -62,7 +62,7 @@ namespace TMG.Emme.Generate
             Index = 7)]
         public IFunction<string> StopFilterAttribute;
 
-        [Parameter(Name = "Transfer Mode String", Description = "The name of the attribute to use as a filter.",
+        [Parameter(Name = "Transfer Mode String", Description = "Modes used to transfer between transit stops, or to transit stops. Default list contains three modes: tuy ",
             Index = 8)]
         public IFunction<string> TransferModeString;
 
@@ -132,11 +132,11 @@ namespace TMG.Emme.Generate
                 Index = 3)]
             public IFunction<string> CleanedDescription;
 
-            [Parameter(Name = "Start Time", Description = "The start time for this scenario",
+            [Parameter(Name = "Start Time", Description = "The start time for this scenario. Use integer time, e.g., 2:30PM should be 1430",
                Index = 4)]
             public IFunction<int> StartTime;
 
-            [Parameter(Name = "End Time", Description = "The end time for this scenario",
+            [Parameter(Name = "End Time", Description = "The end time for this scenario. User integer time, e.g., 12:30PM should be 1230",
                Index = 5)]
             public IFunction<int> EndTime;
 
