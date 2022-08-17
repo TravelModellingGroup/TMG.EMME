@@ -269,7 +269,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                         transit_line.trips.append(trip)
         return bad_ids
 
-    def _load_agg_type_select(self, network, transit_aggregation_selection_table_file):
+    def _load_agg_type_select(self, network, transit_aggregation_selection_table_file, default_aggregation):
         bad_ids = set()
         if transit_aggregation_selection_table_file != "" or transit_aggregation_selection_table_file != "none":
             with _util.open_csv_reader(transit_aggregation_selection_table_file) as aggregate_file:
@@ -280,11 +280,18 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                     if transit_line is None:
                         bad_ids.add(emme_id_col)
                         continue
-                    aggregation = "n"
-                    if agg_col[0] == "a" or agg_col[0] == "A":
+                    if default_aggregation == 0:
+                        aggregation = "n"
+                        if agg_col[0] == "a" or agg_col[0] == "A":
+                            aggregation = "a"
+                        elif agg_col[0] == "":
+                            continue
+                    elif default_aggregation == 1:
                         aggregation = "a"
-                    elif agg_col[0] == "":
-                        continue
+                        if agg_col[0] == "n" or agg_col[0] == "N":
+                            aggregation = "n"
+                        elif agg_col[0] == "":
+                            continue
                     if transit_line.aggtype is None:
                         transit_line.aggtype = aggregation
         return bad_ids
