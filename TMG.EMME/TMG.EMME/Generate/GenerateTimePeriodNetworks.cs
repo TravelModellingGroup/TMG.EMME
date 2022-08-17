@@ -46,7 +46,7 @@ namespace TMG.Emme.Generate
             Index = 3)]
         public IFunction<string> ConnectorFilterAttribute;
 
-        [Parameter(Name = "Default Aggregation", Description = "The name of the attribute to use as a filter. Set to either Agg or naïve",
+        [Parameter(Name = "Default Aggregation", Description = "The name of the attribute to use as a filter. Set to either Agg or naive",
             Index = 4)]
         public IFunction<string> DefaultAggregation;
 
