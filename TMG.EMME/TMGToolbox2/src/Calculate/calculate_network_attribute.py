@@ -40,12 +40,9 @@ Extract Transit Origin and Destination Vectors
 """
 
 import inro.modeller as _m
-import traceback as _traceback
-import numpy as _np
-from multiprocessing import cpu_count
 
 
-_MODELLER = _m.Modeller()  # Instatiate Modeller once.
+_MODELLER = _m.Modeller()
 _network_calculation = _m.Modeller().tool("inro.emme.network_calculation.network_calculator")
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 
@@ -53,6 +50,10 @@ _util = _MODELLER.module("tmg2.utilities.general_utilities")
 class CalculateNetworkAttribute(_m.Tool()):
     def __init__(self):
         self.scenario = _MODELLER.scenario
+        self.link = 0
+        self.node = 1
+        self.transit_line = 2
+        self.transit_segment = 3
 
     def __call__(self, parameters):
         scenario = _util.load_scenario(parameters["scenario_number"])
@@ -69,13 +70,9 @@ class CalculateNetworkAttribute(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def _execute(self, scenario, parameters):
-
         self._process_domains(parameters)
-
         spec = self.network_calculator_spec(parameters)
-
         report = _network_calculation(spec, scenario)
-
         if "sum" in report:
             return report["sum"]
         return ""
@@ -98,22 +95,19 @@ class CalculateNetworkAttribute(_m.Tool()):
         if len(selections) == 0:
             selections["node"] = "all"
         spec["selections"] = selections
-
         return spec
 
     def _process_domains(self, parameters):
-
         if parameters["result"] is None or parameters["result"] == "None":
             parameters["result"] = None
-
-        if parameters["domain"] == 0:  # Link
+        if parameters["domain"] == self.link:
             parameters["node_selection"] = None
             parameters["transit_line_selection"] = None
-        elif parameters["domain"] == 1:  # Node
+        elif parameters["domain"] == self.node:
             parameters["link_selection"] = None
             parameters["transit_line_selection"] = None
-        elif parameters["domain"] == 2:  # transit line
+        elif parameters["domain"] == self.transit_line:
             parameters["node_selection"] = None
             parameters["link_selection"] = None
-        elif parameters["domain"] == 3:  # transit segment
+        elif parameters["domain"] == self.transit_segment:
             parameters["node_selection"] = None
