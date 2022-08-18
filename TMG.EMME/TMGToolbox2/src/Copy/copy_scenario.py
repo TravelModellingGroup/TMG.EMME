@@ -59,38 +59,38 @@ class CopyScenario(_m.Tool()):
         pass
 
     def run_xtmf(self, parameters):
-        FromScenario = parameters["from_scenario"]
-        ToScenario = parameters["to_scenario"]
-        CopyStrategy = parameters["copy_strategy"]
+        from_scenario = parameters["from_scenario"]
+        to_scenario = parameters["to_scenario"]
+        copy_strategy = parameters["copy_strategy"]
         try:
-            self._execute(FromScenario, ToScenario, CopyStrategy)
+            self._execute(from_scenario, to_scenario, copy_strategy)
         except Exception as e:
             raise Exception(_traceback.format_exc())
 
-    def _execute(self, FromScenario, ToScenario, CopyStrategy):
-        if FromScenario == ToScenario:
+    def _execute(self, from_scenario, to_scenario, copy_strategy):
+        if from_scenario == to_scenario:
             print(
                 "A copy was requested to from scenario "
-                + str(FromScenario)
+                + str(from_scenario)
                 + " to "
-                + str(ToScenario)
+                + str(to_scenario)
                 + ".  This was not executed."
             )
             return
         project = _MODELLER.emmebank
-        original = project.scenario(str(FromScenario))
+        original = project.scenario(str(from_scenario))
         if original == None:
             raise Exception(
                 "The base scenario '"
-                + str(FromScenario)
+                + str(from_scenario)
                 + "' does not exist in order to copy to scenario '"
-                + str(ToScenario)
+                + str(to_scenario)
                 + "'!"
             )
-        dest = project.scenario(str(ToScenario))
+        dest = project.scenario(str(to_scenario))
         if dest != None:
             project.delete_scenario(dest.id)
-        if CopyStrategy == True:
-            project.copy_scenario(original.id, str(ToScenario), True, True, True)
+        if copy_strategy == True:
+            project.copy_scenario(original.id, str(to_scenario), True, True, True)
         else:
-            project.copy_scenario(original.id, str(ToScenario), True, False, True)
+            project.copy_scenario(original.id, str(to_scenario), True, False, True)
