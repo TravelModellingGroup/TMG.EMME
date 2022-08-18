@@ -103,6 +103,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
     def __init__(self):
         self._tracker = _util.progress_tracker(self.number_of_task)
         self.number_of_processors = multiprocessing.cpu_count()
+        self.naive_aggregation = 0
 
     def page(self):
         pb = _tmg_tpb.TmgToolPageBuilder(
@@ -286,13 +287,13 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                     if transit_line is None:
                         bad_ids.add(emme_id_col)
                         continue
-                    if default_aggregation == 0:
+                    if default_aggregation == self.naive_aggregation:
                         aggregation = "n"
                         if agg_col[0] == "a" or agg_col[0] == "A":
                             aggregation = "a"
                         elif agg_col[0] == "":
                             continue
-                    elif default_aggregation == 1:
+                    else:
                         aggregation = "a"
                         if agg_col[0] == "n" or agg_col[0] == "N":
                             aggregation = "n"
