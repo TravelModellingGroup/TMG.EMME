@@ -202,7 +202,7 @@ namespace TMG.Emme.Generate
         }
         public enum DefaultAggregations
         {
-            Naive = 0, Agg = 1
+            Naive = 0, Average = 1
         }
     }
 }

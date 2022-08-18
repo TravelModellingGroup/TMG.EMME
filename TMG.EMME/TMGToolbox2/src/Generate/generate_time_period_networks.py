@@ -160,7 +160,13 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 network.create_attribute("TRANSIT_LINE", "aggtype", None)
                 bad_id_set = self._load_service_table(
                     network, periods["start_time"], periods["end_time"], parameters["transit_service_table_file"]
-                ).union(self._load_agg_type_select(network, parameters["transit_aggregation_selection_table_file"]))
+                ).union(
+                    self._load_agg_type_select(
+                        network,
+                        parameters["transit_aggregation_selection_table_file"],
+                        parameters["default_aggregation"],
+                    )
+                )
                 self._tracker.complete_task()
                 print("Loaded service table")
                 if len(bad_id_set) > 0:
