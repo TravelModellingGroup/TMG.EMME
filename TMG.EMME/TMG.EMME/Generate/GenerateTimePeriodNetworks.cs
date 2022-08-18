@@ -48,7 +48,7 @@ namespace TMG.Emme.Generate
 
         [Parameter(Name = "Default Aggregation", Description = "The name of the attribute to use as a filter. Set to either Agg or naive",
             Index = 4)]
-        public IFunction<string> DefaultAggregation;
+        public IFunction<DefaultAggregations> DefaultAggregation;
 
         [Parameter(Name = "Line Filter Expression", Description = "The formatted string to use as an expression to filter lines. Leave blank to skip prorating transit speeds.",
             Index = 5)]
@@ -175,7 +175,7 @@ namespace TMG.Emme.Generate
                 writer.WriteString("transit_service_table_file", Path.GetFullPath(TransitServiceTableFile.Invoke()));
                 writer.WriteString("attribute_aggregator", AttributeAggregator.Invoke());
                 writer.WriteString("connector_filter_attribute", ConnectorFilterAttribute.Invoke());
-                writer.WriteString("default_aggregation", DefaultAggregation.Invoke());
+                writer.WriteNumber("default_aggregation", (int)DefaultAggregation.Invoke());
                 writer.WriteString("line_filter_expression", LineFilterExpression.Invoke());
                 writer.WriteString("node_filter_attribute", NodeFilterAttribute.Invoke());
                 writer.WriteString("stop_filter_attribute", StopFilterAttribute.Invoke());
@@ -199,6 +199,10 @@ namespace TMG.Emme.Generate
                 writer.WriteEndObject();
 
             }), LogbookLevel.Standard);
+        }
+        public enum DefaultAggregations
+        {
+            Naive = 0, Average = 1
         }
     }
 }

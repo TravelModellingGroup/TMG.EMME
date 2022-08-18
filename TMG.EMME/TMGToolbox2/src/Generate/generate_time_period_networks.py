@@ -103,6 +103,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
     def __init__(self):
         self._tracker = _util.progress_tracker(self.number_of_task)
         self.number_of_processors = multiprocessing.cpu_count()
+        self.naive_aggregation = 0
 
     def page(self):
         pb = _tmg_tpb.TmgToolPageBuilder(
@@ -160,7 +161,13 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 network.create_attribute("TRANSIT_LINE", "aggtype", None)
                 bad_id_set = self._load_service_table(
                     network, periods["start_time"], periods["end_time"], parameters["transit_service_table_file"]
-                ).union(self._load_agg_type_select(network, parameters["transit_aggregation_selection_table_file"]))
+                ).union(
+                    self._load_agg_type_select(
+                        network,
+                        parameters["transit_aggregation_selection_table_file"],
+                        parameters["default_aggregation"],
+                    )
+                )
                 self._tracker.complete_task()
                 print("Loaded service table")
                 if len(bad_id_set) > 0:
@@ -269,7 +276,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                         transit_line.trips.append(trip)
         return bad_ids
 
-    def _load_agg_type_select(self, network, transit_aggregation_selection_table_file):
+    def _load_agg_type_select(self, network, transit_aggregation_selection_table_file, default_aggregation):
         bad_ids = set()
         if transit_aggregation_selection_table_file != "" or transit_aggregation_selection_table_file != "none":
             with _util.open_csv_reader(transit_aggregation_selection_table_file) as aggregate_file:
@@ -280,11 +287,18 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                     if transit_line is None:
                         bad_ids.add(emme_id_col)
                         continue
-                    aggregation = "n"
-                    if agg_col[0] == "a" or agg_col[0] == "A":
+                    if default_aggregation == self.naive_aggregation:
+                        aggregation = "n"
+                        if agg_col[0] == "a" or agg_col[0] == "A":
+                            aggregation = "a"
+                        elif agg_col[0] == "":
+                            continue
+                    else:
                         aggregation = "a"
-                    elif agg_col[0] == "":
-                        continue
+                        if agg_col[0] == "n" or agg_col[0] == "N":
+                            aggregation = "n"
+                        elif agg_col[0] == "":
+                            continue
                     if transit_line.aggtype is None:
                         transit_line.aggtype = aggregation
         return bad_ids

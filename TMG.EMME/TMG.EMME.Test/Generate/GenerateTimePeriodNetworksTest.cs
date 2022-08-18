@@ -46,7 +46,7 @@ namespace TMG.Emme.Test.Generate
                     writer.WriteString("transit_alternative_table_file", Path.GetFullPath("Alt File.csv"));
                     writer.WriteString("attribute_aggregator", "vdf: force,length: sum,type: first,lanes: force,ul1: avg,ul2: force,ul3: force,dwt: sum,dwfac: force,ttf: force,us1: avg_by_length,us2: avg,us3: avg,ui1: avg,ui2: avg,ui3: avg,@stop: avg,@lkcap: avg,@lkspd: avg,@stn1: force,@stn2: force,@z407: avg");
                     writer.WriteString("connector_filter_attribute", "None");
-                    writer.WriteString("default_aggregation", "Naive");
+                    writer.WriteNumber("default_aggregation", (int)Emme.Generate.GenerateTimePeriodNetworks.DefaultAggregations.Naive);
                     writer.WriteString("line_filter_expression", "line=______ xor line=TS____ xor line=GT____ xor line=T9____ xor line=T601__");
                     writer.WriteString("node_filter_attribute", "None");
                     writer.WriteString("stop_filter_attribute", "@stop");
@@ -136,7 +136,7 @@ namespace TMG.Emme.Test.Generate
                 TransitAlternativeTableFile = Helper.CreateParameter(Path.GetFullPath("Alt File.csv")),
                 AttributeAggregator = Helper.CreateParameter(Path.GetFullPath("vdf: force,length: sum,type: first,lanes: force,ul1: avg,ul2: force,ul3: force,dwt: sum,dwfac: force,ttf: force,us1: avg_by_length,us2: avg,us3: avg,ui1: avg,ui2: avg,ui3: avg,@stop: avg,@lkcap: avg,@lkspd: avg,@stn1: force,@stn2: force,@z407: avg")),
                 ConnectorFilterAttribute = Helper.CreateParameter(Path.GetFullPath("None")),
-                DefaultAggregation = Helper.CreateParameter(Path.GetFullPath("Naive")),
+                DefaultAggregation = Helper.CreateParameter(Emme.Generate.GenerateTimePeriodNetworks.DefaultAggregations.Naive),
                 LineFilterExpression = Helper.CreateParameter(Path.GetFullPath("line=______ xor line=TS____ xor line=GT____ xor line=T9____ xor line=T601__")),
                 NodeFilterAttribute = Helper.CreateParameter(Path.GetFullPath("None")),
                 StopFilterAttribute = Helper.CreateParameter(Path.GetFullPath("@stop")),
