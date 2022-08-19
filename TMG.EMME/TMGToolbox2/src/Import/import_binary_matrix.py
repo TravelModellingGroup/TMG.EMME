@@ -189,7 +189,7 @@ class ImportBinaryMatrix(_m.Tool()):
 
     @_m.method(return_type=bool)
     def scenario_required(self):
-        retval = _util.databankHasDifferentZones(_bank)
+        retval = _util.databank_has_different_zones(_bank)
         print(retval)
         return retval
 
@@ -230,7 +230,7 @@ class ImportBinaryMatrix(_m.Tool()):
 
         self.ImportFile = ImportFile
 
-        if _util.databankHasDifferentZones(_bank):
+        if _util.databank_has_different_zones(_bank):
             self.Scenario = _bank.scenario(xtmf_ScenarioNumber)
             if self.Scenario == None:
                 raise Exception(
@@ -285,7 +285,7 @@ class ImportBinaryMatrix(_m.Tool()):
                 origins = data.indices[0]
                 origins = set(origins)
 
-            if _util.databankHasDifferentZones(_bank):
+            if _util.databank_has_different_zones(_bank):
 
                 zones = set(self.Scenario.zone_numbers)
                 if zones ^ origins:
