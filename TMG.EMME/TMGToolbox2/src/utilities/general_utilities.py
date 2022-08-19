@@ -147,7 +147,7 @@ def equap(number1, number2, precision=0.00001):
 # -------------------------------------------------------------------------------------------
 
 
-def databankHasDifferentZones(emmebank):
+def databank_has_different_zones(emmebank):
     """
     Checks that all scenarios have the same zone system.
 

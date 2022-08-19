@@ -40,11 +40,15 @@ namespace TMG.Emme.Export
             Index = 2)]
         public IFunction<string> SaveTo;
 
+        [Parameter(Name = "Matrix Type", Description = "The matrix type to export. eg. 1=ms, 2=mo, 3=md, 4=mf",
+            Index = 3)]
+        public IFunction<int> MatrixType;
+
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Export.export_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
                     {
-                        writer.WriteNumber("matrix_type", 4);
+                        writer.WriteNumber("matrix_type", MatrixType.Invoke());
                         writer.WriteNumber("matrix_number", MatrixNumber.Invoke());
                         writer.WriteString("file_location", Path.GetFullPath(SaveTo.Invoke()));
                         writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
