@@ -38,7 +38,8 @@ Delete Scenario
 import inro.modeller as _m
 import traceback as _traceback
 
-_MODELLER = _m.Modeller()  # Instantiate Modeller once.
+_MODELLER = _m.Modeller()
+_bank = _MODELLER.emmebank
 
 
 class DeleteScenario(_m.Tool()):
@@ -53,25 +54,30 @@ class DeleteScenario(_m.Tool()):
             description="Cannot be called from Modeller.",
             branding_text="XTMF",
         )
-
         return pb.render()
 
     def run(self):
         pass
 
-    def run_xtmf(self, parameters):
-        Scenario = parameters["scenario"]
+    def __call__(self, parameters):
+        scenario = parameters["scenario"]
         try:
-            self._execute(Scenario)
+            self._execute(scenario)
         except Exception as e:
             raise Exception(_traceback.format_exc())
 
-    def _execute(self, Scenario):
-        project = _MODELLER.emmebank
-        scenario = project.scenario(str(Scenario))
+    def run_xtmf(self, parameters):
+        scenario = parameters["scenario"]
+        try:
+            self._execute(scenario)
+        except Exception as e:
+            raise Exception(_traceback.format_exc())
+
+    def _execute(self, scenario):
+        scenario = _bank.scenario(str(scenario))
         if scenario is None:
-            print("A delete was requested for scenario " + str(Scenario) + " but the scenario does not exist.")
+            print("A delete was requested for scenario " + str(scenario) + " but the scenario does not exist.")
             return
         if scenario.delete_protected == True:
             scenario.delete_protected = False
-        project.delete_scenario(scenario.id)
+        _bank.delete_scenario(scenario.id)
