@@ -1,6 +1,6 @@
 # ---LICENSE----------------------
 """
-    Copyright 2014 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -24,8 +24,7 @@ ExportBinaryMatrix
     Authors: pkucirek
 
     Latest revision by: pkucirek
-    
-    
+
     Exports matrix data in the new binary format.
         
 """
@@ -37,7 +36,7 @@ ExportBinaryMatrix
     
     1.0.1 Tool now checks that the matrix exists.
 
-    2.0.0 improved for XTMF2/TMGToolbox2 by Williams Diogu
+    2.0.0 improved for XTMF2/TMGToolbox2 by WilliamsDiogu
     
 """
 
