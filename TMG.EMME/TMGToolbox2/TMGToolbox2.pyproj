@@ -76,9 +76,7 @@
     <Folder Include="src\" />
     <Folder Include="src\Assign\" />
     <Folder Include="src\Calculate\" />
-    <Folder Include="src\Calculate\__pycache__\" />
     <Folder Include="src\Delete\" />
-    <Folder Include="src\Delete\__pycache__\" />
     <Folder Include="src\Filter\" />
     <Folder Include="src\Import\" />
     <Folder Include="src\Export\" />
@@ -93,8 +91,6 @@
   <ItemGroup>
     <Content Include="Build Consolidated Toolbox.bat" />
     <Content Include="Build Toolbox.bat" />
-    <Content Include="src\Calculate\__pycache__\calculate_network_attribute.cpython-37.pyc" />
-    <Content Include="src\Delete\__pycache__\delete_scenario.cpython-37.pyc" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
