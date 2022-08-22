@@ -329,5 +329,4 @@ class ImportBinaryMatrix(_m.Tool()):
     @_m.method(return_type=bool)
     def scenario_required(self):
         retval = _util.databank_has_different_zones(_bank)
-        print(retval)
         return retval
