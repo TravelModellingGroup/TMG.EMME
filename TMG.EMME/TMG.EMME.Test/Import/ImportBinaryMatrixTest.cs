@@ -41,7 +41,8 @@ namespace TMG.Emme.Test.Import
                 ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
                 MatrixNumber = Helper.CreateParameter(10, "Matrix Number"),
                 FileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.mtx"), "Matrix File Name"),
-                Description = Helper.CreateParameter("Module Loaded", "Description")
+                Description = Helper.CreateParameter("Module Loaded", "Description"),
+                MatrixType = Helper.CreateParameter(Emme.Import.ImportBinaryMatrix.MatrixTypes.MF)
             };
             importModule.Invoke(Helper.Modeller);
         }
