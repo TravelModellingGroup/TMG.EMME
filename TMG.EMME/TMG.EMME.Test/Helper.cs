@@ -153,7 +153,7 @@ namespace TMG.Emme.Test
                 Helper.Modeller.Run(null, "tmg2.Import.import_binary_matrix",
                  JSONParameterBuilder.BuildParameters(writer =>
                  {
-                     writer.WriteNumber("matrix_type", 4);
+                     writer.WriteNumber("matrix_type",(int)Emme.Import.ImportBinaryMatrix.MatrixTypes.MF);
                      writer.WriteNumber("matrix_number", matrixNumber);
                      writer.WriteString("binary_matrix_file", filePath);
                      writer.WriteNumber("scenario_number", scenarioNumber);
