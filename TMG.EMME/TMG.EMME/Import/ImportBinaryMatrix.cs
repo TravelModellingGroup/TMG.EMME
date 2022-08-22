@@ -40,20 +40,28 @@ namespace TMG.Emme.Import
             Index = 2)]
         public IFunction<int> MatrixNumber;
 
+        [Parameter(Name = "Matrix Type", Description = "The matrix type to export. eg. 1=ms, 2=mo, 3=md, 4=mf",
+            Index = 3)]
+        public IFunction<MatrixTypes> MatrixType;
+
         [Parameter(Name = "Description", Description = "The description to apply to the matrix"
-            ,Index = 3)]
+            ,Index = 4)]
         public IFunction<string> Description;
 
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Import.import_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
                     {
-                        writer.WriteNumber("matrix_type", 4);
+                        writer.WriteNumber("matrix_type", (int)MatrixType.Invoke());
                         writer.WriteNumber("matrix_number", MatrixNumber.Invoke());
                         writer.WriteString("binary_matrix_file", Path.GetFullPath(FileLocation.Invoke()));
                         writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                         writer.WriteString("matrix_description", Description.Invoke());
                     }), LogbookLevel.Standard);
+        }
+        public enum MatrixTypes
+        {
+            MS = 1, MO = 2, MD = 3, MF = 4
         }
     }
 }
