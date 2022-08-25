@@ -582,7 +582,7 @@ class AssignTraffic(_m.Tool()):
         return SOLA_spec
 
     def _get_transit_bg_spec(self, parameters):
-        ttf_terms =  str.join(" + ", ["(ttf >="+str(x["start"])+" * ttf <= "+str(x["stop"])+")" for x in parameters["mixed_use_ttf_ranges"]])
+        ttf_terms =  str.join(" + ", ["((ttf >="+str(x["start"])+") * (ttf <= "+str(x["stop"])+"))" for x in parameters["mixed_use_ttf_ranges"]])
         return {
             "result": "@tvph",
             "expression": "(60 / hdw) * (vauteq) " + ("* (" + ttf_terms + ")" if ttf_terms else ""),
