@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2022 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -47,9 +47,11 @@ namespace TMG.Emme.Test.Export
                 Helper.Modeller.Run(null, "tmg2.Export.export_network_package",
                 JSONParameterBuilder.BuildParameters(writer =>
                     {
-                        writer.WriteString("export_file", Path.GetFullPath("OutputTestFiles/exportedNWP.nwp"));
+                        writer.WriteString("export_file", Path.GetFullPath("OutputTestFiles/exportedNWPFriday.nwp"));
                         writer.WriteNumber("scenario_number", 1);
                         writer.WriteString("extra_attributes", "all");
+                        writer.WriteBoolean("export_all_flag", true);
+                        writer.WriteString("export_meta_data", "");
                     }), LogbookLevel.Standard));
         }
 
@@ -70,9 +72,12 @@ namespace TMG.Emme.Test.Export
             {
                 ScenarioNumber = Helper.CreateParameter(1),
                 SaveTo = Helper.CreateParameter("OutputTestFiles/Exported.nwp"),
-                Attributes = Helper.CreateParameter("all")
+                Attributes = Helper.CreateParameter("all"),
+                ExportAllFlag = Helper.CreateParameter(true),
+                ExportMetaData = Helper.CreateParameter(""),
             };
             module.Invoke(Helper.Modeller);
         }
     }
 }
+

@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2022 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -40,6 +40,14 @@ namespace TMG.Emme.Export
             Index = 2)]
         public IFunction<string> SaveTo;
 
+        [Parameter(Name = "Export All Flag", Description = " Export all extra attributes?",
+           Index = 3)]
+        public IFunction<bool> ExportAllFlag;
+
+        [Parameter(Name = "Export Meta Data", Description = " Export Comments",
+           Index = 3)]
+        public IFunction<string> ExportMetaData;
+
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Export.export_network_package", JSONParameterBuilder.BuildParameters(writer =>
@@ -47,6 +55,9 @@ namespace TMG.Emme.Export
                         writer.WriteString("export_file", Path.GetFullPath(SaveTo.Invoke()));
                         writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                         writer.WriteString("extra_attributes", Attributes.Invoke());
+                        writer.WriteBoolean("export_all_flag", ExportAllFlag.Invoke());
+                        writer.WriteString("export_meta_data", ExportMetaData.Invoke());
+
                     }), LogbookLevel.Standard);
         }
     }
