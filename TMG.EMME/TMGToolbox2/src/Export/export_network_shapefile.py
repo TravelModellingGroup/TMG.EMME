@@ -31,8 +31,8 @@ _m.ListType = list
 _m.InstanceType = object
 
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
-_tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
-_exportShapefile = _MODELLER.tool("inro.emme.data.network.export_network_as_shapefile")
+_tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
+_export_shape_file = _MODELLER.tool("inro.emme.data.network.export_network_as_shapefile")
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 
 
@@ -41,21 +41,12 @@ class ExportNetworkAsShapefile(_m.Tool()):
     tool_run_msg = ""
     number_of_tasks = 1
 
-    scenario = _m.Attribute(_m.InstanceType)
-    scenario_number = _m.Attribute(int)
-    export_path = _m.Attribute(str)
-    transit_shapes = _m.Attribute(str)
-
     def __init__(self):
-        # Init internal variables
-        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
-
-        # Set the defaults of parameters used by Modeller
-        self.scenario = _MODELLER.scenario  # Default is primary scenario
+        self._tracker = _util.progress_tracker(self.number_of_tasks)
         self.export_metadata = ""
 
     def page(self):
-        pb = _tmgTPB.TmgToolPageBuilder(
+        pb = _tmg_tpb.TmgToolPageBuilder(
             self,
             title="Export Network as Shapefile v%s" % self.version,
             description="Not Callable from Modeller. Please use XTMF. EXPERIMENTAL",
@@ -63,47 +54,37 @@ class ExportNetworkAsShapefile(_m.Tool()):
         )
         return pb.render()
 
-    def __call__(self, export_path, transit_shapes, scenario_number):
-        self.export_path = export_path
-        self.transit_shapes = transit_shapes
-        self.scenario_number = scenario_number
-        self.scenario = _m.Modeller().emmebank.scenario(self.scenario_number)
-        self._check_inputs()
-
+    def __call__(self, parameters):
+        scenario = _util.load_scenario(parameters["scenario_number"])
+        self._check_inputs(parameters["export_path"])
         try:
-            self._execute()
+            self._execute(scenario, parameters)
         except Exception as e:
-            raise Exception(_util.format_reverse_stack())
+            msg = str(e) + "\n" + _traceback.format_exc()
+            raise Exception(msg)
 
     def run_xtmf(self, parameters):
-        self.scenario_number = parameters["scenario_number"]
-        self.export_path = parameters["export_path"]
-        self.transit_shapes = parameters["transit_shapes"]
-
-        self.scenario = _m.Modeller().emmebank.scenario(self.scenario_number)
-        self._check_inputs()
+        scenario = _m.Modeller().emmebank.scenario(self.scenario_number)
+        self._check_inputs(parameters["export_path"])
         try:
-            self._execute()
+            self._execute(scenario, parameters)
         except Exception as e:
-            raise Exception(_util.format_reverse_stack())
+            msg = str(e) + "\n" + _traceback.format_exc()
+            raise Exception(msg)
 
-    def _execute(self):
+    def _execute(self, scenario, parameters):
+        print("Exporting scenario " + str(scenario.id) + "as a shapefile to " + parameters["export_path"])
+        transit_shapes = parameters["transit_shapes"]
+        if transit_shapes == "" or transit_shapes is None or transit_shapes == " ":
+            transit_shapes = "SEGMENTS"
 
-        print("Exporting scenario " + str(self.scenario_number) + "as a shapefile to " + self.export_path)
-
-        if self.transit_shapes == "" or self.transit_shapes is None or self.transit_shapes == " ":
-            self.transit_shapes = "SEGMENTS"
-
-        _exportShapefile(
-            export_path=self.export_path,
-            transit_shapes=self.transit_shapes,
-            scenario=self.scenario,
+        _export_shape_file(
+            export_path=parameters["export_path"],
+            transit_shapes=transit_shapes,
+            scenario=scenario,
         )
-        self.TRACKER.complete_task()
+        self._tracker.complete_task()
 
-    def _check_inputs(self):
-        if self.scenario is None:
-            raise Exception("Scenario '%s' is not a valid scenario" % self.scenario_number)
-
-        if self.export_path is None or "":
+    def _check_inputs(self, export_path):
+        if export_path is None or "":
             raise IOError("Export file not specified")
