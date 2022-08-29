@@ -1,5 +1,5 @@
 """
-    Copyright 2020 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -20,35 +20,26 @@
 
 import inro.modeller as _m
 import traceback as _traceback
-
 from contextlib import contextmanager
-
-# from contextlib import nested
 import os.path
 
 _m.InstanceType = object
 _m.TupleType = object
 _m.ListType = list
 
-_MODELLER = _m.Modeller()  # Instantiate Modeller once.
+_MODELLER = _m.Modeller()
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
-_tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 
 ##########################################################################################################
 
 
-class CleanGTFS(_m.Tool()):
-
+class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
     version = "0.0.1"
     tool_run_msg = ""
-    number_of_tasks = 4  # For progress reporting, enter the integer number of tasks here
-
-    GTFSFolderName = _m.Attribute(str)
-    ServiceIdSet = _m.Attribute(str)
-    UpdatedRoutesFile = _m.Attribute(str)
+    number_of_tasks = 4
 
     def __init__(self):
-        self.TRACKER = _util.progress_tracker(self.number_of_tasks)
+        self._tracker = _util.progress_tracker(self.number_of_tasks)
         self._warning = ""
 
     def page(self):
@@ -59,186 +50,130 @@ class CleanGTFS(_m.Tool()):
                          GTFS files except for routes, calendar, and shapes.",
             branding_text="- TMG Toolbox 2",
         )
-
-        if self.tool_run_msg != "":
-            pb.tool_run_status(self.tool_run_msg_status)
-
-        pb.add_select_file(
-            tool_attribute_name="GTFSFolderName",
-            window_type="directory",
-            title="GTFS Folder",
-        )
-
-        pb.add_text_box(
-            tool_attribute_name="ServiceIdSet",
-            size=200,
-            title="Service Id(s)",
-            note="Comma-separated list of service IDs from the calendar.txt file",
-            multi_line=True,
-        )
-
-        pb.add_select_file(
-            tool_attribute_name="UpdatedRoutesFile",
-            window_type="file",
-            title="Optional Filtered Routes",
-        )
-
         return pb.render()
 
-    ##########################################################################################################
-
-    def run(self):
-        self.tool_run_msg = ""
-        self.TRACKER.reset()
-
+    def __call__(self, parameters):
         try:
-            self._Execute()
-        except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
-            raise
-
-        msg = "GTFS folder is cleaned."
-        if not not self._warning:
-            msg += "<br>" + self._warning
-
-        self.tool_run_msg = _m.PageBuilder.format_info(msg)
-
-    ##########################################################################################################
-
-    def run_xtmf(self, parameters):
-        self.GTFSFolderName = parameters["gtfs_folder"]
-        self.ServiceIdSet = parameters["service_id"]
-        self.UpdatedRoutesFile = parameters["routes_file"]
-        try:
-            self._Execute()
+            self._execute(parameters)
         except Exception as e:
             raise Exception(_traceback.format_exc())
 
-    ##########################################################################################################
+    def run_xtmf(self, parameters):
+        try:
+            self._execute(parameters)
+        except Exception as e:
+            raise Exception(_traceback.format_exc())
 
-    def _Execute(self):
-        cells = self.ServiceIdSet.split(",")
-        serviceIdSet = set(cells)
-
-        routesFile = ""
-        if not self.UpdatedRoutesFile:
-            routesFile = self.GTFSFolderName + "/routes.txt"
+    def _execute(self, parameters):
+        cells = parameters["service_id"].split(",")
+        service_id_set = set(cells)
+        routes_file = ""
+        if not parameters["routes_file"]:
+            routes_file = parameters["gtfs_folder"] + "/routes.txt"
         else:
-            routesFile = self.UpdatedRoutesFile
-        routeIdSet = self._GetRouteIdSet(routesFile)
-        self.TRACKER.complete_task()
+            routes_file = parameters["routes_file"]
+        route_id_set = self._get_route_id_set(routes_file)
+        self._tracker.complete_task()
 
-        tripIdSet = self._FilterTripsFile(routeIdSet, serviceIdSet)
-        if len(tripIdSet) == 0:
+        trip_id_set = self._filter_trips_file(route_id_set, service_id_set, parameters["gtfs_folder"])
+        if len(trip_id_set) == 0:
             self._warning = "Warning: No trips were selected."
-        self.TRACKER.complete_task()
+        self._tracker.complete_task()
 
-        servicedStopsSet = self._FilterStopTimesFile(tripIdSet)
-        self.TRACKER.complete_task()
+        serviced_stops_set = self._filter_stop_times_file(trip_id_set, parameters["gtfs_folder"])
+        self._tracker.complete_task()
 
-        self._FilterStopsFile(servicedStopsSet)
-        self.TRACKER.complete_task()
+        self._filter_stops_file(serviced_stops_set, parameters["gtfs_folder"])
+        self._tracker.complete_task()
 
-    ##########################################################################################################
-
-    # ----SUB FUNCTIONS---------------------------------------------------------------------------------
-
-    def _GetRouteIdSet(self, routesFile):
-        idSet = set()
-        with open(routesFile) as reader:
+    def _get_route_id_set(self, routes_file):
+        id_set = set()
+        with open(routes_file) as reader:
             header = reader.readline().split(",")
-            idCol = header.index("route_id")
-
+            id_col = header.index("route_id")
             for line in reader.readlines():
                 cells = line.split(",")
-                idSet.add(cells[idCol])
-        return idSet
+                id_set.add(cells[id_col])
+        return id_set
 
-    def _FilterTripsFile(self, routeIdSet, serviceIdSet):
-        exists = os.path.isfile(self.GTFSFolderName + "/shapes.txt")
-        shapeIdSet = set()
-        tripIdSet = set()
-
-        with open(self.GTFSFolderName + "/trips.txt") as reader:
-            with open(self.GTFSFolderName + "/trips.updated.csv", "w") as writer:
+    def _filter_trips_file(self, route_id_set, service_id_set, gtfs_folder_name):
+        exists = os.path.isfile(gtfs_folder_name + "/shapes.txt")
+        shape_id_set = set()
+        trip_id_set = set()
+        with open(gtfs_folder_name + "/trips.txt") as reader:
+            with open(gtfs_folder_name + "/trips.updated.csv", "w") as writer:
                 header = reader.readline().strip()
                 cells = header.split(",")
-
                 writer.write(header)
-                routeIdCol = cells.index("route_id")
-                serviceIdCol = cells.index("service_id")
-                tripIdCol = cells.index("trip_id")
-
+                route_id_col = cells.index("route_id")
+                service_id_col = cells.index("service_id")
+                trip_id_col = cells.index("trip_id")
                 if exists == True:
-                    shapeIdCol = cells.index("shape_id")
-
+                    shape_id_col = cells.index("shape_id")
                 for line in reader.readlines():
                     line = line.strip()
                     cells = line.split(",")
-                    if not cells[routeIdCol] in routeIdSet:
+                    if not cells[route_id_col] in route_id_set:
                         continue
-                    if not cells[serviceIdCol] in serviceIdSet:
+                    if not cells[service_id_col] in service_id_set:
                         continue
-                    tripIdSet.add(cells[tripIdCol])
+                    trip_id_set.add(cells[trip_id_col])
                     if exists == True:
-                        shapeIdSet.add(cells[shapeIdCol])
+                        shape_id_set.add(cells[shape_id_col])
                     writer.write("\n %s" % line)
-
         if exists == True:
-            cleanedShapes = self._FilterShapesFile(shapeIdSet)
-        return tripIdSet
+            cleaned_shapes = self._filter_shape_file(shape_id_set, gtfs_folder_name)
+        return trip_id_set
 
-    def _FilterShapesFile(self, shapeIdSet):
-        with open(self.GTFSFolderName + "/shapes.txt") as reader:
-            with open(self.GTFSFolderName + "/shapes.updated.csv", "w") as writer:
+    def _filter_shape_file(self, shape_id_set, gtfs_folder_name):
+        with open(gtfs_folder_name + "/shapes.txt") as reader:
+            with open(gtfs_folder_name + "/shapes.updated.csv", "w") as writer:
                 header = reader.readline().strip()
                 cells = header.split(",")
                 writer.write(header)
-                shapeIdCol = cells.index("shape_id")
+                shape_id_col = cells.index("shape_id")
                 for line in reader.readlines():
                     line = line.strip()
                     cells = line.split(",")
-                    if not cells[shapeIdCol] in shapeIdSet:
+                    if not cells[shape_id_col] in shape_id_set:
                         continue
                     writer.write("\n %s" % line)
 
-    def _FilterStopTimesFile(self, tripIdSet):
-        servicedStopsSet = set()
-        with open(self.GTFSFolderName + "/stop_times.txt") as reader:
-            with open(self.GTFSFolderName + "/stop_times.updated.csv", "w") as writer:
+    def _filter_stop_times_file(self, trip_id_set, gtfs_folder_name):
+        serviced_stops_set = set()
+        with open(gtfs_folder_name + "/stop_times.txt") as reader:
+            with open(gtfs_folder_name + "/stop_times.updated.csv", "w") as writer:
                 header = reader.readline().strip()
                 writer.write(header)
                 cells = header.split(",")
-                tripIdCol = cells.index("trip_id")
-                stopIdCol = cells.index("stop_id")
-
+                trip_id_col = cells.index("trip_id")
+                stop_id_col = cells.index("stop_id")
                 for line in reader.readlines():
                     line = line.strip()
                     cells = line.split(",")
-                    if not cells[tripIdCol] in tripIdSet:
+                    if not cells[trip_id_col] in trip_id_set:
                         continue
-                    servicedStopsSet.add(cells[stopIdCol])
+                    serviced_stops_set.add(cells[stop_id_col])
                     writer.write("\n%s" % line)
-        return servicedStopsSet
+        return serviced_stops_set
 
-    def _FilterStopsFile(self, servicedStopsSet):
-        with open(self.GTFSFolderName + "/stops.txt") as reader:
-            with open(self.GTFSFolderName + "/stops.updated.csv", "w") as writer:
+    def _filter_stops_file(self, serviced_stops_set, gtfs_folder_name):
+        with open(gtfs_folder_name + "/stops.txt") as reader:
+            with open(gtfs_folder_name + "/stops.updated.csv", "w") as writer:
                 header = reader.readline().strip()
                 writer.write(header)
                 cells = header.split(",")
-                stopIdCol = cells.index("stop_id")
-
+                stop_id_col = cells.index("stop_id")
                 for line in reader.readlines():
                     line = line.strip()
                     cells = line.split(",")
-                    if not cells[stopIdCol] in servicedStopsSet:
+                    if not cells[stop_id_col] in serviced_stops_set:
                         continue
                     writer.write("\n%s" % line)
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        return self.TRACKER.get_progress()
+        return self._tracker.get_progress()
 
     @_m.method(return_type=str)
     def tool_run_msg_status(self):

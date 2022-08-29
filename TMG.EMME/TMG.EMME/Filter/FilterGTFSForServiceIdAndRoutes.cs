@@ -1,5 +1,5 @@
 /*
-    Copyright 2017 University of Toronto
+    Copyright 2022 University of Toronto
     This file is part of TMG.EMME for XTMF2.
     TMG.EMME for XTMF2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ namespace TMG.Emme.Filter
             Description = "The location of the GTFS directory to be cleaned")]
         public IFunction<string> GTFSFolder;
 
-        [Parameter(DefaultValue = "FrabtiztownTransit", Index = 1, Name = "Service ID", 
+        [Parameter(DefaultValue = "FrabtiztownTransit", Index = 1, Name = "Service ID",
             Description = "Comma-separated list of Service IDs from the calendar.txt file")]
         public IFunction<string> ServiceID;
 

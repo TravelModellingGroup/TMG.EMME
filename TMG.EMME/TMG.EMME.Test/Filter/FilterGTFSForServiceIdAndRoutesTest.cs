@@ -1,5 +1,5 @@
 /*
-    Copyright 2017 University of Toronto
+    Copyright 2022 University of Toronto
     This file is part of TMG.EMME for XTMF2.
     TMG.EMME for XTMF2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ namespace TMG.Emme.Test.Filter
     public class FilterGTFSForServiceIdAndRoutesTest : TestBase
     {
         [TestMethod]
-        public void CleanGTFS()
+        public void FilterGTFSForServiceIdAndRoutes()
         {
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Filter.filter_gtfs_for_service_id_and_routes",
@@ -37,7 +37,7 @@ namespace TMG.Emme.Test.Filter
         }
 
         [TestMethod]
-        public void CleanGTFSModule()
+        public void FilterGTFSForServiceIdAndRoutesModule()
         {
             var module = new Emme.Filter.FilterGTFSForServiceIdAndRoutes()
             {
