@@ -38,10 +38,8 @@ namespace TMG.Emme.Test.Export
                 {
                     writer.WriteNumber("scenario_number", 1);
                     writer.WriteString("export_path", Path.GetFullPath("OutputTestFiles/exportedSHP.shp"));
-                    //----transit_shapes = SEGEMENTS, LINES, OR LINES_AND_SEGMENTS
                     writer.WriteString("transit_shapes", "SEGMENTS");
                 }), LogbookLevel.Standard));
-
         }
 
         [TestMethod]
@@ -52,7 +50,6 @@ namespace TMG.Emme.Test.Export
                 ScenarioNumbers = Helper.CreateParameter(1),
                 SaveTo = Helper.CreateParameter(Path.GetFullPath("OutputTestFiles/exportedSHP_m.shp")),
                 TransitShapes = Helper.CreateParameter("SEGMENTS"),
-
             };
             module.Invoke(Helper.Modeller);
         }

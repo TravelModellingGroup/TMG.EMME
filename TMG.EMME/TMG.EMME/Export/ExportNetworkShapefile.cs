@@ -50,7 +50,6 @@ namespace TMG.Emme.Export
                 writer.WriteString("export_path", Path.GetFullPath(SaveTo.Invoke()));
                 writer.WriteString("transit_shapes", TransitShapes.Invoke());
             }), LogbookLevel.Standard);
-
         }
     }
 }
