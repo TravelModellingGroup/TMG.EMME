@@ -64,7 +64,7 @@ class ExportNetworkAsShapefile(_m.Tool()):
             raise Exception(msg)
 
     def run_xtmf(self, parameters):
-        scenario = _m.Modeller().emmebank.scenario(self.scenario_number)
+        scenario = _m.Modeller().emmebank.scenario(parameters["scenario_number"])
         self._check_inputs(parameters["export_path"])
         try:
             self._execute(scenario, parameters)
