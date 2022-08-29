@@ -1,5 +1,5 @@
 """
-    Copyright 2020 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -37,7 +37,7 @@ _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 ##########################################################################################################
 
 
-class CleanGTFS(_m.Tool()):
+class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
 
     version = "0.0.1"
     tool_run_msg = ""
