@@ -24,7 +24,7 @@ namespace TMG.Emme.Test.Filter
     public class FilterGTFSForServiceIdAndRoutesTest : TestBase
     {
         [TestMethod]
-        public void CleanGTFS()
+        public void FilterGTFSForServiceIdAndRoutes()
         {
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Filter.filter_gtfs_for_service_id_and_routes",
@@ -37,7 +37,7 @@ namespace TMG.Emme.Test.Filter
         }
 
         [TestMethod]
-        public void CleanGTFSModule()
+        public void FilterGTFSForServiceIdAndRoutesModule()
         {
             var module = new Emme.Filter.FilterGTFSForServiceIdAndRoutes()
             {
