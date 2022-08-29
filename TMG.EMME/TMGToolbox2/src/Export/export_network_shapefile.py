@@ -30,7 +30,7 @@ import tempfile as _tf
 _m.ListType = list
 _m.InstanceType = object
 
-_MODELLER = _m.Modeller()  # Instantiate Modeller once.
+_MODELLER = _m.Modeller()
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 _export_shape_file = _MODELLER.tool("inro.emme.data.network.export_network_as_shapefile")
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
