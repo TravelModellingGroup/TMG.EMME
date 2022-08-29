@@ -86,5 +86,5 @@ class ExportNetworkAsShapefile(_m.Tool()):
         self._tracker.complete_task()
 
     def _check_inputs(self, export_path):
-        if export_path is None or "":
+        if export_path is None or export_path == "":
             raise IOError("Export file not specified")
