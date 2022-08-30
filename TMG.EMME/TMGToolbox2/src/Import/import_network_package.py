@@ -1,5 +1,5 @@
 """
-    Copyright 2017 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -30,7 +30,7 @@ _m.InstanceType = object
 _m.TupleType = object
 _m.ListType = list
 
-_MODELLER = _m.Modeller()  # Instantiate Modeller once.
+_MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
@@ -80,31 +80,20 @@ class ComponentContainer(object):
 
 
 class ImportNetworkPackage(_m.Tool()):
-    version = "1.2.2"
+    version = "2.0.0"
     tool_run_msg = ""
-    number_of_tasks = 9  # For progress reporting, enter the integer number of tasks here
-
-    # Tool Input Parameters
-    #    Only those parameters necessary for Modeller and/or XTMF to dock with
-    #    need to be placed here. Internal parameters (such as lists and dicts)
-    #    get initialized during construction (__init__)
-
-    scenario_Id = _m.Attribute(int)  # common variable or parameter
+    number_of_tasks = 9
+    scenario_number = _m.Attribute(int)
     network_package_file = _m.Attribute(str)
     scenario_description = _m.Attribute(str)
     overwrite_scenario_flag = _m.Attribute(bool)
     conflict_option = _m.Attribute(str)
-
     add_function = _m.Attribute(bool)
     scenario_name = _m.Attribute(str)
     skip_merging_functions = _m.Attribute(bool)
 
     def __init__(self):
-
-        # ---Init internal variables
-        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
-
-        # ---Set the defaults of parameters used by Modeller
+        self._tracker = _util.progress_tracker(self.number_of_tasks)
         self.scenario_description = ""
         self.overwrite_scenario_flag = False
         self.conflict_option = "PRESERVE"
@@ -115,7 +104,6 @@ class ImportNetworkPackage(_m.Tool()):
         self.skip_merging_functions = False
 
     def page(self):
-        # merge_functions = _MODELLER.tool("tmg2.utilities.merge_functions")
         pb = _tmg_tpb.TmgToolPageBuilder(
             self,
             title="Import Network Package v%s" % self.version,
@@ -124,7 +112,7 @@ class ImportNetworkPackage(_m.Tool()):
             branding_text="- TMG Toolbox 2",
         )
 
-        if self.tool_run_msg != "":  # to display messages in the page
+        if self.tool_run_msg != "":
             pb.tool_run_status(self.tool_run_msg_status)
 
         pb.add_select_file(
@@ -140,13 +128,13 @@ class ImportNetworkPackage(_m.Tool()):
         )
 
         pb.add_text_box(
-            tool_attribute_name="scenario_Id",
+            tool_attribute_name="scenario_number",
             size=5,
             title="New Scenario Number",
             note="Enter a new or existing scenario",
         )
         """
-        pb.add_new_scenario_select(tool_attribute_name='scenario_Id',
+        pb.add_new_scenario_select(tool_attribute_name='scenario_number',
                                   title="New Scenario Number",
                                   note="'Next' picks the next available scenario.")
         """
@@ -433,7 +421,7 @@ class ImportNetworkPackage(_m.Tool()):
         
         //$(this).parent().siblings(".t_after_widget").html(s);
         
-        $("#scenario_Id").bind('change', function()
+        $("#scenario_number").bind('change', function()
         {
             $(this).commit();
             
@@ -466,7 +454,7 @@ class ImportNetworkPackage(_m.Tool()):
             }
         });
         
-        $("#scenario_Id").trigger('change');
+        $("#scenario_number").trigger('change');
     });
 </script>"""
             % pb.tool_proxy_tag
@@ -476,87 +464,58 @@ class ImportNetworkPackage(_m.Tool()):
 
     def run(self):
         self.tool_run_msg = ""
-        self.TRACKER.reset()
-
-        if self.scenario_Id < 1:
-            raise Exception("Scenario '%s' is not a valid scenario" % self.scenario_Id)
-
-        if self.network_package_file is None:
+        self._tracker.reset()
+        parameters = self._build_page_builder_parameters()
+        if parameters["scenario_number"] < 1:
+            raise Exception("Scenario '%s' is not a valid scenario" % parameters["scenario_number"])
+        if parameters["network_package_file"] is None:
             raise IOError("Import file not specified")
-
         try:
-            self._execute()
+            self._execute(parameters)
         except Exception as e:
             self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
+        self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario %s created." % parameters["scenario_number"])
 
-        self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario %s created." % self.scenario_Id)
-
-    def __call__(
-        self,
-        network_package_file,
-        scenario_Id,
-        conflict_option,
-        add_function=True,
-        ScenarioName=" ",
-    ):
-
-        self.network_package_file = network_package_file
-        self.scenario_Id = scenario_Id
+    def __call__(self, parameters):
         self.overwrite_scenario_flag = True
-        self.conflict_option = conflict_option
-        self.add_function = add_function
-        if ScenarioName == " ":
-            self.scenario_description = ""
-        else:
-            self.scenario_description = ScenarioName
+        self.add_function = True
         try:
-            self._execute()
+            self._execute(parameters)
         except Exception as e:
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
     def run_xtmf(self, parameters):
-        self.network_package_file = parameters["network_package_file"]
-        self.scenario_description = parameters["scenario_description"]
-        self.scenario_Id = parameters["scenario_number"]
         self.overwrite_scenario_flag = True
-        self.conflict_option = parameters["conflict_option"]
-
         try:
-            self._execute()
+            self._execute(parameters)
         except Exception as e:
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def _execute(self):
+    def _execute(self, parameters):
         with _m.logbook_trace(
             name="{classname} v{version}".format(classname=self.__class__.__name__, version=self.version),
             attributes=self._get_logbook_attributes(),
         ):
-
-            if _bank.scenario(self.scenario_Id) is not None and not self.overwrite_scenario_flag:
+            if _bank.scenario(parameters["scenario_number"]) is not None and not self.overwrite_scenario_flag:
                 self.has_exception = True
-                raise IOError("Scenario %s exists and overwrite flag is set to false." % self.scenario_Id)
-
-            self._components.reset()  # Clear any held-over contents from previous run
-
-            with _zipfile.ZipFile(self.network_package_file) as zf, self._temp_file() as temp_folder:
-
-                self._check_network_package(zf)  # Check the file format.
-
-                if _bank.scenario(self.scenario_Id) is not None:
+                raise IOError("Scenario %s exists and overwrite flag is set to false." % parameters["scenario_number"])
+            self._components.reset()
+            with _zipfile.ZipFile(parameters["network_package_file"]) as zf, self._temp_file() as temp_folder:
+                self._check_network_package(zf)
+                if _bank.scenario(parameters["scenario_number"]) is not None:
                     if not self.overwrite_scenario_flag:
-                        raise IOError("Scenario %s already exists." % self.scenario_Id)
-                    sc = _bank.scenario(self.scenario_Id)
+                        raise IOError("Scenario %s already exists." % parameters["scenario_number"])
+                    sc = _bank.scenario(parameters["scenario_number"])
                     if sc.modify_protected or sc.delete_protected:
-                        raise IOError("Scenario %s is protected against modifications" % self.scenario_Id)
-                    _bank.delete_scenario(self.scenario_Id)
-                scenario = _bank.create_scenario(self.scenario_Id)
-                scenario.title = self.scenario_description
-
-                _m.logbook_write("Created new scenario %s" % self.scenario_Id)
-                self.TRACKER.complete_task()
+                        raise IOError("Scenario %s is protected against modifications" % parameters["scenario_number"])
+                    _bank.delete_scenario(parameters["scenario_number"])
+                scenario = _bank.create_scenario(parameters["scenario_number"])
+                scenario.title = parameters["scenario_description"]
+                _m.logbook_write("Created new scenario %s" % parameters["scenario_number"])
+                self._tracker.complete_task()
 
                 self._batchin_modes(scenario, temp_folder, zf)
                 self._batchin_vehicles(scenario, temp_folder, zf)
@@ -573,11 +532,11 @@ class ImportNetworkPackage(_m.Tool()):
 
                 if self._components.attribute_header_file is not None:
                     self._batchin_extra_attributes(scenario, temp_folder, zf)
-                self.TRACKER.complete_task()
+                self._tracker.complete_task()
 
                 if self._components.functions_file is not None and not self.skip_merging_functions:
                     self._batchin_functions(temp_folder, zf)
-                self.TRACKER.complete_task()
+                self._tracker.complete_task()
 
     @_m.method(return_type=bool)
     def tool_exit_test(self):
@@ -587,17 +546,16 @@ class ImportNetworkPackage(_m.Tool()):
     @_m.method(return_type=str)
     def tool_get_conflicts(self):
         return self.merge_functions.function_conflicts
-        # return True
 
     @_m.logbook_trace("Reading modes")
     def _batchin_modes(self, scenario, temp_folder, zf):
-        fileName = zf.extract(self._components.mode_file, temp_folder)
-        self.TRACKER.run_tool(import_modes, transaction_file=fileName, scenario=scenario)
+        file_name = zf.extract(self._components.mode_file, temp_folder)
+        self._tracker.run_tool(import_modes, transaction_file=file_name, scenario=scenario)
 
     @_m.logbook_trace("Reading vehicles")
     def _batchin_vehicles(self, scenario, temp_folder, zf):
         zf.extract(self._components.vehicles_file, temp_folder)
-        self.TRACKER.run_tool(
+        self._tracker.run_tool(
             import_vehicles,
             transaction_file=_path.join(temp_folder, self._components.vehicles_file),
             scenario=scenario,
@@ -606,7 +564,7 @@ class ImportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Reading base network")
     def _batchin_base(self, scenario, temp_folder, zf):
         zf.extract(self._components.base_file, temp_folder)
-        self.TRACKER.run_tool(
+        self._tracker.run_tool(
             import_base,
             transaction_file=_path.join(temp_folder, self._components.base_file),
             scenario=scenario,
@@ -615,7 +573,7 @@ class ImportNetworkPackage(_m.Tool()):
     @_m.logbook_trace("Reading link shapes")
     def _batchin_link_shapes(self, scenario, temp_folder, zf):
         zf.extract(self._components.shape_file, temp_folder)
-        self.TRACKER.run_tool(
+        self._tracker.run_tool(
             import_link_shape,
             transaction_file=_path.join(temp_folder, self._components.shape_file),
             scenario=scenario,
@@ -626,7 +584,7 @@ class ImportNetworkPackage(_m.Tool()):
         zf.extract(self._components.lines_file, temp_folder)
         if self.transit_file_change is True:
             self._transit_line_file_update(temp_folder)
-        self.TRACKER.run_tool(
+        self._tracker.run_tool(
             import_lines,
             transaction_file=_path.join(temp_folder, self._components.lines_file),
             scenario=scenario,
@@ -636,7 +594,7 @@ class ImportNetworkPackage(_m.Tool()):
     def _batchin_turns(self, scenario, temp_folder, zf):
         if self._components.turns_file is not None and (self._components.turns_file in zf.namelist()):
             zf.extract(self._components.turns_file, temp_folder)
-            self.TRACKER.run_tool(
+            self._tracker.run_tool(
                 import_turns,
                 transaction_file=_path.join(temp_folder, self._components.turns_file),
                 scenario=scenario,
@@ -646,28 +604,28 @@ class ImportNetworkPackage(_m.Tool()):
     def _batchin_extra_attributes(self, scenario, temp_folder, zf):
         types = self._load_extra_attributes(zf, temp_folder, scenario)
         contents = zf.namelist()
-        processed = [self._getZipFileName(x) for x in contents]
-        self.TRACKER.start_process(len(types))
+        processed = [self._get_zip_file_name(x) for x in contents]
+        self._tracker.start_process(len(types))
         for t in types:
             if t == "TRANSIT_SEGMENT":
-                filename = "exatt_segments.241"
+                file_name = "exatt_segments.241"
             else:
-                filename = "exatt_%ss.241" % t.lower()
-            newfilename = self._getZipOriginalString(processed, contents, filename)
-            if newfilename is not None:
+                file_name = "exatt_%ss.241" % t.lower()
+            new_file_name = self._get_zip_original_string(processed, contents, file_name)
+            if new_file_name is not None:
                 try:
                     import_attributes(
-                        file_path=_path.join(temp_folder, zf.extract(newfilename, temp_folder)),
+                        file_path=_path.join(temp_folder, zf.extract(new_file_name, temp_folder)),
                         field_separator=",",
                         scenario=scenario,
                     )
                 except:
                     import_attributes(
-                        file_path=_path.join(temp_folder, zf.extract(newfilename, temp_folder)),
+                        file_path=_path.join(temp_folder, zf.extract(new_file_name, temp_folder)),
                         field_separator=" ",
                         scenario=scenario,
                     )
-                self.TRACKER.complete_subtask()
+                self._tracker.complete_subtask()
 
     @_m.logbook_trace("Reading functions")
     def _batchin_functions(self, temp_folder, zf):
@@ -675,94 +633,63 @@ class ImportNetworkPackage(_m.Tool()):
         merge_functions.function_file = _path.join(temp_folder, self._components.functions_file)
         merge_functions.conflict_option = self.conflict_option
         merge_functions.run()
-        # zf.extract(self._components.functions_file, temp_folder)
-        # extracted_function_file_name = _path.join(
-        #     temp_folder, self._components.functions_file
-        # )
-
-        # if self.conflict_option == "OVERWRITE":
-        #     # Replicate Overwrite here so that consoles won't crash with references to a GUI
-        #     functions = self._LoadFunctionFile(extracted_function_file_name)
-        #     emmebank = _MODELLER.emmebank
-        #     for (id, expression) in dict.items(functions):
-        #         func = emmebank.function(id)
-        #         if func is None:
-        #             emmebank.create_function(id, expression)
-        #         else:
-        #             func.expression = expression
-        # elif (
-        #     self.conflict_option == "EDIT"
-        #     or self.conflict_option == "RAISE"
-        #     or self.conflict_option == "PRESERVE"
-        # ):
-        #     # merge_functions = _MODELLER.tool("tmg2.utilities.merge_functions")
-        #     merge_functions.FunctionFile = extracted_function_file_name
-        #     merge_functions.conflict_option = self.conflict_option
-        #     # import threading
-
-        #     # self.event = threading.Event()
-        #     # self.event.clear()
-        #     self.merge_functions = merge_functions
-        #     self.merge_functions.show_edit_dialog = False
-        #     merge_functions.run()
-        #     merge_functions
 
     def _LoadFunctionFile(self, file_name):
         functions = {}
         with open(file_name) as reader:
-            expressionBuffer = ""
+            expression_buffer = ""
             trecord = False
-            currentId = None
+            current_id = None
 
             for line in reader:
                 line = line.rstrip()
-                linecode = line[0]
+                line_code = line[0]
                 record = line[2:]
 
-                if linecode == "c":
+                if line_code == "c":
                     pass
-                elif linecode == "t":
+                elif line_code == "t":
                     if not record.startswith("functions"):
                         raise IOError("Wrong t record!")
                     trecord = True
-                elif linecode == "a":
+                elif line_code == "a":
                     if not trecord:
                         raise IOError("A before T")
                     index = record.index("=")
-                    currentId = record[:index].strip()
-                    expressionBuffer = record[(index + 1) :].replace(" ", "")
-                    if currentId is not None:
-                        functions[currentId] = expressionBuffer
-                elif linecode == " ":
-                    if currentId is not None and trecord:
+                    current_id = record[:index].strip()
+                    expression_buffer = record[(index + 1) :].replace(" ", "")
+                    if current_id is not None:
+                        functions[current_id] = expression_buffer
+                elif line_code == " ":
+                    if current_id is not None and trecord:
                         s = record.strip().replace(" ", "")
-                        expressionBuffer += s
-                        functions[currentId] = expressionBuffer
-                elif linecode == "d" or linecode == "m":
-                    currentId = None
-                    expressionBuffer = ""
+                        expression_buffer += s
+                        functions[current_id] = expression_buffer
+                elif line_code == "d" or line_code == "m":
+                    current_id = None
+                    expression_buffer = ""
                 else:
-                    raise KeyError(linecode)
+                    raise KeyError(line_code)
 
         return functions
 
-    def _getZipFileName(self, zipPath):
+    def _get_zip_file_name(self, zip_path):
         try:
-            indexOfLastSlash = zipPath[::-1].index("/")
-            return zipPath[len(zipPath) - indexOfLastSlash :]
+            index_of_last_slash = zip_path[::-1].index("/")
+            return zip_path[len(zip_path) - index_of_last_slash :]
         except:
-            return zipPath
+            return zip_path
 
     @_m.logbook_trace("Importing traffic results")
     def _batchin_traffic_results(self, scenario, temp_folder, zf):
         scenario.has_traffic_results = True
 
-        links_filename, turns_filename = self._components.traffic_results_files
-        zf.extract(links_filename, temp_folder)
-        zf.extract(turns_filename, temp_folder)
+        links_file_name, turns_file_name = self._components.traffic_results_files
+        zf.extract(links_file_name, temp_folder)
+        zf.extract(turns_file_name, temp_folder)
 
-        links_filepath = _path.join(temp_folder, links_filename)
-        turns_filepath = _path.join(temp_folder, turns_filename)
+        links_filepath = _path.join(temp_folder, links_file_name)
+        turns_filepath = _path.join(temp_folder, turns_file_name)
 
         attribute_names = "auto_volume", "additional_volume", "auto_time"
 
@@ -787,7 +714,6 @@ class ImportNetworkPackage(_m.Tool()):
                 column_labels[i + 3] = temp_attribute
                 import_attributes(turns_filepath, ",", column_labels, scenario=scenario)
                 del column_labels[i + 3]
-
                 _, table = scenario.get_attribute_values("TURN", [temp_attribute])
                 tables.append(table)
         scenario.set_attribute_values("TURN", attribute_names, [index] + tables)
@@ -796,10 +722,9 @@ class ImportNetworkPackage(_m.Tool()):
     def _batchin_transit_results(self, scenario, temp_folder, zf):
         scenario.has_transit_results = True
 
-        segments_filename = self._components.transit_results_files
-        zf.extract(segments_filename, temp_folder)
-        segments_filepath = _path.join(temp_folder, segments_filename)
-
+        segments_file_name = self._components.transit_results_files
+        zf.extract(segments_file_name, temp_folder)
+        segments_filepath = _path.join(temp_folder, segments_file_name)
         attribute_names = ["transit_boardings", "transit_time", "transit_volume"]
         index, _ = scenario.get_attribute_values("TRANSIT_SEGMENT", ["data1"])
         tables = []
@@ -818,13 +743,11 @@ class ImportNetworkPackage(_m.Tool()):
         # are transit results. However, some older versions of the tool do NOT have this feature, but can actually have
         # transit results. So this conditional exists for backwards-compatibility.
         if self._components.aux_transit_results_file is not None:
-            aux_transit_filename = self._components.aux_transit_results_file
-            zf.extract(aux_transit_filename, temp_folder)
-            aux_transit_filepath = _path.join(temp_folder, aux_transit_filename)
-
+            aux_transit_file_name = self._components.aux_transit_results_file
+            zf.extract(aux_transit_file_name, temp_folder)
+            aux_transit_filepath = _path.join(temp_folder, aux_transit_file_name)
             aux_attribute_names = ["aux_transit_volume"]
             index, _ = scenario.get_attribute_values("LINK", ["data1"])
-
             tables = []
             with _util.temp_extra_attribute_manager(scenario, "LINK", returnId=True) as temp_attribute:
                 column_labels = {0: "i_node", 1: "j_node"}
@@ -832,7 +755,6 @@ class ImportNetworkPackage(_m.Tool()):
                     column_labels[i + 2] = temp_attribute
                     import_attributes(aux_transit_filepath, ",", column_labels, scenario=scenario)
                     del column_labels[i + 2]
-
                     _, table = scenario.get_attribute_values("LINK", [temp_attribute])
                     tables.append(table)
             scenario.set_attribute_values("LINK", aux_attribute_names, [index] + tables)
@@ -847,11 +769,20 @@ class ImportNetworkPackage(_m.Tool()):
             _shutil.rmtree(foldername, True)
             _m.logbook_write("Deleted temporary directory at '%s'" % foldername)
 
-    def _getZipOriginalString(self, processed, contents, objective):
+    def _get_zip_original_string(self, processed, contents, objective):
         for i in range(len(processed)):
             if processed[i] == objective:
                 return contents[i]
         return None
+
+    def _build_page_builder_parameters(self):
+        parameters = {
+            "network_package_file": self.network_package_file,
+            "scenario_description": self.scenario_description,
+            "scenario_number": self.scenario_number,
+            "conflict_option": self.conflict_option,
+        }
+        return parameters
 
     def _check_network_package(self, package):
         """"""
@@ -862,36 +793,40 @@ class ImportNetworkPackage(_m.Tool()):
         """
 
         contents = package.namelist()
-        processed = [self._getZipFileName(x) for x in contents]
+        processed = [self._get_zip_file_name(x) for x in contents]
         self.transit_file_change = False
 
         if "version.txt" in processed:
-            self._components.mode_file = self._getZipOriginalString(processed, contents, "modes.201")
-            self._components.vehicles_file = self._getZipOriginalString(processed, contents, "vehicles.202")
-            self._components.base_file = self._getZipOriginalString(processed, contents, "base.211")
-            self._components.lines_file = self._getZipOriginalString(processed, contents, "transit.221")
-            self._components.turns_file = self._getZipOriginalString(processed, contents, "turns.231")
-            self._components.shape_file = self._getZipOriginalString(processed, contents, "shapes.251")
-            s = self._getZipOriginalString(processed, contents, "version.txt")
+            self._components.mode_file = self._get_zip_original_string(processed, contents, "modes.201")
+            self._components.vehicles_file = self._get_zip_original_string(processed, contents, "vehicles.202")
+            self._components.base_file = self._get_zip_original_string(processed, contents, "base.211")
+            self._components.lines_file = self._get_zip_original_string(processed, contents, "transit.221")
+            self._components.turns_file = self._get_zip_original_string(processed, contents, "turns.231")
+            self._components.shape_file = self._get_zip_original_string(processed, contents, "shapes.251")
+            s = self._get_zip_original_string(processed, contents, "version.txt")
             if s is not None:
                 vf = package.open(s)
-                NWPversion = float(vf.readline())
-                if NWPversion >= 3:
-                    self._components.functions_file = self._getZipOriginalString(processed, contents, "functions.411")
-                self.transit_file_change = NWPversion >= 4.0
+                nwp_version = float(vf.readline())
+                if nwp_version >= 3:
+                    self._components.functions_file = self._get_zip_original_string(
+                        processed, contents, "functions.411"
+                    )
+                self.transit_file_change = nwp_version >= 4.0
 
-                s = self._getZipOriginalString(processed, contents, "link_results.csv")
-                s2 = self._getZipOriginalString(processed, contents, "turn_results.csv")
+                s = self._get_zip_original_string(processed, contents, "link_results.csv")
+                s2 = self._get_zip_original_string(processed, contents, "turn_results.csv")
                 if s is not None and s2 is not None:
                     self._components.traffic_results_files = s, s2
-                self._components.transit_results_files = self._getZipOriginalString(
+                self._components.transit_results_files = self._get_zip_original_string(
                     processed, contents, "segment_results.csv"
                 )
-                self._components.aux_transit_results_file = self._getZipOriginalString(
+                self._components.aux_transit_results_file = self._get_zip_original_string(
                     processed, contents, "aux_transit_results.csv"
                 )
-                self._components.attribute_header_file = self._getZipOriginalString(processed, contents, "exatts.241")
-                return NWPversion
+                self._components.attribute_header_file = self._get_zip_original_string(
+                    processed, contents, "exatts.241"
+                )
+                return nwp_version
 
         renumber_count = 0
         for component in contents:
@@ -920,7 +855,7 @@ class ImportNetworkPackage(_m.Tool()):
 
     def _get_logbook_attributes(self):
         atts = {
-            "Scenario": self.scenario_Id,
+            "Scenario": self.scenario_number,
             "Import File": self.network_package_file,
             "Version": self.version,
             "self": self.__MODELLER_NAMESPACE__,
@@ -944,40 +879,36 @@ class ImportNetworkPackage(_m.Tool()):
 
     def _transit_line_file_update(self, temp_folder):
         lines = []
-        with open(_path.join(temp_folder, self._components.lines_file), "r") as infile, open(
+        with open(_path.join(temp_folder, self._components.lines_file), "r") as in_file, open(
             _path.join(temp_folder, "temp.221"), "w"
         ) as outfile:
-            for line in infile:
+            for line in in_file:
                 if line[0] == "c":
                     outfile.write(line.replace("'", ""))
                 elif line[0] == "a":
-                    liststrings = line.replace("'", " ").split()
+                    list_strings = line.replace("'", " ").split()
 
                     # find where to add the first quote for description
-                    if liststrings[5].replace(".", "", 1).isdigit():
+                    if list_strings[5].replace(".", "", 1).isdigit():
                         first_quote = 6
                     else:
                         raise IOError(
                             "Incorrect transit line file format: Line Mod Veh Headwy Speed Description Data1 Data2 Data3"
                         )
-
                     # find where to add the second quote for description
-                    if liststrings[-3].replace(".", "", 1).isdigit():
+                    if list_strings[-3].replace(".", "", 1).isdigit():
                         second_quote = -4
                     else:
                         raise IOError(
                             "Incorrect transit line file format: Line Mod Veh Headwy Speed Description Data1 Data2 Data3"
                         )
-
                     # add single quotes around line name
-                    liststrings[1] = "'{0}'".format(liststrings[1])
-
+                    list_strings[1] = "'{0}'".format(list_strings[1])
                     # add single quotes around line description
-                    liststrings[first_quote] = "'" + liststrings[first_quote]
-                    liststrings[second_quote] = liststrings[second_quote] + "'"
-
+                    list_strings[first_quote] = "'" + list_strings[first_quote]
+                    list_strings[second_quote] = list_strings[second_quote] + "'"
                     # write the new line
-                    line = " ".join(liststrings)
+                    line = " ".join(list_strings)
                     outfile.write(line + "\n")
                 else:
                     outfile.write(line)
@@ -989,9 +920,8 @@ class ImportNetworkPackage(_m.Tool()):
         )
         return None
 
-    # @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        return self.TRACKER.get_progress()
+        return self._tracker.get_progress()
 
     @_m.method(return_type=str)
     def tool_run_msg_status(self):
@@ -1059,11 +989,11 @@ class ImportNetworkPackage(_m.Tool()):
 
     @_m.method(return_type=bool)
     def check_scenario_exists(self):
-        return _bank.scenario(self.scenario_Id) is not None
+        return _bank.scenario(self.scenario_number) is not None
 
     @_m.method(return_type=str)
     def get_existing_scenario_title(self):
-        return _bank.scenario(self.scenario_Id).title
+        return _bank.scenario(self.scenario_number).title
 
     @_m.method(return_type=bool)
     def should_show_merge_edit_dialog(self):
