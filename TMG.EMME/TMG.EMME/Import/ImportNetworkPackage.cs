@@ -45,6 +45,10 @@ namespace TMG.Emme.Import
             Description = "A description for the imported scenario.")]
         public IFunction<string> ScenarioDescription;
 
+        [Parameter(DefaultValue = "OVERWRITE", Index = 3, Name = "Conflict Option",
+            Description = "")]
+        public IFunction<string> ConflictOption;
+
         private string GetParameters()
         {
             return JSONParameterBuilder.BuildParameters(writer =>
@@ -52,7 +56,7 @@ namespace TMG.Emme.Import
                 writer.WriteString("network_package_file", Path.GetFullPath(NetworkPackageFile.Invoke()));
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                 writer.WriteString("scenario_description", ScenarioDescription.Invoke());
-                writer.WriteString("conflict_option", "OVERWRITE");
+                writer.WriteString("conflict_option", ConflictOption.Invoke());
             });
         }
     }

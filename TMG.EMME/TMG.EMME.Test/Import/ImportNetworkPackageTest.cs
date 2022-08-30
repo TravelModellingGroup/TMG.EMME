@@ -41,7 +41,8 @@ namespace TMG.Emme.Test.Import
                 Name = "Importer",
                 ScenarioNumber = Helper.CreateParameter(3, "Const Number"),
                 NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/AMTransit.nwp"), "EROWNetwork"),
-                ScenarioDescription = Helper.CreateParameter("From XTMF","Description")
+                ScenarioDescription = Helper.CreateParameter("From XTMF", "Description"),
+                ConflictOption = Helper.CreateParameter("conflict_option")
             };
             importModule.Invoke(Helper.Modeller);
         }
