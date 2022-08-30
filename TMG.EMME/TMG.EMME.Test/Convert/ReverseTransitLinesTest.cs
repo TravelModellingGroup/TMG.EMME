@@ -28,11 +28,12 @@ namespace TMG.Emme.Test.Convert
         [TestMethod]
         public void ReverseTransitLines()
         {
+            Helper.ImportNetwork(3, "TestFiles/test00.nwp", "reverse_network");
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Convert.reverse_transit_lines",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
-                    writer.WriteNumber("scenario_number", 2);
+                    writer.WriteNumber("scenario_number", 3);
                     writer.WriteString("line_selector_expression", "mode=r");
                 }), LogbookLevel.Standard));
         }
@@ -42,7 +43,7 @@ namespace TMG.Emme.Test.Convert
             var module = new Emme.Convert.ReverseTransitLines()
             {
                 Name = "ReverseTransitLines",
-                ScenarioNumber = Helper.CreateParameter(2),
+                ScenarioNumber = Helper.CreateParameter(3),
                 LineSelectorExpression = Helper.CreateParameter("mode=r"),
             };
             module.Invoke(Helper.Modeller);
