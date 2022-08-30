@@ -28,6 +28,7 @@ namespace TMG.Emme.Test.Convert
         [TestMethod]
         public void RotateNetwork()
         {
+            Helper.ImportNetwork(3, "TestFiles/test00.nwp", "reverse_network");
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Convert.rotate_network",
                 JSONParameterBuilder.BuildParameters(writer =>
