@@ -43,7 +43,7 @@ namespace TMG.Emme.Convert
             return JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteString("gtfs_folder", Path.GetFullPath(GTFSFolder.Invoke()));
-                writer.WriteString("shapefile_name", ShapefileName.Invoke());
+                writer.WriteString("shape_file_name", ShapefileName.Invoke());
             });
         }
     }
