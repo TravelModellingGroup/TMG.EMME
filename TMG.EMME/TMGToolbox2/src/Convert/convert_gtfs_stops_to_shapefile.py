@@ -20,165 +20,123 @@
 
 import inro.modeller as _m
 import traceback as _traceback
-from contextlib import contextmanager
 from os import path as _path
 
 _m.InstanceType = object
 _m.TupleType = object
 _m.ListType = list
 
-_MODELLER = _m.Modeller()  # Instantiate Modeller once.
+_MODELLER = _m.Modeller()
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
-_tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
+_tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 _geo = _MODELLER.module("tmg2.utilities.geometry")
 
 ##########################################################################################################
 
 
-class ExportGtfsStopsAsShapefile(_m.Tool()):
+class ConvertGTFSStopsToShapefile(_m.Tool()):
 
-    version = "0.0.1"
+    version = "2.0.0"
     tool_run_msg = ""
-    number_of_tasks = 1  # For progress reporting, enter the integer number of tasks here
-
-    # Tool Input Parameters
-    #    Only those parameters neccessary for Modeller and/or XTMF to dock with
-    #    need to be placed here. Internal parameters (such as lists and dicts)
-    #    get intitialized during construction (__init__)
-
-    GtfsFolderName = _m.Attribute(str)
-    ShapefileName = _m.Attribute(str)
+    number_of_tasks = 1
 
     def __init__(self):
-        # ---Init internal variables
-        self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
+        self._tracker = _util.progress_tracker(self.number_of_tasks)
 
     def page(self):
-        pb = _tmgTPB.TmgToolPageBuilder(
+        pb = _tmg_tpb.TmgToolPageBuilder(
             self,
             title="Export GTFS Stops As Shapefile v%s" % self.version,
             description="Converts the <b>stops.txt</b> file to a shapefile, flagging which \
                              modes it serves as well.",
+            runnable=False,
             branding_text="- TMG Toolbox 2",
         )
-
-        if self.tool_run_msg != "":  # to display messages in the page
-            pb.tool_run_status(self.tool_run_msg_status)
-
-        pb.add_select_file(
-            tool_attribute_name="GtfsFolderName",
-            window_type="directory",
-            title="GTFS Folder Directory",
-        )
-
-        pb.add_select_file(
-            tool_attribute_name="ShapefileName",
-            window_type="save_file",
-            title="Shapefile Name for Export",
-        )
-
         return pb.render()
 
-    ##########################################################################################################
-
-    def run(self):
-        self.tool_run_msg = ""
-        self.TRACKER.reset()
-
+    def __call__(self, parameters):
         try:
-            self._Execute()
-        except Exception as e:
-            self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
-            raise
-
-        self.tool_run_msg = _m.PageBuilder.format_info("Tool is completed.")
-
-    ##########################################################################################################
-
-    def run_xtmf(self, parameters):
-        self.GtfsFolderName = parameters["gtfs_folder"]
-        self.ShapefileName = parameters["shapefile_name"]
-        try:
-            self._Execute()
+            self._execute(parameters)
         except Exception as e:
             raise Exception(_traceback.format_exc())
 
-    ##########################################################################################################
+    def run_xtmf(self, parameters):
+        try:
+            self._execute(parameters)
+        except Exception as e:
+            raise Exception(_traceback.format_exc())
 
-    def _Execute(self):
+    def _execute(self, parameters):
         with _m.logbook_trace(
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
-            attributes=self._GetAtts(),
+            attributes=self._get_atts(),
         ):
 
-            routeModes = self._LoadRoutes()
+            route_modes = self._load_routes(parameters["gtfs_folder"])
             print("Routes Loaded.")
-            tripModes = self._LoadTrips(routeModes)
+            trip_modes = self._load_trips(route_modes, parameters["gtfs_folder"])
             print("Trips loaded.")
-            stops = self._LoadStops()
+            stops = self._load_stops(parameters["gtfs_folder"])
             print("Stops loaded.")
-            self._LoadStopTimes(stops, tripModes)
+            self._load_stop_times(stops, trip_modes, parameters["gtfs_folder"])
             print("Stop times loaded.")
-            self._WriteStopsToShapefile(stops)
-            self._WriteProjectionFile()
+            self._write_stops_to_shapefile(stops, parameters["shape_file_name"])
+            self._write_projection_file(parameters["shape_file_name"])
             print("Shapefile written.")
 
-    ##########################################################################################################
-    # ----SUB FUNCTIONS---------------------------------------------------------------------------------
-
-    def _GetAtts(self):
+    def _get_atts(self):
         atts = {"Version": self.version, "self": self.__MODELLER_NAMESPACE__}
 
         return atts
 
-    def _LoadRoutes(self):
+    def _load_routes(self, GTFS_folder_name):
         output = {}
-        with open(self.GtfsFolderName + "/routes.txt") as reader:
+        with open(GTFS_folder_name + "/routes.txt") as reader:
             header = reader.readline().strip().split(",")
-            routeIdCol = header.index("route_id")
-            modeCol = header.index("route_type")
+            route_id_col = header.index("route_id")
+            mode_col = header.index("route_type")
 
             for line in reader.readlines():
                 cells = line.strip().split(",")
-                output[cells[routeIdCol]] = int(cells[modeCol])
-        return output  # RouteID -> mode
+                output[cells[route_id_col]] = int(cells[mode_col])
+        return output
 
-    def _LoadTrips(self, routeModes):
+    def _load_trips(self, route_modes, GTFS_folder_name):
         output = {}
-        with open(self.GtfsFolderName + "/trips.txt") as reader:
+        with open(GTFS_folder_name + "/trips.txt") as reader:
             header = reader.readline().strip().split(",")
-            routeIdCol = header.index("route_id")
-            tripIdCol = header.index("trip_id")
+            route_id_col = header.index("route_id")
+            trip_id_col = header.index("trip_id")
 
             for line in reader.readlines():
                 cells = line.strip().split(",")
-                output[cells[tripIdCol]] = routeModes[cells[routeIdCol]]
-        return output  # TripID -> mode
+                output[cells[trip_id_col]] = route_modes[cells[route_id_col]]
+        return output
 
-    def _LoadStops(self):
+    def _load_stops(self, GTFS_folder_name):
         stops = {}
-        with open(self.GtfsFolderName + "/stops.txt") as reader:
+        with open(GTFS_folder_name + "/stops.txt") as reader:
             # stop_lat,zone_id,stop_lon,stop_id,stop_desc,stop_name,location_type
             header = reader.readline().strip().split(",")
-            latCol = header.index("stop_lat")
-            lonCol = header.index("stop_lon")
-            idCol = header.index("stop_id")
-            nameCol = header.index("stop_name")
+            lat_col = header.index("stop_lat")
+            lon_col = header.index("stop_lon")
+            id_col = header.index("stop_id")
+            name_col = header.index("stop_name")
             if "stop_desc" in header:
-                descCol = header.index("stop_desc")
+                desc_col = header.index("stop_desc")
             else:
-                descCol = header.index("stop_name")
+                desc_col = header.index("stop_name")
 
             for line in reader.readlines():
                 cells = line.strip().split(",")
-                id = cells[idCol]
-                stop = GtfsStop(id, cells[lonCol], cells[latCol], cells[nameCol], cells[descCol])
+                id = cells[id_col]
+                stop = GTFS_stop(id, cells[lon_col], cells[lat_col], cells[name_col], cells[desc_col])
                 stops[id] = stop
-        return stops  # StopID -> stop
+        return stops
 
-    def _LoadStopTimes(self, stops, tripModes):
+    def _load_stop_times(self, stops, trip_modes, GTFS_folder_name):
 
-        modeCharacterMap = {
+        mode_character_map = {
             0: "s",
             1: "m",
             2: "r",
@@ -189,52 +147,48 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
             7: "x",
         }
 
-        with open(self.GtfsFolderName + "/stop_times.txt") as reader:
+        with open(GTFS_folder_name + "/stop_times.txt") as reader:
             # trip_id,arrival_time,departure_time,stop_id,stop_sequence,stop_headsign,pickup_type,drop_off_type,shape_dist_traveled
             header = reader.readline().strip().split(",")
-            tripIdCol = header.index("trip_id")
-            stopIdCol = header.index("stop_id")
+            trip_id_col = header.index("trip_id")
+            stop_id_col = header.index("stop_id")
 
             for line in reader.readlines():
                 cells = line.strip().split(",")
-                if not cells[stopIdCol] in stops:
-                    print("Could not find stop '%s'" % cells[stopIdCol])
+                if not cells[stop_id_col] in stops:
+                    print("Could not find stop '%s'" % cells[stop_id_col])
                     continue
-                stop = stops[cells[stopIdCol]]
+                stop = stops[cells[stop_id_col]]
 
-                if not cells[tripIdCol] in tripModes:
-                    print("Could not find trip '%s'" % cells[tripIdCol])
+                if not cells[trip_id_col] in trip_modes:
+                    print("Could not find trip '%s'" % cells[trip_id_col])
                     continue
-                mode = tripModes[cells[tripIdCol]]
+                mode = trip_modes[cells[trip_id_col]]
 
-                stop.modes.add(modeCharacterMap[mode])
+                stop.modes.add(mode_character_map[mode])
 
-    def _WriteStopsToShapefile(self, stops):
-
-        with _geo.Shapely2ESRI(self.ShapefileName, "w", "POINT") as writer:
-
-            maxDescription = 10
-            maxName = 10
+    def _write_stops_to_shapefile(self, stops, shape_file_name):
+        with _geo.Shapely2ESRI(shape_file_name, "w", "POINT") as writer:
+            max_description = 10
+            max_name = 10
             for stop in stops.values():
                 nameLen = len(stop.name)
                 desLen = len(stop.description)
 
-                if nameLen > maxName:
-                    maxName = nameLen
-                if desLen > maxDescription:
-                    maxDescription = desLen
-
-            print(maxDescription)
-            print(maxName)
-
+                if nameLen > max_name:
+                    max_name = nameLen
+                if desLen > max_description:
+                    max_description = desLen
+            print(max_description)
+            print(max_name)
             writer.addField("StopID")
-            writer.addField("Name", length=maxName)
-            writer.addField("Description", length=maxDescription)
+            writer.addField("Name", length=max_name)
+            writer.addField("Description", length=max_description)
             writer.addField("Modes", length=8)
 
-            def modeSetToString(modeSet):
+            def mode_set_to_string(mode_set):
                 s = ""
-                for c in modeSet:
+                for c in mode_set:
                     s += c
                 return s
 
@@ -243,31 +197,27 @@ class ExportGtfsStopsAsShapefile(_m.Tool()):
                 point["StopID"] = stop.id
                 point["Name"] = stop.name
                 point["Description"] = stop.description
-                point["Modes"] = modeSetToString(stop.modes)
-
+                point["Modes"] = mode_set_to_string(stop.modes)
                 writer.writeNext(point)
 
-    def _WriteProjectionFile(self):
+    def _write_projection_file(self, shape_file_name):
         wkt = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]'
         with open(
-            _path.splitext(self.ShapefileName)[0]
-            + "/"
-            + _path.splitext(_path.basename(self.ShapefileName))[0]
-            + ".prj",
+            _path.splitext(shape_file_name)[0] + "/" + _path.splitext(_path.basename(shape_file_name))[0] + ".prj",
             "w",
         ) as writer:
             writer.write(wkt)
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
-        return self.TRACKER.get_progress()
+        return self._tracker.get_progress()
 
     @_m.method(return_type=str)
     def tool_run_msg_status(self):
         return self.tool_run_msg
 
 
-class GtfsStop:
+class GTFS_stop:
     def __init__(self, id, lon, lat, name, description):
         self.id = id
         self.lat = float(lat)

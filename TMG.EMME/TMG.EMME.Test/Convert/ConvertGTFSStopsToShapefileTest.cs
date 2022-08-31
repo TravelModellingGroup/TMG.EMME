@@ -31,7 +31,7 @@ namespace TMG.Emme.Test.Convert
                  JSONParameterBuilder.BuildParameters(writer =>
                  {
                      writer.WriteString("gtfs_folder", Path.GetFullPath("TestFiles/FrabtiztownGTFS"));
-                     writer.WriteString("shapefile_name", Path.GetFullPath("OutputTestFiles/FrabtiztownStopShp"));
+                     writer.WriteString("shape_file_name", Path.GetFullPath("OutputTestFiles/FrabtiztownStopShp"));
                  }), LogbookLevel.Standard));
         }
 
