@@ -32,6 +32,8 @@ _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
+_geo_lib = _MODELLER.module("tmg2.utilities.geometry")
+shapely_to_esri = _geo_lib.Shapely2ESRI
 
 
 class ExportSubarea(_m.Tool()):
@@ -67,16 +69,20 @@ class ExportSubarea(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def _execute(self, scenario, parameters):
-        self._create_subarea_extra_attribute(scenario)
-
+        self._create_subarea_extra_attribute(scenario, "LINK", "@gate")
+        self._create_subarea_extra_attribute(scenario, "NODE", "@nflag")
         self._tag_subarea_centroids(scenario, parameters)
+        network = scenario.get_network()
+        subarea_nodes = self._load_shape_file(network, parameters["shape_file_location"])
+        for node in subarea_nodes:
+            node["@nflag"] = 1
+        scenario.publish_network(network)
 
-    def _create_subarea_extra_attribute(self, scenario):
-        attrib_type = "LINK"
-        if scenario.extra_attribute("@gate") is None:
+    def _create_subarea_extra_attribute(self, scenario, attrib_type, attrib_id):
+        if scenario.extra_attribute(attrib_id) is None:
             scenario.create_extra_attribute(
                 attrib_type,
-                "@gate",
+                attrib_id,
             )
 
     def _tag_subarea_centroids(self, scenario, parameters):
@@ -86,12 +92,25 @@ class ExportSubarea(_m.Tool()):
             "expression": "i",
             "selections": {"link": parameters["i_subarea_link_selection"]},
         }
-
         j_spec = {
             "type": "NETWORK_CALCULATION",
             "result": "@gate",
             "expression": "-j",
             "selections": {"link": parameters["j_subarea_link_selection"]},
         }
-
         network_calc_tool([i_spec, j_spec], scenario=scenario)
+
+    def _load_shape_file(self, network, shape_file_location):
+        with shapely_to_esri(shape_file_location, mode="read") as reader:
+            if int(reader._size) != 1:
+                raise Exception(
+                    "Shapefile has invalid number of features. There should only be one 1 polygon in the shapefile"
+                )
+            subarea_nodes = []
+            for border in reader.readThrough():
+                for node in network.nodes():
+                    point = _geo_lib.nodeToShape(node)
+                    if border.contains(point) == True:
+                        subarea_nodes.append(node)
+                break
+        return subarea_nodes
