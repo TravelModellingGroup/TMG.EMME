@@ -33,15 +33,17 @@ namespace TMG.Emme.Test.Export
         [TestMethod]
         public void ExportSubarea()
         {
-            Helper.ImportFrabitztownNetwork(1);
+            Helper.ImportFrabitztownNetwork(3);
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Export.export_subarea",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteString("i_subarea_link_selection", "i=21,24 or i=27 or i=31,34");
                     writer.WriteString("j_subarea_link_selection", "j=21,24 or j=27 or j=31,34");
-                    writer.WriteNumber("scenario_number", 1);
+                    writer.WriteNumber("scenario_number", 3);
                     writer.WriteString("shape_file_location", Path.GetFullPath("TestFiles/FrabitztownShapefiles/frab_border.shp"));
+                    writer.WriteBoolean("create_nflag_from_shapefile", true);
+
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
@@ -51,10 +53,11 @@ namespace TMG.Emme.Test.Export
             var module = new Emme.Export.ExportSubarea()
             {
                 Name = "Export Subarea",
-                ScenarioNumber = Helper.CreateParameter(1),
+                ScenarioNumber = Helper.CreateParameter(3),
                 ISubareaLinkSelection = Helper.CreateParameter("i=21,24 or i=27 or i=31,34"),
                 JSubareaLinkSelection = Helper.CreateParameter("j=21,24 or j=27 or j=31,34"),
-                ShapefileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabitztownShapefiles/frab_border.shp"))
+                ShapefileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabitztownShapefiles/frab_border.shp")),
+                CreateNflagFromShapefile = Helper.CreateParameter(true),
             };
             module.Invoke(Helper.Modeller);
         }

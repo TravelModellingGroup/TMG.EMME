@@ -74,9 +74,10 @@ class ExportSubarea(_m.Tool()):
         self._tag_subarea_centroids(scenario, parameters)
         network = scenario.get_network()
         subarea_nodes = self._load_shape_file(network, parameters["shape_file_location"])
-        for node in subarea_nodes:
-            node["@nflag"] = 1
-        scenario.publish_network(network)
+        if parameters["create_nflag_from_shapefile"]:
+            for node in subarea_nodes:
+                node["@nflag"] = 1
+            scenario.publish_network(network)
 
     def _create_subarea_extra_attribute(self, scenario, attrib_type, attrib_id):
         if scenario.extra_attribute(attrib_id) is None:
@@ -107,10 +108,10 @@ class ExportSubarea(_m.Tool()):
                     "Shapefile has invalid number of features. There should only be one 1 polygon in the shapefile"
                 )
             subarea_nodes = []
-            for border in reader.readThrough():
-                for node in network.nodes():
-                    point = _geo_lib.nodeToShape(node)
-                    if border.contains(point) == True:
-                        subarea_nodes.append(node)
-                break
+            for node in network.nodes():
+                for border in reader.readThrough():
+                    if node not in subarea_nodes:
+                        point = _geo_lib.nodeToShape(node)
+                        if border.contains(point) == True:
+                            subarea_nodes.append(node)
         return subarea_nodes
