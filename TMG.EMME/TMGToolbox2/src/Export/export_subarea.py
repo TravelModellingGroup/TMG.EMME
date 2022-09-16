@@ -75,8 +75,9 @@ class ExportSubarea(_m.Tool()):
         network = scenario.get_network()
         subarea_nodes = self._load_shape_file(network, parameters["shape_file_location"])
         if parameters["create_nflag_from_shapefile"]:
+            node_attribute = parameters["subarea_node_attribute"]
             for node in subarea_nodes:
-                node[parameters["subarea_node_attribute"]] = 1
+                node[node_attribute] = 1
             scenario.publish_network(network)
 
     def _create_subarea_extra_attribute(self, scenario, attrib_type, attrib_id):
