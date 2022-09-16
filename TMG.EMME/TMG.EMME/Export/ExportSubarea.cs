@@ -33,13 +33,29 @@ namespace TMG.Emme.Export
         [Parameter(Name = "I Subarea Link Selection", Description = "",
             Index = 0)]
         public IFunction<string> ISubareaLinkSelection;
-        [Parameter(Name = "I Subarea Link Selection", Description = "",
+        [Parameter(Name = "J Subarea Link Selection", Description = "",
             Index = 1)]
         public IFunction<string> JSubareaLinkSelection;
 
         [Parameter(Name = "Scenario Number", Description = "",
             Index = 2)]
         public IFunction<int> ScenarioNumber;
+
+        [Parameter(Name = "Shapefile Location", Description = "",
+            Index = 3)]
+        public IFunction<string> ShapefileLocation;
+
+        [Parameter(Name = "Create Nflag From Shapefile", Description = "",
+            Index = 4)]
+        public IFunction<bool> CreateNflagFromShapefile;
+
+        [Parameter(Name = "Subarea Node Attribute", Description = "",
+            Index = 5)]
+        public IFunction<string> SubareaNodeAttribute;
+
+        [Parameter(Name = "Subarea Gate Attribute", Description = "",
+            Index = 6)]
+        public IFunction<string> SubareaGateAttribute;
 
         public override void Invoke(ModellerController context)
         {
@@ -48,6 +64,10 @@ namespace TMG.Emme.Export
                 writer.WriteString("i_subarea_link_selection", ISubareaLinkSelection.Invoke());
                 writer.WriteString("j_subarea_link_selection", JSubareaLinkSelection.Invoke());
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
+                writer.WriteString("shape_file_location", ShapefileLocation.Invoke());
+                writer.WriteBoolean("create_nflag_from_shapefile", CreateNflagFromShapefile.Invoke());
+                writer.WriteString("subarea_node_attribute", SubareaNodeAttribute.Invoke());
+                writer.WriteString("subarea_gate_attribute", SubareaGateAttribute.Invoke());
             }), LogbookLevel.Standard);
         }
     }
