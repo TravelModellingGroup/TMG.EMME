@@ -43,7 +43,8 @@ namespace TMG.Emme.Test.Export
                     writer.WriteNumber("scenario_number", 3);
                     writer.WriteString("shape_file_location", Path.GetFullPath("TestFiles/FrabitztownShapefiles/frab_border.shp"));
                     writer.WriteBoolean("create_nflag_from_shapefile", true);
-
+                    writer.WriteString("subarea_node_attribute", "@nflag");
+                    writer.WriteString("subarea_gate_attribute", "@gate");
                 }), LogbookLevel.Standard));
         }
         [TestMethod]
@@ -58,6 +59,8 @@ namespace TMG.Emme.Test.Export
                 JSubareaLinkSelection = Helper.CreateParameter("j=21,24 or j=27 or j=31,34"),
                 ShapefileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabitztownShapefiles/frab_border.shp")),
                 CreateNflagFromShapefile = Helper.CreateParameter(true),
+                SubareaNodeAttribute = Helper.CreateParameter("@nflag"),
+                SubareaGateAttribute = Helper.CreateParameter("@gate"),
             };
             module.Invoke(Helper.Modeller);
         }

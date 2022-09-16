@@ -69,14 +69,14 @@ class ExportSubarea(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def _execute(self, scenario, parameters):
-        self._create_subarea_extra_attribute(scenario, "LINK", "@gate")
-        self._create_subarea_extra_attribute(scenario, "NODE", "@nflag")
+        self._create_subarea_extra_attribute(scenario, "LINK", parameters["subarea_gate_attribute"])
+        self._create_subarea_extra_attribute(scenario, "NODE", parameters["subarea_node_attribute"])
         self._tag_subarea_centroids(scenario, parameters)
         network = scenario.get_network()
         subarea_nodes = self._load_shape_file(network, parameters["shape_file_location"])
         if parameters["create_nflag_from_shapefile"]:
             for node in subarea_nodes:
-                node["@nflag"] = 1
+                node[parameters["subarea_node_attribute"]] = 1
             scenario.publish_network(network)
 
     def _create_subarea_extra_attribute(self, scenario, attrib_type, attrib_id):

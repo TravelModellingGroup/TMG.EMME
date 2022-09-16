@@ -49,6 +49,14 @@ namespace TMG.Emme.Export
             Index = 4)]
         public IFunction<bool> CreateNflagFromShapefile;
 
+        [Parameter(Name = "Subarea Node Attribute", Description = "",
+            Index = 5)]
+        public IFunction<string> SubareaNodeAttribute;
+
+        [Parameter(Name = "Subarea Gate Attribute", Description = "",
+            Index = 6)]
+        public IFunction<string> SubareaGateAttribute;
+
         public override void Invoke(ModellerController context)
         {
             context.Run(this, "tmg2.Export.export_subarea", JSONParameterBuilder.BuildParameters(writer =>
@@ -58,6 +66,8 @@ namespace TMG.Emme.Export
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
                 writer.WriteString("shape_file_location", ShapefileLocation.Invoke());
                 writer.WriteBoolean("create_nflag_from_shapefile", CreateNflagFromShapefile.Invoke());
+                writer.WriteString("subarea_node_attribute", SubareaNodeAttribute.Invoke());
+                writer.WriteString("subarea_gate_attribute", SubareaGateAttribute.Invoke());
             }), LogbookLevel.Standard);
         }
     }
