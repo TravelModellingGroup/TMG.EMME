@@ -34,7 +34,6 @@ _MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
-_assign_traffic = _MODELLER.module("tmg2.Assign.assign_traffic")
 subarea_analysis_tool = _MODELLER.tool("inro.emme.subarea.subarea")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 network_calc_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
@@ -195,6 +194,7 @@ class ExportSubarea(_m.Tool()):
                                 subarea_nodes=parameters["subarea_node_attribute"],
                                 subarea_folder=parameters["subarea_output_folder"],
                                 traffic_assignment_spec=sola_spec,
+                                extract_transit=True,
                                 overwrite=True,
                                 gate_labels=parameters["subarea_gate_attribute"],
                                 scenario=scenario,
@@ -306,27 +306,6 @@ class ExportSubarea(_m.Tool()):
     def _load_mode_list(self, parameters):
         mode_list = [mode["mode"] for mode in parameters["traffic_classes"]]
         return mode_list
-
-    def _load_stopping_criteria(self, report):
-        stopping_criterion = report["stopping_criterion"]
-        iterations = report["iterations"]
-        if len(iterations) > 0:
-            final_iteration = iterations[-1]
-        else:
-            final_iteration = {"number": 0}
-            stopping_criterion == "MAX_ITERATIONS"
-        number = final_iteration["number"]
-        if stopping_criterion == "MAX_ITERATIONS":
-            value = final_iteration["number"]
-        elif stopping_criterion == "RELATIVE_GAP":
-            value = final_iteration["gaps"]["relative"]
-        elif stopping_criterion == "NORMALIZED_GAP":
-            value = final_iteration["gaps"]["normalized"]
-        elif stopping_criterion == "BEST_RELATIVE_GAP":
-            value = final_iteration["gaps"]["best_relative"]
-        else:
-            value = "undefined"
-        return number, stopping_criterion, value
 
     # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

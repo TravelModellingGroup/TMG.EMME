@@ -34,6 +34,12 @@ namespace TMG.Emme.Test.Export
         public void ExportSubarea()
         {
             Helper.ImportFrabitztownNetwork(3);
+            Helper.ImportNetwork(3, "TestFiles/test.nwp", "Frab Subarea Network");
+            Helper.ImportBinaryMatrix(3, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
+            Helper.RunAssignTraffic(3, "mf10", 11);
+            Helper.ImportBinaryMatrix(3, 10, Path.GetFullPath("TestFiles/TestHighDemand.mtx"));
+            Helper.RunAssignBoardingPenalty(new[] { 3 });
+            Helper.RunAssignTransit(3, "mf10");
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Export.export_subarea",
                 JSONParameterBuilder.BuildParameters(writer =>
@@ -42,7 +48,7 @@ namespace TMG.Emme.Test.Export
                     writer.WriteString("j_subarea_link_selection", "j=21,24 or j=27 or j=31,34");
                     writer.WriteNumber("scenario_number", 3);
                     writer.WriteString("shape_file_location", Path.GetFullPath("TestFiles/FrabitztownShapefiles/frab_border.shp"));
-                    writer.WriteString("subarea_output_folder", Path.GetDirectoryName("TestFiles/SubareaOutput/"));
+                    writer.WriteString("subarea_output_folder", Path.GetDirectoryName("TestFiles/Subarea/"));
                     writer.WriteBoolean("create_nflag_from_shapefile", true);
                     writer.WriteString("subarea_node_attribute", "@nflag");
                     writer.WriteString("subarea_gate_attribute", "@gate");

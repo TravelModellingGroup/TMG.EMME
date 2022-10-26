@@ -153,7 +153,7 @@ namespace TMG.Emme.Test
                 Helper.Modeller.Run(null, "tmg2.Import.import_binary_matrix",
                  JSONParameterBuilder.BuildParameters(writer =>
                  {
-                     writer.WriteNumber("matrix_type",(int)Emme.Import.ImportBinaryMatrix.MatrixTypes.MF);
+                     writer.WriteNumber("matrix_type", (int)Emme.Import.ImportBinaryMatrix.MatrixTypes.MF);
                      writer.WriteNumber("matrix_number", matrixNumber);
                      writer.WriteString("binary_matrix_file", filePath);
                      writer.WriteNumber("scenario_number", scenarioNumber);
@@ -180,15 +180,15 @@ namespace TMG.Emme.Test
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteBoolean("calculate_congested_ivtt_flag", true);
-                    writer.WriteBoolean("node_logit_scale", true);
-                    writer.WriteString("effective_headway_attribute", "@ehdw1");
+                    writer.WriteNumber("node_logit_scale", 1f);
+                    writer.WriteString("effective_headway_attribute", "@ehdw");
                     writer.WriteNumber("effective_headway_slope", 0.165f);
-                    writer.WriteString("headway_fraction_attribute", "@frac1");
-                    writer.WriteNumber("iterations", 100);
+                    writer.WriteString("headway_fraction_attribute", "@hfrac");
+                    writer.WriteNumber("iterations", 5);
                     writer.WriteNumber("norm_gap", 0.0f);
                     writer.WriteNumber("rel_gap", 0.0f);
                     writer.WriteNumber("scenario_number", scenarioNumber);
-                    writer.WriteNumber("walk_speed", 0.0f);
+                    writer.WriteNumber("walk_speed", 4.0f);
                     writer.WriteStartArray("transit_classes");
                     writer.WriteStartObject();
                     writer.WriteString("name", "transit_class_1");
@@ -197,53 +197,83 @@ namespace TMG.Emme.Test
                     writer.WriteString("congestion_matrix", "mf0");
                     writer.WriteString("demand_matrix", demandMatrixId);
                     writer.WriteString("fare_matrix", "mf0");
-                    writer.WriteNumber("fare_perception", 0.0f);
+                    writer.WriteNumber("fare_perception", 20.0f);
                     writer.WriteString("in_vehicle_time_matrix", "mf0");
                     writer.WriteString("impedance_matrix", "mf0");
                     writer.WriteString("link_fare_attribute_id", "@lfare");
                     writer.WriteString("mode", "*");
                     writer.WriteString("perceived_travel_time_matrix", "mf0");
-                    writer.WriteString("segment_fare_attribute", "@sfare1");
-                    writer.WriteNumber("wait_time_perception", 0.0f);
+                    writer.WriteString("segment_fare_attribute", "@sfare");
+                    writer.WriteNumber("wait_time_perception", 2.299f);
                     writer.WriteString("wait_time_matrix", "mf0");
                     writer.WriteString("walk_time_perception_attribute", "@walkp");
                     writer.WriteString("walk_time_matrix", "mf0");
                     writer.WriteStartArray("walk_perceptions");
                     writer.WriteStartObject();
-                    writer.WriteString("filter", "i=10000,20000 or j=10000,20000 or i=97000,98000 or j=97000,98000");
-                    writer.WriteNumber("walk_perception_value", 1.8f);
+                    writer.WriteString("filter", "i=1,999999");
+                    writer.WriteNumber("walk_perception_value", 2.0f);
                     writer.WriteEndObject();
                     writer.WriteEndArray();
                     writer.WriteEndObject();
                     writer.WriteEndArray();
                     writer.WriteStartArray("surface_transit_speeds");
                     writer.WriteStartObject();
-                    writer.WriteNumber("alighting_duration", 1.1219f);
-                    writer.WriteNumber("boarding_duration", 1.9577f);
-                    writer.WriteNumber("default_duration", 7.4331f);
-                    writer.WriteNumber("global_erow_speed", 35f);
+                    writer.WriteNumber("alighting_duration", 1.1f);
+                    writer.WriteNumber("boarding_duration", 1.9f);
+                    writer.WriteNumber("default_duration", 0.1f);
+                    writer.WriteNumber("global_erow_speed", 10f);
                     writer.WriteString("line_filter_expression", "");
                     writer.WriteString("mode_filter_expression", "b");
-                    writer.WriteNumber("transit_auto_correlation", 1.612f);
+                    writer.WriteNumber("transit_auto_correlation", 2.0f);
                     writer.WriteEndObject();
                     writer.WriteEndArray();
                     writer.WriteStartArray("ttf_definitions");
+
                     writer.WriteStartObject();
-                    writer.WriteNumber("congestion_exponent", 5.972385f);
+                    writer.WriteNumber("congestion_exponent", 1.1f);
                     writer.WriteNumber("congestion_perception", 1);
                     writer.WriteNumber("ttf", 1);
                     writer.WriteEndObject();
+
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 1.1f);
+                    writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 2);
+                    writer.WriteEndObject();
+
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 1.1f);
+                    writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 3);
+                    writer.WriteEndObject();
+
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 1.1f);
+                    writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 5);
+                    writer.WriteEndObject();
+
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 1.1f);
+                    writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 4);
+                    writer.WriteEndObject();
+
+                    writer.WriteStartObject();
+                    writer.WriteNumber("congestion_exponent", 1.1f);
+                    writer.WriteNumber("congestion_perception", 1);
+                    writer.WriteNumber("ttf", 6);
+                    writer.WriteEndObject();
+
                     writer.WriteEndArray();
-                    writer.WriteString("congestion_exponent", "");
-                    writer.WriteNumber("assignment_period", 0.0f);
+                    writer.WriteNumber("assignment_period", 1f);
                     writer.WriteString("name_string", "");
-                    writer.WriteString("congested_assignment", "");
+                    writer.WriteBoolean("congested_assignment", true);
                     writer.WriteString("csvfile", "");
-                    writer.WriteNumber("origin_distribution_logit_scale", 0.0f);
-                    writer.WriteNumber("walk_distribution_logit_scale", 3.0f);
-                    writer.WriteString("surface_transit_speed", "");
+                    writer.WriteNumber("origin_distribution_logit_scale", 0.2f);
+                    writer.WriteBoolean("surface_transit_speed", true);
                     writer.WriteBoolean("walk_all_way_flag", false);
-                    writer.WriteString("xrow_ttf_range", "");
+                    writer.WriteString("xrow_ttf_range", "2");
                 }), LogbookLevel.Standard));
         }
 
