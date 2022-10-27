@@ -1004,7 +1004,7 @@ class assign_traffic_util:
         tracker,
         number_of_processors,
     ):
-        with _trace("Calculting peak hour matrix"):
+        with _trace("Calculating peak hour matrix"):
             for i in range(len(demand_matrix_list)):
                 matrix_calc_tool(
                     self.get_peak_hour_spec(
