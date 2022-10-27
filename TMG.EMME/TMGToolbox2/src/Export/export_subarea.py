@@ -204,7 +204,6 @@ class ExportSubarea(_m.Tool()):
                                 gate_labels=parameters["subarea_gate_attribute"],
                                 scenario=scenario,
                             )
-                            print("WE GOT here!!!!!!!!!!!!!!!!!!!!~~~~~~~~~~~~~~~~")
 
     def _create_subarea_extra_attribute(self, scenario, attrib_type, attrib_id):
         if scenario.extra_attribute(attrib_id) is None:
