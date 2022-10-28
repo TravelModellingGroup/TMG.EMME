@@ -32,15 +32,16 @@ namespace TMG.Emme.Test.Assign
         [TestMethod]
         public void AssignTraffic()
         {
-            Helper.ImportFrabitztownNetwork(1);
-            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+            // Helper.ImportFrabitztownNetwork(2);
+            Helper.ImportNetwork(2, "TestFiles/2019.nwp", "Subarea Network");
+            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/2019matrix.mtx"));
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_traffic",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteBoolean("background_transit", true);
                     writer.WriteNumber("br_gap", 0);
-                    writer.WriteNumber("iterations", 100);
+                    writer.WriteNumber("iterations", 4);
                     writer.WriteNumber("norm_gap", 0);
                     writer.WriteBoolean("performance_flag", true);
                     writer.WriteNumber("r_gap", 0);
