@@ -33,8 +33,9 @@ namespace TMG.Emme.Test.Assign
         public void AssignTraffic()
         {
             // Helper.ImportFrabitztownNetwork(2);
-            Helper.ImportNetwork(2, "TestFiles/2019.nwp", "Subarea Network");
-            Helper.ImportBinaryMatrix(2, 10, Path.GetFullPath("TestFiles/2019matrix.mtx"));
+            var scenarioNumber = 2;
+            Helper.ImportNetwork(scenarioNumber, "TestFiles/2019.nwp", "Subarea Network");
+            Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/2019matrix.mtx"));
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_traffic",
                 JSONParameterBuilder.BuildParameters(writer =>
@@ -46,7 +47,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteBoolean("performance_flag", true);
                     writer.WriteNumber("r_gap", 0);
                     writer.WriteString("run_title", "road assignment");
-                    writer.WriteNumber("scenario_number", 1);
+                    writer.WriteNumber("scenario_number", scenarioNumber);
                     writer.WriteBoolean("sola_flag", true);
                     writer.WritePropertyName("mixed_use_ttf_ranges");
                     writer.WriteStartArray();
