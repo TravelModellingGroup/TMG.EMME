@@ -41,26 +41,15 @@ Toll-Based Road Assignment
     V 2.0.2 Updated to receive JSON file parameters from Python API call
 
 """
-
-from inspect import Parameter
-from os import error
-from pydoc import describe
-from tabnanny import check
 import inro.modeller as _m
-import traceback as _traceback
-from contextlib import contextmanager
 import multiprocessing
-import random
-import json
 
 _m.InstanceType = object
 _m.ListType = list
 _m.TupleType = object
 
 _trace = _m.logbook_trace
-_write = _m.logbook_write
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
-_bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 EMME_VERSION = _util.get_emme_version(tuple)
 
@@ -68,7 +57,6 @@ matrix_calc_tool = _MODELLER.tool("inro.emme.matrix_calculation.matrix_calculato
 network_calculation_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 traffic_assignment_tool = _MODELLER.tool("inro.emme.traffic_assignment.sola_traffic_assignment")
 extra_parameter_tool = _MODELLER.tool("inro.emme.traffic_assignment.set_extra_function_parameters")
-
 delete_matrix = _MODELLER.tool("inro.emme.data.matrix.delete_matrix")
 
 
@@ -78,9 +66,9 @@ class AssignTraffic(_m.Tool()):
     # For progress reporting, enter the integer number of tasks here
     number_of_tasks = 4
     # Tool Input Parameters
-    #    Only those parameters neccessary for Modeller and/or XTMF to dock with
+    #    Only those parameters necessary for Modeller and/or XTMF to dock with
     #    need to be placed here. Internal parameters (such as lists and dicts)
-    #    get intitialized during construction (__init__)
+    #    get initialized during construction (__init__)
     # Parameters can takes in a json file name depending on entry point(either through XTMF or api calls )
     parameters = _m.Attribute(str)
     number_of_processors = _m.Attribute(int)
@@ -119,7 +107,7 @@ class AssignTraffic(_m.Tool()):
     def _execute(self, scenario, parameters):
         """
         Definition of common names:
-            - matrix_name (type(str)): e.g. cost_matrix, demand_matrixetc.
+            - matrix_name (type(str)): e.g. cost_matrix, demand_matrix etc.
             - matrix_id (type(str)): e.g. mf0, mf2 etc.
                 Note - matrix id expects either of ms, mo, md, or mf, before the number.
             - temp_matrix_list: keeps track (by appending to it) of all temporary matrices

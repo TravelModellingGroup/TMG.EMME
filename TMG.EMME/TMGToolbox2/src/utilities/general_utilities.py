@@ -23,7 +23,6 @@ it can be distributed in the TMG toolbox
 
 """
 import inro.modeller as _m
-import math
 import inro.emme.core.exception as _excep
 from contextlib import contextmanager
 import warnings as _warn
