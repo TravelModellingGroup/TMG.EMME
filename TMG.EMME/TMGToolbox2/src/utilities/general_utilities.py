@@ -1,5 +1,5 @@
 """
-    Copyright 2015 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -23,7 +23,6 @@ it can be distributed in the TMG toolbox
 
 """
 import inro.modeller as _m
-import math
 import inro.emme.core.exception as _excep
 from contextlib import contextmanager
 import warnings as _warn
@@ -40,7 +39,13 @@ from json import loads as _parsedict
 from os.path import dirname
 
 _MODELLER = _m.Modeller()
-_DATABANK = _MODELLER.emmebank
+_bank = _MODELLER.emmebank
+_trace = _m.logbook_trace
+_write = _m.logbook_write
+
+network_calculation_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
+matrix_calc_tool = _MODELLER.tool("inro.emme.matrix_calculation.matrix_calculator")
+extra_parameter_tool = _MODELLER.tool("inro.emme.traffic_assignment.set_extra_function_parameters")
 
 
 class Face(_m.Tool()):
@@ -234,7 +239,7 @@ def initialize_matrix(
 
     if id is None:
         # Get an available matrix
-        id = _DATABANK.available_matrix_identifier(matrix_type)
+        id = _bank.available_matrix_identifier(matrix_type)
     elif isinstance(id, int):
         # If the matrix id is given as an integer
         try:
@@ -250,11 +255,11 @@ def initialize_matrix(
     elif not isinstance(id, six.string_types):
         raise TypeError("Id is not a supported type: %s" % type(id))
 
-    mtx = _DATABANK.matrix(id)
+    mtx = _bank.matrix(id)
 
     if mtx is None:
         # Matrix does not exist, so create it.
-        mtx = _DATABANK.create_matrix(id, default_value=default)
+        mtx = _bank.create_matrix(id, default_value=default)
         if name:
             mtx.name = name[:40]
         if description:
@@ -281,7 +286,7 @@ def initialize_matrix(
 def getAvailableScenarioNumber():
     """
     Returns: The number of an available scenario. Raises an exception
-    if the _DATABANK is full.
+    if the _bank is full.
     """
     for i in range(0, _m.Modeller().emmebank.dimensions["scenarios"]):
         if _m.Modeller().emmebank.scenario(i + 1) is None:
@@ -386,7 +391,7 @@ def temp_matrix_manager(description="[No description]", matrix_type="FULL", defa
     try:
         yield mtx
     finally:
-        _DATABANK.delete_matrix(mtx.id)
+        _bank.delete_matrix(mtx.id)
 
         s = "Deleted matrix %s." % mtx.id
         _m.logbook_write(s)
@@ -793,6 +798,380 @@ def getExtents(network):
 
 
 # -------------------------------------------------------------------------------------------
+class assign_traffic_util:
+    def load_atts(self, scenario, parameters, modeller_namespace):
+        traffic_classes = parameters["traffic_classes"]
+        time_matrix_ids = [mtx["time_matrix"] for mtx in traffic_classes]
+        peak_hr_factors = [str(phf["peak_hour_factor"]) for phf in traffic_classes]
+        link_costs = [str(lc["link_cost"]) for lc in traffic_classes]
+        atts = {
+            "Run Title": parameters["run_title"],
+            "Scenario": str(scenario.id),
+            "Times Matrix": str(", ".join(time_matrix_ids)),
+            "Peak Hour Factor": str(", ".join(peak_hr_factors)),
+            "Link Cost": str(", ".join(link_costs)),
+            "Iterations": str(parameters["iterations"]),
+            "self": modeller_namespace,
+        }
+        return atts
+
+    def load_output_matrices(self, parameters, matrix_name=""):
+        """
+        Load input matrices creates and loads all (input) matrix into a list based on
+        matrix_name supplied. E.g of matrix_name: "demand_matrix" and matrix_id: "mf2"
+        """
+        mtx_dict = {}
+        traffic_classes = parameters["traffic_classes"]
+        for i in range(0, len(matrix_name)):
+            mtx_dict[matrix_name[i]] = [tc[matrix_name[i]] for tc in traffic_classes]
+        for mtx_name, mtx_ids in mtx_dict.items():
+            mtx = [None if id == "mf0" else _bank.matrix(id) for id in mtx_ids]
+            mtx_dict[mtx_name] = mtx
+        return mtx_dict
+
+    def load_input_matrices(self, parameters, matrix_name):
+        """
+        Load input matrices creates and returns a list of (input) matrices based on matrix_name supplied.
+        E.g of matrix_name: "demand_matrix", matrix_id: "mf2"
+        """
+
+        def exception(mtx_id):
+            raise Exception("Matrix %s was not found!" % mtx_id)
+
+        traffic_classes = parameters["traffic_classes"]
+        mtx_name = matrix_name
+
+        mtx_list = [
+            _bank.matrix(tc[mtx_name])
+            if tc[mtx_name] == "mf0" or _bank.matrix(tc[mtx_name]).id == tc[mtx_name]
+            else exception(tc[mtx_name])
+            for tc in traffic_classes
+        ]
+        return mtx_list
+
+    def load_attribute_list(self, parameters, demand_matrix_list):
+        def check_att_name(at):
+            if at.startswith("@"):
+                return at
+            else:
+                return "@" + at
+
+        traffic_classes = parameters["traffic_classes"]
+        attribute_list = []
+        att = "volume_attribute"
+        vol_attribute_list = [check_att_name(vol[att]) for vol in traffic_classes]
+        for i in range(len(demand_matrix_list)):
+            attribute_list.append(None)
+        return attribute_list, vol_attribute_list
+
+    def load_mode_list(self, parameters):
+        mode_list = [mode["mode"] for mode in parameters["traffic_classes"]]
+        return mode_list
+
+    # ---INITIALIZE - SUB-FUNCTIONS  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    def init_input_matrices(self, load_input_matrix_list, temp_matrix_list):
+        """
+        - Checks the list of all load matrices in load_input_matrix_list,
+            for None, create a temporary matrix and initialize
+        - Returns a list of all input matrices provided
+        """
+        input_matrix_list = []
+        for mtx in load_input_matrix_list:
+            if mtx == None:
+                mtx = initialize_matrix(matrix_type="FULL")
+                input_matrix_list.append(_bank.matrix(mtx.id))
+                temp_matrix_list.append(mtx)
+            else:
+                input_matrix_list.append(mtx)
+        return input_matrix_list
+
+    def init_output_matrices(
+        self,
+        load_output_matrix_dict,
+        temp_matrix_list,
+        matrix_name="",
+        description="",
+    ):
+        """
+        - Checks the dictionary of all load matrices in load_output_matrix_dict,
+            for None, create a temporary matrix and initialize
+        - Returns a list of all input matrices provided
+        """
+        output_matrix_list = []
+        desc = "AUTO %s FOR CLASS" % (matrix_name.upper())
+        if matrix_name in load_output_matrix_dict.keys():
+            for mtx in load_output_matrix_dict[matrix_name]:
+                if mtx == None:
+                    matrix = initialize_matrix(
+                        name=matrix_name,
+                        description=description if description != "" else desc,
+                    )
+                    output_matrix_list.append(matrix)
+                    temp_matrix_list.append(matrix)
+                else:
+                    output_matrix_list.append(mtx)
+        else:
+            raise Exception('Output matrix name "%s" provided does not exist', matrix_name)
+        return output_matrix_list
+
+    def init_temp_peak_hour_matrix(self, parameters, temp_matrix_list):
+        peak_hour_matrix_list = []
+        traffic_classes = parameters["traffic_classes"]
+        for tc in traffic_classes:
+            peak_hour_matrix = initialize_matrix(
+                default=tc["peak_hour_factor"],
+                description="Peak hour matrix",
+            )
+            peak_hour_matrix_list.append(peak_hour_matrix)
+            temp_matrix_list.append(peak_hour_matrix)
+        return peak_hour_matrix_list
+
+    # ---CREATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    def create_time_attribute_list(self, scenario, demand_matrix_list, temp_attribute_list):
+        time_attribute_list = []
+        time_attribute = create_temp_attribute(scenario, "ltime", "LINK", default_value=0.0, assignment_type="traffic")
+        time_attribute_list = len(demand_matrix_list) * [time_attribute]
+        for att in time_attribute_list:
+            temp_attribute_list.append(att)
+        return time_attribute_list
+
+    def create_cost_attribute_list(self, scenario, demand_matrix_list, temp_attribute_list):
+        cost_attribute_list = []
+        count = 0
+        while count < len(demand_matrix_list):
+            cost_attribute = create_temp_attribute(
+                scenario, "lkcst", "LINK", default_value=0.0, assignment_type="traffic"
+            )
+            cost_attribute_list.append(cost_attribute)
+            temp_attribute_list.append(cost_attribute)
+            count += 1
+        return cost_attribute_list
+
+    def create_transit_traffic_attribute_list(self, scenario, demand_matrix_list, temp_attribute_list):
+        t_traffic_attribute = create_temp_attribute(
+            scenario, "tvph", "LINK", default_value=0.0, assignment_type="traffic"
+        )
+        transit_traffic_attribute_list = len(demand_matrix_list) * [t_traffic_attribute]
+        for att in transit_traffic_attribute_list:
+            temp_attribute_list.append(att)
+        return transit_traffic_attribute_list
+
+    def create_volume_attribute(self, scenario, volume_attribute):
+        volume_attribute_at = scenario.extra_attribute(volume_attribute)
+        if volume_attribute_at is None:
+            scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
+        elif volume_attribute_at.type != "LINK":
+            raise Exception("Volume Attribute '%s' is not a link type attribute" % volume_attribute)
+        elif volume_attribute is not None:
+            _write("Deleting Previous Extra Attributes.")
+            scenario.delete_extra_attribute(volume_attribute_at)
+            scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
+        else:
+            scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
+
+    # ---CALCULATE - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    def calculate_link_cost(
+        self,
+        scenario,
+        parameters,
+        demand_matrix_list,
+        applied_toll_factor_list,
+        cost_attribute_list,
+        tracker,
+    ):
+        with _trace("Calculating link costs"):
+            for i in range(len(demand_matrix_list)):
+                network_calculation_tool(
+                    self.get_link_cost_calc_spec(
+                        cost_attribute_list[i].id,
+                        parameters["traffic_classes"][i]["link_cost"],
+                        parameters["traffic_classes"][i]["link_toll_attribute"],
+                        applied_toll_factor_list[i],
+                    ),
+                    scenario=scenario,
+                )
+            tracker.complete_subtask()
+
+    def calculate_peak_hour_matrices(
+        self,
+        scenario,
+        parameters,
+        demand_matrix_list,
+        peak_hour_matrix_list,
+        tracker,
+        number_of_processors,
+    ):
+        with _trace("Calculating peak hour matrix"):
+            for i in range(len(demand_matrix_list)):
+                matrix_calc_tool(
+                    self.get_peak_hour_spec(
+                        peak_hour_matrix_list[i].id,
+                        demand_matrix_list[i].id,
+                        parameters["traffic_classes"][i]["peak_hour_factor"],
+                    ),
+                    scenario=scenario,
+                    num_processors=number_of_processors,
+                )
+            tracker.complete_subtask()
+
+    def calculate_transit_background_traffic(self, scenario, parameters, tracker):
+        if parameters["background_transit"] == True:
+            if int(scenario.element_totals["transit_lines"]) > 0:
+                with _trace("Calculating transit background traffic"):
+                    network_calculation_tool(
+                        self.get_transit_bg_spec(parameters),
+                        scenario=scenario,
+                    )
+                    extra_parameter_tool(el1="@tvph")
+                    tracker.complete_subtask()
+        else:
+            extra_parameter_tool(el1="0")
+            tracker.complete_subtask()
+
+    def calculate_applied_toll_factor(self, parameters):
+        applied_toll_factor = []
+        for tc in parameters["traffic_classes"]:
+            if tc["toll_weight"] is not None:
+                try:
+                    toll_weight = 60 / tc["toll_weight"]
+                    applied_toll_factor.append(toll_weight)
+                except ZeroDivisionError:
+                    toll_weight = 0
+                    applied_toll_factor.append(toll_weight)
+        return applied_toll_factor
+
+    # ---SPECIFICATION - SUB FUNCTIONS-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    def get_primary_SOLA_spec(
+        self,
+        demand_matrix_list,
+        peak_hour_matrix_list,
+        applied_toll_factor_list,
+        mode_list,
+        volume_attribute_list,
+        cost_attribute_list,
+        time_matrix_list,
+        attribute_list,
+        matrix_list,
+        operator_list,
+        lower_bound_list,
+        upper_bound_list,
+        selector_list,
+        multiply_path_demand,
+        multiply_path_value,
+        parameters,
+        multiprocessing,
+    ):
+        if parameters["performance_flag"] == "true":
+            number_of_processors = multiprocessing.cpu_count()
+        else:
+            number_of_processors = max(multiprocessing.cpu_count() - 1, 1)
+        # Generic Spec for SOLA
+        SOLA_spec = {
+            "type": "SOLA_TRAFFIC_ASSIGNMENT",
+            "classes": [],
+            "path_analysis": None,
+            "cutoff_analysis": None,
+            "traversal_analysis": None,
+            "performance_settings": {"number_of_processors": number_of_processors},
+            "background_traffic": None,
+            "stopping_criteria": {
+                "max_iterations": parameters["iterations"],
+                "relative_gap": parameters["r_gap"],
+                "best_relative_gap": parameters["br_gap"],
+                "normalized_gap": parameters["norm_gap"],
+            },
+        }
+        SOLA_path_analysis = []
+        for i in range(0, len(demand_matrix_list)):
+            if attribute_list[i] is None:
+                SOLA_path_analysis.append([])
+            else:
+                SOLA_path_analysis.append([])
+                all_none = True
+                for j in range(len(attribute_list[i])):
+                    if attribute_list[i][j] is None:
+                        continue
+                    all_none = False
+                    path = {
+                        "link_component": attribute_list[i][j],
+                        "turn_component": None,
+                        "operator": operator_list[i][j],
+                        "selection_threshold": {
+                            "lower": lower_bound_list[i][j],
+                            "upper": upper_bound_list[i][j],
+                        },
+                        "path_to_od_composition": {
+                            "considered_paths": selector_list[i][j],
+                            "multiply_path_proportions_by": {
+                                "analyzed_demand": multiply_path_demand[i][j],
+                                "path_value": multiply_path_value[i][j],
+                            },
+                        },
+                        "results": {"od_values": matrix_list[i][j]},
+                        "analyzed_demand": None,
+                    }
+                    SOLA_path_analysis[i].append(path)
+                if all_none is True:
+                    SOLA_path_analysis[i] = []
+        SOLA_class_generator = [
+            {
+                "mode": mode_list[i],
+                "demand": peak_hour_matrix_list[i].id,
+                "generalized_cost": {
+                    "link_costs": cost_attribute_list[i].id,
+                    "perception_factor": 1,
+                },
+                "results": {
+                    "link_volumes": volume_attribute_list[i],
+                    "turn_volumes": None,
+                    "od_travel_times": {"shortest_paths": time_matrix_list[i].id},
+                },
+                "path_analyses": SOLA_path_analysis[i],
+            }
+            for i in range(len(mode_list))
+        ]
+        SOLA_spec["classes"] = SOLA_class_generator
+
+        return SOLA_spec
+
+    def get_transit_bg_spec(self, parameters):
+        ttf_terms = str.join(
+            " + ",
+            [
+                "((ttf >=" + str(x["start"]) + ") * (ttf <= " + str(x["stop"]) + "))"
+                for x in parameters["mixed_use_ttf_ranges"]
+            ],
+        )
+        return {
+            "result": "@tvph",
+            "expression": "(60 / hdw) * (vauteq) " + ("* (" + ttf_terms + ")" if ttf_terms else ""),
+            "aggregation": "+",
+            "selections": {"link": "all", "transit_line": "all"},
+            "type": "NETWORK_CALCULATION",
+        }
+
+    def get_link_cost_calc_spec(self, cost_attribute_id, link_cost, link_toll_attribute, perception):
+        return {
+            "result": cost_attribute_id,
+            "expression": "(length * %f + %s)*%f" % (link_cost, link_toll_attribute, perception),
+            "aggregation": None,
+            "selections": {"link": "all"},
+            "type": "NETWORK_CALCULATION",
+        }
+
+    def get_peak_hour_spec(self, peak_hour_matrix_id, demand_matrix_id, peak_hour_factor):
+        return {
+            "expression": demand_matrix_id + "*" + str(peak_hour_factor),
+            "result": peak_hour_matrix_id,
+            "constraint": {"by_value": None, "by_zone": None},
+            "aggregation": {"origins": None, "destinations": None},
+            "type": "MATRIX_CALCULATION",
+        }
+
+
+# --------------------------------------------------------------------------------------------
 
 
 class IntRange:
