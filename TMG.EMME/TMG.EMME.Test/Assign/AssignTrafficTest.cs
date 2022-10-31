@@ -32,10 +32,9 @@ namespace TMG.Emme.Test.Assign
         [TestMethod]
         public void AssignTraffic()
         {
-            // Helper.ImportFrabitztownNetwork(2);
             var scenarioNumber = 2;
-            Helper.ImportNetwork(scenarioNumber, "TestFiles/2019.nwp", "Subarea Network");
-            Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/2019matrix.mtx"));
+            Helper.ImportFrabitztownNetwork(scenarioNumber);
+            Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/Test.mtx"));
             Assert.IsTrue(
                 Helper.Modeller.Run(null, "tmg2.Assign.assign_traffic",
                 JSONParameterBuilder.BuildParameters(writer =>
