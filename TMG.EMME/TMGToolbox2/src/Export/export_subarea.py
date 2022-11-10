@@ -117,15 +117,9 @@ class ExportSubarea(_m.Tool()):
                 self._tracker.complete_subtask()
 
                 with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
-                    time_attribute_list = self._traffic_util.create_time_attribute_list(
-                        scenario, demand_matrix_list, temp_attribute_list
-                    )
-                    cost_attribute_list = self._traffic_util.create_cost_attribute_list(
-                        scenario, demand_matrix_list, temp_attribute_list
-                    )
-                    transit_attribute_list = self._traffic_util.create_transit_traffic_attribute_list(
-                        scenario, demand_matrix_list, temp_attribute_list
-                    )
+                    time_attribute_list = self._traffic_util.create_time_attribute_list(scenario, demand_matrix_list, temp_attribute_list)
+                    cost_attribute_list = self._traffic_util.create_cost_attribute_list(scenario, demand_matrix_list, temp_attribute_list)
+                    transit_attribute_list = self._traffic_util.create_transit_traffic_attribute_list(scenario, demand_matrix_list, temp_attribute_list)
                     # Create volume attributes
                     for tc in parameters["traffic_classes"]:
                         self._traffic_util.create_volume_attribute(scenario, tc["volume_attribute"])
@@ -180,26 +174,23 @@ class ExportSubarea(_m.Tool()):
                                 parameters,
                                 multiprocessing,
                             )
-                            print(sola_spec)
-                            self._create_subarea_extra_attribute(scenario, "LINK", parameters["subarea_gate_attribute"])
-                            self._create_subarea_extra_attribute(scenario, "NODE", parameters["subarea_node_attribute"])
-                            self._tag_subarea_centroids(scenario, parameters)
-                            network = scenario.get_network()
-                            subarea_nodes = self._load_shape_file(network, parameters["shape_file_location"])
+                            if parameters["create_gate_attribute"]:
+                                self._create_subarea_extra_attribute(scenario, "LINK", parameters["subarea_gate_attribute"])
+                                self._tag_subarea_centroids(scenario, parameters)
                             if parameters["create_nflag_from_shapefile"]:
+                                self._create_subarea_extra_attribute(scenario, "NODE", parameters["subarea_node_attribute"])
+                                network = scenario.get_network()
+                                subarea_nodes = self._load_shape_file(network, parameters["shape_file_location"])
                                 node_attribute = parameters["subarea_node_attribute"]
                                 for node in subarea_nodes:
                                     node[node_attribute] = 1
                                 scenario.publish_network(network)
-
-                            print(parameters["subarea_output_folder"])
-
                             self._tracker.run_tool(
                                 subarea_analysis_tool,
                                 subarea_nodes=parameters["subarea_node_attribute"],
                                 subarea_folder=parameters["subarea_output_folder"],
                                 traffic_assignment_spec=sola_spec,
-                                extract_transit=True,
+                                extract_transit=parameters["extract_transit"],
                                 overwrite=True,
                                 gate_labels=parameters["subarea_gate_attribute"],
                                 scenario=scenario,
@@ -230,9 +221,7 @@ class ExportSubarea(_m.Tool()):
     def _load_shape_file(self, network, shape_file_location):
         with shapely_to_esri(shape_file_location, mode="read") as reader:
             if int(reader._size) != 1:
-                raise Exception(
-                    "Shapefile has invalid number of features. There should only be one 1 polygon in the shapefile"
-                )
+                raise Exception("Shapefile has invalid number of features. There should only be one 1 polygon in the shapefile")
             subarea_nodes = []
             for node in network.nodes():
                 for border in reader.readThrough():

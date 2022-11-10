@@ -30,74 +30,82 @@ namespace TMG.Emme.Export
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
     public class ExportSubarea : BaseAction<ModellerController>
     {
-        [Parameter(Name = "I Subarea Link Selection", Description = "",
+        [Parameter(Name = "I Subarea Link Selection", Description = "The outgoing connectors used to tag the centroids within the subarea. results are stored in the gate link attribute specified eg. \"i=21,24 or i=27 or i=31,34\"",
             Index = 0)]
         public IFunction<string> ISubareaLinkSelection;
-        [Parameter(Name = "J Subarea Link Selection", Description = "",
+        [Parameter(Name = "J Subarea Link Selection", Description = "The incoming connectors used to tag the centroids within the subarea. results are stored in the gate link attribute specified eg. \"j=21,24 or j=27 or j=31,34\"",
             Index = 1)]
         public IFunction<string> JSubareaLinkSelection;
 
-        [Parameter(Name = "Scenario Number", Description = "",
+        [Parameter(Name = "Scenario Number", Description = "The scenario number to execute against",
             Index = 2)]
         public IFunction<int> ScenarioNumber;
 
-        [Parameter(Name = "Shapefile Location", Description = "",
+        [Parameter(Name = "Shapefile Location", Description = "The shapefile name containing the boundary of the subarea polygon",
             Index = 3)]
         public IFunction<string> ShapefileLocation;
 
-        [Parameter(Name = "Create Nflag From Shapefile", Description = "",
+        [Parameter(Name = "Create Nflag From Shapefile", Description = "set to False if subarea node attribute is already defined in the network",
             Index = 4)]
         public IFunction<bool> CreateNflagFromShapefile;
 
-        [Parameter(Name = "Subarea Node Attribute", Description = "",
+        [Parameter(Name = "Subarea Node Attribute", Description = "The node attribute that will be used to define the subarea.",
             Index = 5)]
         public IFunction<string> SubareaNodeAttribute;
 
-        [Parameter(Name = "Subarea Gate Attribute", Description = "",
+        [Parameter(Name = "Subarea Gate Attribute", Description = "The link extra attribute that defines your gate numbers",
             Index = 6)]
         public IFunction<string> SubareaGateAttribute;
 
-        [Parameter(Name = "Subarea Output Folder", Description = "",
-            Index = 6)]
+        [Parameter(Name = "Subarea Output Folder", Description = "Folder directory to write output of the subarea database",
+            Index = 7)]
         public IFunction<string> SubareaOutputFolder;
 
         [Parameter(Name = "Background Transit", DefaultValue = "true", Description = "Set this to false to not assign transit vehicles on the roads",
-            Index = 0)]
+            Index = 8)]
         public IFunction<bool> BackgroundTransit;
 
         [Parameter(Name = "br Gap", DefaultValue = "0", Description = "The minimum gap required to terminate the algorithm.",
-            Index = 1)]
+            Index = 9)]
         public IFunction<float> brGap;
 
         [Parameter(Name = "Iterations", DefaultValue = "100", Description = "The maximum number of iterations to run.",
-            Index = 2)]
+            Index = 10)]
         public IFunction<int> Iterations;
 
         [Parameter(Name = "norm Gap", DefaultValue = "0", Description = "The minimum gap required to terminate the algorithm.",
-            Index = 3)]
+            Index = 11)]
         public IFunction<float> normGap;
 
         [Parameter(Name = "Performance Flag", DefaultValue = "true", Description = "Set this to false to leave a free core for other work",
-            Index = 5)]
+            Index = 12)]
         public IFunction<bool> PerformanceFlag;
 
         [Parameter(Name = "r Gap", DefaultValue = "0", Description = "The minimum gap required to terminate the algorithm.",
-            Index = 6)]
+            Index = 13)]
         public IFunction<float> rGap;
 
         [Parameter(Name = "Run Title", DefaultValue = "road assignment", Description = "The name of the run to appear in the logbook.",
-            Index = 7)]
+            Index = 14)]
         public IFunction<string> RunTitle;
 
         [Parameter(Name = "SOLA Flag", DefaultValue = "true", Description = "Sola flag",
-            Index = 9)]
+            Index = 15)]
         public IFunction<bool> SOLAFlag;
 
         [Parameter(Name = "Mixed Used TTF Ranged", DefaultValue = "3-128", Description = "The TTFs where transit vehicles will occupy some capacity on links. The ranges are inclusive.",
-            Index = 10)]
+            Index = 16)]
         public IFunction<RangeSet> MixedUseTTFRanges;
 
-        [SubModule(Name = "Traffic Classes", Description = "", Index = 11)]
+        [Parameter(Name = "ExtractTransit", DefaultValue = "true", Description = "Set this to TRUE to export the subarea transit",
+                Index = 17)]
+        public IFunction<bool> ExtractTransit;
+
+        [Parameter(Name = "Create Gate Attribute", DefaultValue = "false", Description = "Set this to TRUE to create gate labels for your network. NOTE: i & j link selections must be defined",
+               Index = 18)]
+        public IFunction<bool> CreateGateAttribute;
+
+        [SubModule(Name = "Traffic Classes", Description = "Traffic classes", Index = 19)]
         public IFunction<TrafficClass>[] TrafficClasses;
 
         [Module(Name = "Traffic Class", Description = "",
@@ -251,6 +259,8 @@ namespace TMG.Emme.Export
         {
             context.Run(this, "tmg2.Export.export_subarea", JSONParameterBuilder.BuildParameters(writer =>
             {
+                writer.WriteBoolean("extract_transit", ExtractTransit.Invoke());
+                writer.WriteBoolean("create_gate_attribute", CreateGateAttribute.Invoke());
                 writer.WriteString("i_subarea_link_selection", ISubareaLinkSelection.Invoke());
                 writer.WriteString("j_subarea_link_selection", JSubareaLinkSelection.Invoke());
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());

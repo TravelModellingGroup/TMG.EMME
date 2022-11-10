@@ -44,6 +44,8 @@ namespace TMG.Emme.Test.Export
                 Helper.Modeller.Run(null, "tmg2.Export.export_subarea",
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
+                    writer.WriteBoolean("extract_transit", true);
+                    writer.WriteBoolean("create_gate_attribute", true);
                     writer.WriteString("i_subarea_link_selection", "i=21,24 or i=27 or i=31,34");
                     writer.WriteString("j_subarea_link_selection", "j=21,24 or j=27 or j=31,34");
                     writer.WriteNumber("scenario_number", 3);
