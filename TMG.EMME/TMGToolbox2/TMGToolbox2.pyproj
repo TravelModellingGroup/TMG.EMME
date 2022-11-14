@@ -52,6 +52,8 @@
     <Compile Include="src\Export\export_matching_emme_nodes_for_gtfs_stops.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="src\Export\export_network_shapefile.py" />
+    <Compile Include="src\Export\export_subarea.py" />
     <Compile Include="src\Filter\filter_gtfs_for_service_id_and_routes.py" />
     <Compile Include="src\Generate\generate_hypernetwork_from_schema.py" />
     <Compile Include="src\Generate\generate_time_period_networks.py" />
