@@ -104,8 +104,6 @@ class GTFStoEmmeMap(_m.Tool()):
         self.tool_run_msg = _m.PageBuilder.format_info("Done")
 
     def run_xtmf(self, parameters):
-        # self.file_name = parameters["input_stop_file"]
-        # self.mapping_output_file = parameters["output_mapping_file"]
         try:
             self._execute(parameters)
         except Exception as e:
@@ -184,8 +182,6 @@ class GTFStoEmmeMap(_m.Tool()):
             p = Proj("+proj=utm +ellps=WGS84 +zone=%d +south" % project_zone)
         else:
             p = Proj("+proj=utm +ellps=WGS84 +zone=%d" % project_zone)
-        # stoplons = ()
-        # stoplats = ()
         for stop in stops.keys():
             temp_lons = (float(stops[stop][0]),)
             temp_lats = (float(stops[stop][1]),)
