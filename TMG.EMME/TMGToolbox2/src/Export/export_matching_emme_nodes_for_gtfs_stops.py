@@ -94,7 +94,7 @@ class GTFStoEmmeMap(_m.Tool()):
     def run(self):
         self.tool_run_msg = ""
         self._tracker.reset()
-        parameters = self._build_page_builder_parameters
+        parameters = self._build_page_builder_parameters()
         try:
             self._execute(parameters)
         except Exception as e:
