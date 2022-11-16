@@ -93,18 +93,15 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
     version = "2.0.0"
     tool_run_msg = ""
     number_of_tasks = 8
-
     # Tool Input Parameters
     #    Only those parameters neccessary for Modeller and/or XTMF to dock with
     #    need to be placed here. Internal parameters (such as lists and dicts)
     #    get intitialized during construction (__init__)
-
     scenario = _m.Attribute(_m.InstanceType)
     new_scenario_id = _m.Attribute(str)
     new_scenario_title = _m.Attribute(str)
     max_non_stop_nodes = _m.Attribute(int)
     link_priority_attribute_id = _m.Attribute(str)
-
     gtfs_folder = _m.Attribute(str)
     stop_to_node_file = _m.Attribute(str)
 
@@ -115,7 +112,6 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
     def __init__(self):
         # ---Init internal variables
         self._tracker = _util.progress_tracker(self.number_of_tasks)
-
         # ---Set the defaults of parameters used by Modeller
         self.scenario = _MODELLER.scenario
         self.max_non_stop_nodes = 15
@@ -244,30 +240,15 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         except Exception as e:
             self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
-
         self.tool_run_msg = _m.PageBuilder.format_info("Tool complete.")
 
     ##########################################################################################################
 
     def run_xtmf(self, parameters):
-
-        # self.Scenario = parameters["scenario_id"]
-        # self.max_non_stop_nodes = parameters["max_non_stop_nodes"]
-        # link_priority = parameters["link_priority_attribute"]
-        # self.gtfs_folder = parameters["gtfs_folder"]
-        # self.stop_to_node_file = parameters["stop_to_node_file"]
-        # self.new_scenario_id = parameters["new_scenario_id"]
-        # self.new_scenario_title = parameters["new_scenario_title"]
-        # self.line_service_table_file = parameters["service_table_file"]
-        # self.mapping_file_name = parameters["mapping_file"]
-        # self.publish_flag = parameters["publish_flag"]
-
         try:
             self._execute(parameters)
         except Exception as e:
             raise Exception(_traceback.format_exc())
-
-    ##########################################################################################################
 
     def _execute(self, parameters):
         with _m.logbook_trace(
@@ -280,27 +261,19 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
             network = sc.get_network()
             print("Loaded network")
             self._tracker.complete_task()
-
             stops_to_nodes = self._load_stop_node_map_file(network, parameters["stop_to_node_file"])
-
             trips = self._load_trips(routes, parameters["gtfs_folder"])
-
             self._load_print_stop_times(trips, stops_to_nodes, parameters["gtfs_folder"])
-
             with open(parameters["service_table_file"], "w") as writer:
                 self._generate_lines(routes, stops_to_nodes, network, writer, parameters["mapping_file"], parameters["max_non_stop_nodes"], parameters["link_priority_attribute"], parameters["publish_flag"])
-
             dest = _bank.scenario(str(parameters["new_scenario_id"]))
             if dest is not None:
                 _bank.delete_scenario(dest.id)
-
             if parameters["publish_flag"]:
                 copy = _bank.copy_scenario(sc.id, str(parameters["new_scenario_id"]))
                 copy.title = parameters["new_scenario_title"]
                 copy.publish_network(network, True)
             self._tracker.complete_task()
-
-    ##########################################################################################################
 
     # ----SUB FUNCTIONS---------------------------------------------------------------------------------
 
@@ -318,19 +291,16 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
             routes_path = gtfs_folder + "/routes.txt"
             if not _path.exists(routes_path):
                 raise IOError("Folder does not contain a routes file")
-
         with _util.CSVReader(routes_path) as reader:
             for label in ["emme_id", "emme_vehicle", "route_id", "route_long_name"]:
                 if label not in reader.header:
                     raise IOError("Routes file does not define column '%s'" % label)
-
             use_line_names = False
             if "emme_descr" in reader.header:
                 use_line_names = True
 
             emme_id_set = set()
             routes = {}
-
             for record in reader.readlines():
                 emme_id = record["emme_id"][:5]
                 print(emme_id)
@@ -353,7 +323,6 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         stops_to_nodes = {}
         with open(stop_to_node_file) as reader:
             reader.readline()
-
             for line in reader.readlines():
                 line = line.strip()
                 cells = line.split(",")
@@ -375,7 +344,7 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
             self._tracker.start_process(len(reader))
             direction_given = "direction_id" in reader.header
             for record in reader.readlines():
-                route = routes[record["route_id"]]  # Assume the GTFS feed is well-formatted & contains all routes
+                route = routes[record["route_id"]]
                 if direction_given:
                     direction = record["direction_id"]
                 else:
@@ -388,7 +357,6 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         msg = "%s trips loaded." % len(trips)
         print(msg)
         _m.logbook_write(msg)
-
         return trips
 
     def _load_print_stop_times(self, trips, stops_to_nodes, gtfs_folder):
@@ -400,7 +368,6 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
                     s += "," + reader.header[i]
                 writer.write(s)
                 writer.write(",emme_node")
-
                 self._tracker.start_process(len(reader))
                 for record in reader.readlines():
                     try:
@@ -411,7 +378,6 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
                     stop_id = record["stop_id"]
                     stop_time = StopTime(stop_id, record["departure_time"], record["arrival_time"])
                     trip.stop_times.append((index, stop_time))
-
                     if stop_id in stops_to_nodes:
                         node = stops_to_nodes[stop_id]
                     else:
@@ -458,9 +424,9 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
 
             algo = _editing.AStarLinks(network, link_speed_func=speed)
             algo.max_degrees = max_non_stop_nodes
-            functionBank = self._get_mode_filter_map(network, link_priority_attribute_id)
+            function_bank = self._get_mode_filter_map(network, link_priority_attribute_id)
             self._tracker.start_process(len(routes))
-            lineCount = 0
+            line_count = 0
             print("Starting line itinerary generation")
             for route in routes.values():
                 base_emme_id = route.emme_id
@@ -469,7 +435,7 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
                     raise Exception("Cannot find a vehicle with id=%s" % route.emme_vehicle)
                 if gtfs_mode_map[vehicle.mode.id] != route.route_type:
                     print("Warning: Vehicle mode of route {0} ({1}) does not match suggested route type ({2})".format(route.route_id, vehicle.mode.id, route.route_type))
-                filter = functionBank[vehicle.mode]
+                filter = function_bank[vehicle.mode]
                 algo.link_filter = filter
                 # Collect all trips with the same stop sequence
                 trip_set = self._get_organized_trips(route)
@@ -514,19 +480,16 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
                             seg_stops.append(flag)
                             flag = False
                         previous_node = node
-
                     seg_stops.append(True)  # Last segment should always be a stop.
                     if break_flag:
                         seq_count += 1
                         continue
-
                     # Try to create the line
                     id = base_emme_id + chr(branch_number + 65)
                     if trips[0].direction == "0":
                         id += "a"
                     elif trips[0].direction == "1":
                         id += "b"
-
                     d = ""
                     if route.description:
                         d = "%s %s" % (route.description, chr(branch_number + 65))
@@ -540,9 +503,10 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
                             seg = line.segment(i)
                             seg.allow_alightings = stopFlag
                             seg.allow_boardings = stopFlag
-                            seg.dwell_time = 0.01 * float(stopFlag)  # No dwell time if there is no stop, 0.01 minutes if there is a stop
+                            # No dwell time if there is no stop, 0.01 minutes if there is a stop
+                            seg.dwell_time = 0.01 * float(stopFlag)
                         branch_number += 1
-                        lineCount += 1
+                        line_count += 1
                     except Exception as e:
                         print("Exception for line %s: %s" % (id, e))
                         # routeId, branchNum, error, seq
@@ -550,7 +514,6 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
                         seq_count += 1
                         continue
                     seq_count += 1
-
                     if long_route:
                         lines_to_check.append(
                             (
@@ -558,7 +521,6 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
                                 "Possible express route: more than 5 links in-between one or more stops.",
                             )
                         )
-
                     # Check for looped routes
                     node_set = set(full_itin)
                     for node in node_set:
@@ -566,10 +528,8 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
                         if count > 1:
                             lines_to_check.append((id, "Loop detected. Possible map matching error."))
                             break
-
                     if len(node_itin) < 5:
                         lines_to_check.append((id, "Short route: less than 4 total links in path"))
-
                     # Write to service table
                     for trip in trips:
                         writer.write(
@@ -582,14 +542,11 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
                         )
                         csv_writer.writerow([trip.id, id])
                 print("Added route %s" % route.emme_id)
-
                 self._tracker.complete_subtask()
         self._tracker.complete_task()
-
-        msg = "Done. %s lines were successfully created." % lineCount
+        msg = "Done. %s lines were successfully created." % line_count
         print(msg)
         _m.logbook_write(msg)
-
         _m.logbook_write("Skipped stops report", value=self._write_skipped_stops_report(skipped_stop_ids))
         print("%s stops skipped" % len(skipped_stop_ids))
         _m.logbook_write(
@@ -597,7 +554,6 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
             value=self._write_failed_sequences_report(failed_sequences),
         )
         print("%s sequences failed" % len(failed_sequences))
-
         if publish_flag:
             _m.logbook_write(
                 "Lines to check report",
@@ -609,13 +565,10 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         trip_set = {}
         for trip in route.trips.values():
             trip.stop_times.sort()
-
             seq = [st[1].stop_id for st in trip.stop_times]
-
             seqs = seq[0]
             for i in range(1, len(seq)):
                 seqs += ";" + seq[i]
-
             if seqs in trip_set:
                 trip_set[seqs].append(trip)
             else:
@@ -624,9 +577,7 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
 
     def _get_mode_filter_map(self, network, link_priority_attribute_id):
         map = {}
-
         modes = [mode for mode in network.modes() if mode.type == "TRANSIT"]
-
         for mode in modes:
             if link_priority_attribute_id == "":
                 func = ModeOnlyFilter(mode)
@@ -736,7 +687,6 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
             "publish_flag": self.publish_flag,
             "mapping_file_name": self.mapping_file_name,
         }
-
         return parameters
 
     @_m.method(return_type=_m.TupleType)
@@ -760,7 +710,6 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         for tuple in key_vals.items():
             html = '<option value="%s">%s</option>' % tuple
             options.append(html)
-
         return "\n".join(options)
 
 

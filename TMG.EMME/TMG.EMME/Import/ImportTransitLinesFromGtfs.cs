@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2022 University of Toronto
     This file is part of TMG.EMME for XTMF2.
     TMG.EMME for XTMF2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ namespace TMG.Emme.Import
         [Parameter(DefaultValue = "1", Index = 0, Name = "Base Scenario", Description = "The scenario to execute against")]
         public IFunction<int> BaseScenario;
 
-        [Parameter(DefaultValue = "15", Index = 1, Name = "Maximum Interstop Links", 
+        [Parameter(DefaultValue = "15", Index = 1, Name = "Maximum Interstop Links",
             Description = "Lines requiring links more than the maximum will not be added.")]
         public IFunction<int> MaxNonStopNodes;
 

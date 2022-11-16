@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2022 University of Toronto
     This file is part of TMG.EMME for XTMF2.
     TMG.EMME for XTMF2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -55,9 +55,9 @@ namespace TMG.Emme.Test.Import
                 GtfsFolder = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS"), "GTFS Folder Names"),
                 StopToNodeFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS/stop_to_node.csv"), "Stop-to-node File"),
                 NewScenarioId = Helper.CreateParameter(2, "New Scenario ID"),
-                NewScenarioTitle = Helper.CreateParameter("Test Transit Network","New Scenario Title"),
-                LineServiceTableFile = Helper.CreateParameter("ServiceTable","Service Table Output File"),
-                MappingFileName = Helper.CreateParameter("mapping","Mapping File"),
+                NewScenarioTitle = Helper.CreateParameter("Test Transit Network", "New Scenario Title"),
+                LineServiceTableFile = Helper.CreateParameter("ServiceTable", "Service Table Output File"),
+                MappingFileName = Helper.CreateParameter("mapping", "Mapping File"),
                 PublishFlag = Helper.CreateParameter(true, "Publish Network"),
             };
             module.Invoke(Helper.Modeller);
