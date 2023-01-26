@@ -108,10 +108,6 @@ class AssignTrafficSTTA(_m.Tool()):
                         self._create_volume_attribute(scenario, time_dependent_volume_attribute_list)
                     time_dependent_component_attribute_list = self._create_time_dependent_attribute_list(parameters["link_component_attribute"], parameters["interval_lengths"], parameters["start_index"])
                     transit_attribute_list = self._create_transit_traffic_attribute_list(scenario, time_dependent_component_attribute_list, temp_attribute_list)
-                    print(transit_attribute_list)
-                    print(time_matrix_list)
-                    print(cost_matrix_list)
-                    print(demand_matrix_list)
 
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
@@ -147,15 +143,13 @@ class AssignTrafficSTTA(_m.Tool()):
             matrix_indices_used_list.append(input_matrix_number + i)
         all_matrices_dict[input_matrix_name] = input_matrix_list
         #    add output matrix list
-        l = 0
-        while l < len(output_matrix_name_list):
+        for l in range(0, len(output_matrix_name_list)):
             output_matrix_list = []
             for j, k in enumerate(interval_lengths_list):
                 new_index = max(matrix_indices_used_list) + 1 + j
                 output_matrix_list.append("mf" + str(new_index))
                 matrix_indices_used_list.append(new_index)
             all_matrices_dict[output_matrix_name_list[l][0]] = output_matrix_list
-            l += 1
         return all_matrices_dict
 
     def _load_input_matrices(self, all_matrices_dict, input_matrix_name):
@@ -287,23 +281,17 @@ class AssignTrafficSTTA(_m.Tool()):
         return temp_transit_attrib, transit_attrib_id
 
     def _process_traffic_attribute(self, scenario, prefix, attribute_type, default_value):
+        def check_start_attribute(traffic_attrib_id):
+            if traffic_attrib_id.startswith("@") == False:
+                traffic_attrib_id = "@%s" % (traffic_attrib_id)
+            return traffic_attrib_id
+
         if prefix != "@tvph" and prefix != "tvph":
-            while True:
-                if prefix.startswith("@"):
-                    traffic_attrib_id = "%s" % (prefix)
-                else:
-                    traffic_attrib_id = "@%s" % (prefix)
-
-                if scenario.extra_attribute(traffic_attrib_id) is None:
-                    temp_traffic_attrib = scenario.create_extra_attribute(attribute_type, traffic_attrib_id, default_value)
-                    break
+            traffic_attrib_id = check_start_attribute(prefix)
+            if scenario.extra_attribute(traffic_attrib_id) is None:
+                temp_traffic_attrib = scenario.create_extra_attribute(attribute_type, traffic_attrib_id, default_value)
         else:
-            traffic_attrib_id = prefix
-            if prefix.startswith("@"):
-                traffic_attrib_id = "%s" % (prefix)
-            else:
-                traffic_attrib_id = "@%s" % (prefix)
-
+            traffic_attrib_id = check_start_attribute(prefix)
             if scenario.extra_attribute(traffic_attrib_id) is None:
                 temp_traffic_attrib = scenario.create_extra_attribute(attribute_type, traffic_attrib_id, default_value)
                 _m.logbook_write("Created extra attribute '@tvph'")
