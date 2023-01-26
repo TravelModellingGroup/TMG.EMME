@@ -30,7 +30,7 @@ _m.ListType = list
 _m.TupleType = object
 
 _trace = _m.logbook_trace
-_MODELLER = _m.Modeller()  # Instantiate Modeller once.
+_MODELLER = _m.Modeller()
 _bank = _MODELLER.emmebank
 _write = _m.logbook_write
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
@@ -75,9 +75,6 @@ class AssignTrafficSTTA(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def _execute(self, scenario, parameters):
-        # #   delete all existing matrix in the database to run space-time traffic assignment tool
-        # for matrix in _bank.matrices():
-        #     _bank.delete_matrix(matrix.id)
         """
         matrix_indices_used_list keeps track of all the matrices already created/used
         """
