@@ -118,7 +118,6 @@ class AssignTrafficSTTA(_m.Tool()):
 
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
-        # peak_hr_factors = [str(phf["peak_hour_factor"]) for phf in traffic_classes]
         link_costs = [str(lc["link_cost"]) for lc in traffic_classes]
         atts = {"Run Title": run_title, "Scenario": str(scenario.id), "Times Matrix": str(", ".join(time_matrix_ids)), "Link Cost": str(", ".join(link_costs)), "Iterations": str(iterations), "self": modeller_namespace}
         return atts
@@ -155,12 +154,9 @@ class AssignTrafficSTTA(_m.Tool()):
         while l < len(output_matrix_name_list):
             output_matrix_list = []
             for j, k in enumerate(interval_lengths_list):
-                # if output_matrix_name_list[l][1] != 0:
                 new_index = max(matrix_indices_used_list) + 1 + j
                 output_matrix_list.append("mf" + str(new_index))
                 matrix_indices_used_list.append(new_index)
-                # else:
-                #     output_matrix_list.append("mf0")
             all_matrices_dict[output_matrix_name_list[l][0]] = output_matrix_list
             l += 1
         return all_matrices_dict
@@ -296,7 +292,6 @@ class AssignTrafficSTTA(_m.Tool()):
     def _process_traffic_attribute(self, scenario, prefix, attribute_type, default_value):
         if prefix != "@tvph" and prefix != "tvph":
             while True:
-                # suffix = random.randint(1, 999999)
                 if prefix.startswith("@"):
                     traffic_attrib_id = "%s" % (prefix)
                 else:

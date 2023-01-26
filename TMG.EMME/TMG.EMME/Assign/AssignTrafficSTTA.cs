@@ -133,10 +133,6 @@ namespace TMG.Emme.Assign
                 Index = 5)]
             public IFunction<int> AttributeStartIndex;
 
-            // [Parameter(Name = "Time Dependent Start Index for Matrix", DefaultValue = "1", Description = "Time Dependent Start Indices used to create the alphanumerical matrix name string for matrices in this class. e.g. if 1 is specified, then mf10, mf11 etc are created depending on the number of time period intervals).",
-            //     Index = 5)]
-            // public IFunction<int> MatrixStartIndex;
-
             [Parameter(Name = "Link Cost", DefaultValue = "0", Description = "The penalty in minutes per dollar to apply when traversing a link.",
                 Index = 8)]
             public IFunction<float> LinkCost;
@@ -162,7 +158,6 @@ namespace TMG.Emme.Assign
                 writer.WriteString("od_fixed_cost", ODFixedCost.Invoke());
                 writer.WriteString("volume_attribute", VolumeAttribute.Invoke());
                 writer.WriteNumber("attribute_start_index", AttributeStartIndex.Invoke());
-                // writer.WriteNumber("matrix_start_index", MatrixStartIndex.Invoke());
                 writer.WriteNumber("link_cost", LinkCost.Invoke());
                 writer.WriteStartArray("path_analyses");
                 foreach (var pathAnalysis in PathAnalyses)
@@ -193,7 +188,6 @@ namespace TMG.Emme.Assign
             public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
             {
                 writer.WriteStartObject();
-                // writer.WriteString("attribute_id", AttributeId.Invoke());
                 writer.WriteEndObject();
             }
         }
