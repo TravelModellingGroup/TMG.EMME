@@ -108,6 +108,10 @@ class AssignTrafficSTTA(_m.Tool()):
                         self._create_volume_attribute(scenario, time_dependent_volume_attribute_list)
                     time_dependent_component_attribute_list = self._create_time_dependent_attribute_list(parameters["link_component_attribute"], parameters["interval_lengths"], parameters["start_index"])
                     transit_attribute_list = self._create_transit_traffic_attribute_list(scenario, time_dependent_component_attribute_list, temp_attribute_list)
+                    print(transit_attribute_list)
+                    print(time_matrix_list)
+                    print(cost_matrix_list)
+                    print(demand_matrix_list)
 
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
@@ -280,24 +284,17 @@ class AssignTrafficSTTA(_m.Tool()):
             temp_transit_attrib.initialize(default_value)
         return temp_transit_attrib, transit_attrib_id
 
-    def _process_traffic_attribute(self, scenario, prefix, attribute_type, default_value):
-        def check_start_attribute(traffic_attrib_id):
-            if traffic_attrib_id.startswith("@") == False:
-                traffic_attrib_id = "@%s" % (traffic_attrib_id)
-            return traffic_attrib_id
-
-        if prefix != "@tvph" and prefix != "tvph":
-            traffic_attrib_id = check_start_attribute(prefix)
-            if scenario.extra_attribute(traffic_attrib_id) is None:
-                temp_traffic_attrib = scenario.create_extra_attribute(attribute_type, traffic_attrib_id, default_value)
+    def _process_traffic_attribute(self, scenario, traffic_attrib_id, attribute_type, default_value):
+        if not traffic_attrib_id.startswith("@"):
+            traffic_attrib_id = "@%s" % (traffic_attrib_id)
+        if scenario.extra_attribute(traffic_attrib_id) is None:
+            temp_traffic_attrib = scenario.create_extra_attribute(attribute_type, traffic_attrib_id, default_value)
+            _m.logbook_write(
+                "Created extra attribute '%s'",
+            )
         else:
-            traffic_attrib_id = check_start_attribute(prefix)
-            if scenario.extra_attribute(traffic_attrib_id) is None:
-                temp_traffic_attrib = scenario.create_extra_attribute(attribute_type, traffic_attrib_id, default_value)
-                _m.logbook_write("Created extra attribute '@tvph'")
-            else:
-                temp_traffic_attrib = scenario.extra_attribute(traffic_attrib_id)
-                temp_traffic_attrib.initialize(0)
+            temp_traffic_attrib = scenario.extra_attribute(temp_traffic_attrib)
+            temp_traffic_attrib.initialize(0)
         return temp_traffic_attrib, traffic_attrib_id
 
     @_m.method(return_type=_m.TupleType)
