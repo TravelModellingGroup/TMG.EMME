@@ -2,7 +2,7 @@
 """
     Copyright 2023 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
-    This file is part of the TMG Toolbox for EMME2.
+    This file is part of TMG.EMME for XTMF2.
 
     The TMG Toolbox is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

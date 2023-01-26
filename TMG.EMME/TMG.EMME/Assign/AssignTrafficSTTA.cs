@@ -90,8 +90,8 @@ namespace TMG.Emme.Assign
             Index = 12)]
         public IFunction<string> RunTitle;
 
-        [Parameter(Name = "Mixed Used TTF Ranged", DefaultValue = "3-128", Description = "The TTFs where transit vehicles will occupy some capacity on links. The ranges are inclusive.",
-            Index = 13)]
+        [Parameter(Name = "Mixed Used TTF Ranged", DefaultValue = "3-128", Description = "The TTFs where transit vehicles will occupy"
+            + " some capacity on links. The ranges are inclusive.", Index = 13)]
         public IFunction<RangeSet> MixedUseTTFRanges;
 
         [SubModule(Name = "Traffic Classes", Description = "", Index = 14)]
@@ -121,15 +121,19 @@ namespace TMG.Emme.Assign
                 Index = 4)]
             public IFunction<string> ODFixedCost;
 
-            [Parameter(Name = "Peak Hour Factor", DefaultValue = "1", Description = "A factor to apply to the demand in order to build a representative hour.",
-            Index = 4)]
+            [Parameter(Name = "Peak Hour Factor", DefaultValue = "1", Description = "A factor to apply to the demand in order to build"
+                + "a representative hour.",
+                Index = 4)]
             public IFunction<float> PeakHourFactor;
 
-            [Parameter(Name = "Volume Attribute", DefaultValue = " @auto_volume", Description = "The name of the attribute to save the volumes into (or None for no saving).",
+            [Parameter(Name = "Volume Attribute", DefaultValue = " @auto_volume", Description = "The name of the attribute to save the volumes into"
+                + "(or None for no saving).",
                 Index = 5)]
             public IFunction<string> VolumeAttribute;
 
-            [Parameter(Name = "Time Dependent Start Index for Attributes in this Class", DefaultValue = "1", Description = "Time Dependent Start Indices used to create the alphanumerical attribute name string for attributes in this class. e.g. if 1 is specified, then @auto_volume1, @auto_volume2 etc are created depending on the number of time period intervals).",
+            [Parameter(Name = "Time Dependent Start Index for Attributes in this Class", DefaultValue = "1", Description = "Time Dependent Start Indices used to create "
+                + "the alphanumerical attribute name string for attributes in this class. e.g. if 1 is specified, "
+                + "then @auto_volume1, @auto_volume2 etc are created depending on the number of time period intervals).",
                 Index = 5)]
             public IFunction<int> AttributeStartIndex;
 
