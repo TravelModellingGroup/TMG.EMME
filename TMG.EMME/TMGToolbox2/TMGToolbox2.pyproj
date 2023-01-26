@@ -33,6 +33,7 @@
     <Compile Include="build_toolbox.py" />
     <Compile Include="src\Assign\assign_boarding_penalty.py" />
     <Compile Include="src\Assign\assign_traffic.py" />
+    <Compile Include="src\Assign\assign_traffic_stta.py" />
     <Compile Include="src\Assign\assign_transit.py" />
     <Compile Include="src\Calculate\calculate_network_attribute.py" />
     <Compile Include="src\Convert\convert_between_ncs_scenarios.py" />
