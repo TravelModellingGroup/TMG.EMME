@@ -108,10 +108,6 @@ class AssignTrafficSTTA(_m.Tool()):
                         self._create_volume_attribute(scenario, time_dependent_volume_attribute_list)
                     time_dependent_component_attribute_list = self._create_time_dependent_attribute_list(parameters["link_component_attribute"], parameters["interval_lengths"], parameters["start_index"])
                     transit_attribute_list = self._create_transit_traffic_attribute_list(scenario, time_dependent_component_attribute_list, temp_attribute_list)
-                    print(transit_attribute_list)
-                    print(time_matrix_list)
-                    print(cost_matrix_list)
-                    print(demand_matrix_list)
 
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
