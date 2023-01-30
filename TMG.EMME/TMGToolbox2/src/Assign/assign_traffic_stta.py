@@ -131,7 +131,7 @@ class AssignTrafficSTTA(_m.Tool()):
         input matrix ends starts from mf1 to mf4 all other matrices begin from mf5 and so on.
         """
         all_matrix_dict = {}
-        # a dd all matrix names to be created to dict
+        # add all matrix names to be created to dict
         all_matrix_dict[input_matrix_name] = ""
         for i in range(0, len(output_matrix_name_list)):
             all_matrix_dict[output_matrix_name_list[i][0]] = ""
