@@ -221,16 +221,11 @@ class AssignTrafficSTTA(_m.Tool()):
     def _create_volume_attribute(self, scenario, volume_attribute_list):
         for volume_attribute in volume_attribute_list:
             volume_attribute_at = scenario.extra_attribute(volume_attribute)
-            if volume_attribute_at is None:
-                scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
-            elif volume_attribute_at.type != "LINK":
-                raise Exception("Volume Attribute '%s' is not a link type attribute" % volume_attribute)
-            elif volume_attribute is not None:
-                _write("Deleting Previous Extra Attributes.")
+            if volume_attribute_at is not None:
+                if volume_attribute_at.type != "LINK":
+                    raise Exception("Volume Attribute '%s' is not a link type attribute" % volume_attribute)
                 scenario.delete_extra_attribute(volume_attribute_at)
-                scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
-            else:
-                scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
+            scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
 
     def _create_transit_traffic_attribute_list(self, scenario, link_component_attribute_list, temp_attribute_list):
         transit_traffic_attribute_list = []
