@@ -99,8 +99,8 @@ class AssignTrafficSTTA(_m.Tool()):
             self._tracker.reset()
             with _util.temporary_matrix_manager() as temp_matrix_list:
                 demand_matrix_list = self._init_input_matrices(load_input_matrix_list, temp_matrix_list)
-                cost_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_indices_used_list, matrix_name="cost_matrix", description="")
-                time_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_indices_used_list, matrix_name="time_matrix", description="")
+                cost_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_name="cost_matrix", description="")
+                time_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_name="time_matrix", description="")
                 with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
                     for tc in parameters["traffic_classes"]:
                         time_dependent_volume_attribute_list = self._create_time_dependent_attribute_list(tc["volume_attribute"], parameters["interval_lengths"], tc["attribute_start_index"])
