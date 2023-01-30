@@ -145,14 +145,16 @@ class AssignTrafficSTTA(_m.Tool()):
                 matrix_indices_used_list.append(input_matrix_number + i)
         all_matrix_dict[input_matrix_name] = input_matrix_list
         for output_matrix in output_matrix_name_list:
+            matrix_name = output_matrix[0]
+            matrix_number = output_matrix[1]
             output_matrix_list = []
             for j in range(0, len(interval_lengths_list)):
-                if output_matrix[1] == 0:
+                if matrix_number == 0:
                     output_matrix_list.append("mf0")
                 else:
                     output_matrix_list.append("mf" + str(output_matrix[1] + j))
-                    matrix_indices_used_list.append(output_matrix[1] + j)
-            all_matrix_dict[output_matrix[0]] = output_matrix_list
+                    matrix_indices_used_list.append(matrix_number + j)
+            all_matrix_dict[matrix_name] = output_matrix_list
         return all_matrix_dict
 
     def _load_input_matrices(self, all_matrix_dict, input_matrix_name):
@@ -161,31 +163,25 @@ class AssignTrafficSTTA(_m.Tool()):
         E.g of matrix_name: "demand_matrix", matrix_id: "mf2"
         """
 
-        def _get_or_create(matrix_id):
-            mtx = _bank.matrix(matrix_id)
-            if mtx is None:
-                mtx = _bank.create_matrix(matrix_id, default_value=0)
-            return mtx
-
         def exception(mtx_id):
             raise Exception("Matrix %s was not found!" % mtx_id)
 
-        input_matrix_list = [_bank.matrix(mtx) if mtx == "mf0" or _get_or_create(mtx).id == mtx else exception(mtx) for mtx in all_matrix_dict[input_matrix_name]]
+        input_matrix_list = [_bank.matrix(mtx) if mtx == "mf0" or self._get_or_create(mtx).id == mtx else exception(mtx) for mtx in all_matrix_dict[input_matrix_name]]
 
         return input_matrix_list
 
     def _load_output_matrices(self, all_matrix_dict, matrix_name_list):
-        def _get_or_create(matrix_number):
-            mtx = _bank.matrix(matrix_number)
-            if mtx is None:
-                mtx = _bank.create_matrix("mf" + str(matrix_number), default_value=0)
-            return mtx
-
         output_matrix_dict = {}
         for matrix_name in matrix_name_list:
-            matrix = [None if matrix_number == "mf0" else _get_or_create(matrix_number) for matrix_number in all_matrix_dict[matrix_name]]
+            matrix = [None if matrix_number == "mf0" else self._get_or_create(matrix_number) for matrix_number in all_matrix_dict[matrix_name]]
             output_matrix_dict[matrix_name] = matrix
         return output_matrix_dict
+
+    def _get_or_create(self, matrix_id):
+        mtx = _bank.matrix(matrix_id)
+        if mtx is None:
+            mtx = _bank.create_matrix(matrix_id, default_value=0)
+        return mtx
 
     def _init_input_matrices(self, load_input_matrix_list, temp_matrix_list):
         """
