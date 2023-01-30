@@ -193,10 +193,8 @@ class AssignTrafficSTTA(_m.Tool()):
         for mtx in load_input_matrix_list:
             if mtx == None:
                 mtx = _util.initialize_matrix(matrix_type="FULL")
-                input_matrix_list.append(_bank.matrix(mtx.id))
                 temp_matrix_list.append(mtx)
-            else:
-                input_matrix_list.append(mtx)
+            input_matrix_list.append(mtx)
         return input_matrix_list
 
     def _init_output_matrices(self, load_output_matrix_dict, temp_matrix_list, matrix_name="", description=""):
@@ -214,10 +212,8 @@ class AssignTrafficSTTA(_m.Tool()):
                         name=matrix_name,
                         description=description if description != "" else desc,
                     )
-                    output_matrix_list.append(matrix)
                     temp_matrix_list.append(matrix)
-                else:
-                    output_matrix_list.append(mtx)
+                output_matrix_list.append(mtx)
         else:
             raise Exception('Output matrix name "%s" provided does not exist', matrix_name)
         return output_matrix_list
