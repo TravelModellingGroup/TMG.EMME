@@ -88,10 +88,13 @@ class AssignTrafficSTTA(_m.Tool()):
                 "demand_matrix",
                 [("cost_matrix", tc["cost_matrix_number"]), ("time_matrix", tc["time_matrix_number"])],
             )
+        print(all_matrix_dict)
         #   load all time dependent output matrices
         load_input_matrix_list = self._load_input_matrices(all_matrix_dict, "demand_matrix")
         load_output_matrix_dict = self._load_output_matrices(all_matrix_dict, ["cost_matrix", "time_matrix"])
-        #   create list of time dependent input attribute
+        print("loaded input matrix: ", load_input_matrix_list)
+        print("loaded output matrix: ", load_output_matrix_dict)
+        # #   create list of time dependent input attribute
         with _trace(
             name="%s (%s v%s)" % (parameters["run_title"], self.__class__.__name__, self.version),
             attributes=self._load_atts(scenario, parameters["run_title"], parameters["iterations"], parameters["traffic_classes"], self.__MODELLER_NAMESPACE__),
@@ -99,15 +102,21 @@ class AssignTrafficSTTA(_m.Tool()):
             self._tracker.reset()
             with _util.temporary_matrix_manager() as temp_matrix_list:
                 demand_matrix_list = self._init_input_matrices(load_input_matrix_list, temp_matrix_list)
-                cost_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_name="cost_matrix", description="")
-                time_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_name="time_matrix", description="")
-
+                print(demand_matrix_list)
+                print(matrix_indices_used_list)
+                cost_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_indices_used_list, matrix_name="cost_matrix", description="")
+                time_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_indices_used_list, matrix_name="time_matrix", description="")
+                print("cost matrix list: ", cost_matrix_list)
+                print("time_matrix_list:", time_matrix_list)
                 with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
                     for tc in parameters["traffic_classes"]:
                         time_dependent_volume_attribute_list = self._create_time_dependent_attribute_list(tc["volume_attribute"], parameters["interval_lengths"], tc["attribute_start_index"])
+                        print(time_dependent_volume_attribute_list)
                         self._create_volume_attribute(scenario, time_dependent_volume_attribute_list)
                     time_dependent_component_attribute_list = self._create_time_dependent_attribute_list(parameters["link_component_attribute"], parameters["interval_lengths"], parameters["start_index"])
+                    print(time_dependent_component_attribute_list)
                     transit_attribute_list = self._create_transit_traffic_attribute_list(scenario, time_dependent_component_attribute_list, temp_attribute_list)
+                    print(transit_attribute_list)
 
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
@@ -139,17 +148,21 @@ class AssignTrafficSTTA(_m.Tool()):
         #   add input matrix list
         input_matrix_list = []
         for i, j in enumerate(interval_lengths_list):
-            input_matrix_list.append("mf" + str(input_matrix_number + i))
-            matrix_indices_used_list.append(input_matrix_number + i)
+            if input_matrix_number == 0:
+                input_matrix_list.append("mf0")
+            else:
+                input_matrix_list.append("mf" + str(input_matrix_number + i))
+                matrix_indices_used_list.append(input_matrix_number + i)
         all_matrix_dict[input_matrix_name] = input_matrix_list
-        #    add output matrix list
-        for l in range(0, len(output_matrix_name_list)):
+        for output_matrix in output_matrix_name_list:
             output_matrix_list = []
-            for j, k in enumerate(interval_lengths_list):
-                new_index = max(matrix_indices_used_list) + 1 + j
-                output_matrix_list.append("mf" + str(new_index))
-                matrix_indices_used_list.append(new_index)
-            all_matrix_dict[output_matrix_name_list[l][0]] = output_matrix_list
+            for j in range(0, len(interval_lengths_list)):
+                if output_matrix[1] == 0:
+                    output_matrix_list.append("mf0")
+                else:
+                    output_matrix_list.append("mf" + str(output_matrix[1] + j))
+                    matrix_indices_used_list.append(output_matrix[1] + j)
+            all_matrix_dict[output_matrix[0]] = output_matrix_list
         return all_matrix_dict
 
     def _load_input_matrices(self, all_matrix_dict, input_matrix_name):
@@ -158,16 +171,29 @@ class AssignTrafficSTTA(_m.Tool()):
         E.g of matrix_name: "demand_matrix", matrix_id: "mf2"
         """
 
+        def _get_or_create(matrix_id):
+            mtx = _bank.matrix(matrix_id)
+            if mtx is None:
+                mtx = _bank.create_matrix(matrix_id, default_value=0)
+            return mtx
+
         def exception(mtx_id):
             raise Exception("Matrix %s was not found!" % mtx_id)
 
-        input_matrix_list = [_bank.matrix(mtx) if mtx == "mf0" or _bank.matrix(mtx).id == mtx else exception(mtx) for mtx in all_matrix_dict[input_matrix_name]]
+        input_matrix_list = [_bank.matrix(mtx) if mtx == "mf0" or _get_or_create(mtx).id == mtx else exception(mtx) for mtx in all_matrix_dict[input_matrix_name]]
+
         return input_matrix_list
 
     def _load_output_matrices(self, all_matrix_dict, matrix_name_list):
+        def _get_or_create(matrix_number):
+            mtx = _bank.matrix(matrix_number)
+            if mtx is None:
+                mtx = _bank.create_matrix("mf" + str(matrix_number), default_value=0)
+            return mtx
+
         output_matrix_dict = {}
         for matrix_name in matrix_name_list:
-            matrix = [None if matrix_number == "mf0" else _bank.matrix(matrix_number) for matrix_number in all_matrix_dict[matrix_name]]
+            matrix = [None if matrix_number == "mf0" else _get_or_create(matrix_number) for matrix_number in all_matrix_dict[matrix_name]]
             output_matrix_dict[matrix_name] = matrix
         return output_matrix_dict
 

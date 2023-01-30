@@ -73,8 +73,8 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteStartObject();
                     writer.WriteString("name", "traffic class 1");
                     writer.WriteString("mode", "c");
-                    writer.WriteNumber("demand_matrix_number", 1);
-                    writer.WriteNumber("time_matrix_number", 5000);
+                    writer.WriteNumber("demand_matrix_number", 1000);
+                    writer.WriteNumber("time_matrix_number", 10);
                     writer.WriteNumber("cost_matrix_number", 0);
                     writer.WriteString("volume_attribute", "@auto_volume");
                     writer.WriteNumber("attribute_start_index", 1);
