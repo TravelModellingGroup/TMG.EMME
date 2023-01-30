@@ -88,12 +88,9 @@ class AssignTrafficSTTA(_m.Tool()):
                 "demand_matrix",
                 [("cost_matrix", tc["cost_matrix_number"]), ("time_matrix", tc["time_matrix_number"])],
             )
-        print(all_matrix_dict)
         #   load all time dependent output matrices
         load_input_matrix_list = self._load_input_matrices(all_matrix_dict, "demand_matrix")
         load_output_matrix_dict = self._load_output_matrices(all_matrix_dict, ["cost_matrix", "time_matrix"])
-        print("loaded input matrix: ", load_input_matrix_list)
-        print("loaded output matrix: ", load_output_matrix_dict)
         # #   create list of time dependent input attribute
         with _trace(
             name="%s (%s v%s)" % (parameters["run_title"], self.__class__.__name__, self.version),
@@ -102,21 +99,14 @@ class AssignTrafficSTTA(_m.Tool()):
             self._tracker.reset()
             with _util.temporary_matrix_manager() as temp_matrix_list:
                 demand_matrix_list = self._init_input_matrices(load_input_matrix_list, temp_matrix_list)
-                print(demand_matrix_list)
-                print(matrix_indices_used_list)
                 cost_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_indices_used_list, matrix_name="cost_matrix", description="")
                 time_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_indices_used_list, matrix_name="time_matrix", description="")
-                print("cost matrix list: ", cost_matrix_list)
-                print("time_matrix_list:", time_matrix_list)
                 with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
                     for tc in parameters["traffic_classes"]:
                         time_dependent_volume_attribute_list = self._create_time_dependent_attribute_list(tc["volume_attribute"], parameters["interval_lengths"], tc["attribute_start_index"])
-                        print(time_dependent_volume_attribute_list)
                         self._create_volume_attribute(scenario, time_dependent_volume_attribute_list)
                     time_dependent_component_attribute_list = self._create_time_dependent_attribute_list(parameters["link_component_attribute"], parameters["interval_lengths"], parameters["start_index"])
-                    print(time_dependent_component_attribute_list)
                     transit_attribute_list = self._create_transit_traffic_attribute_list(scenario, time_dependent_component_attribute_list, temp_attribute_list)
-                    print(transit_attribute_list)
 
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
