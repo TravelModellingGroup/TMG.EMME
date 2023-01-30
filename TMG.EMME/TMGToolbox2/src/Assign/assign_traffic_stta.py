@@ -270,7 +270,7 @@ class AssignTrafficSTTA(_m.Tool()):
         if not transit_attrib_id.startswith("@"):
             transit_attrib_id = "@" + transit_attrib_id
         checked_extra_attribute = scenario.extra_attribute(transit_attrib_id)
-        if checked_extra_attribute == None:
+        if checked_extra_attribute is None:
             temp_transit_attrib = scenario.create_extra_attribute(attribute_type, transit_attrib_id, default_value)
         elif checked_extra_attribute != None and checked_extra_attribute.type != attribute_type:
             raise Exception("Attribute %s already exist or has some issues!" % transit_attrib_id)
