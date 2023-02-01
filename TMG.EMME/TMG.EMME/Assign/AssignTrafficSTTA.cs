@@ -176,19 +176,18 @@ namespace TMG.Emme.Assign
                 writer.WriteNumber("time_matrix_number", TimeMatrixNumber.Invoke());
                 writer.WriteNumber("cost_matrix_number", CostMatrixNumber.Invoke());
                 writer.WriteNumber("toll_matrix_number", TollMatrixNumber.Invoke());
-                // writer.WriteNumber("toll_weight", TollWeight.Invoke());
                 writer.WriteString("od_fixed_cost", ODFixedCost.Invoke());
                 writer.WriteString("volume_attribute", VolumeAttribute.Invoke());
                 writer.WriteNumber("attribute_start_index", AttributeStartIndex.Invoke());
                 writer.WriteNumber("link_cost", LinkCost.Invoke());
                 writer.WriteString("link_toll_attribute", LinkTollAttribute.Invoke());
-                writer.WriteStartArray("path_analyses");
                 writer.WriteStartArray();
                 foreach (var toll_weight in TollWeights.Invoke())
                 {
                     writer.WriteNumberValue(toll_weight);
                 }
                 writer.WriteEndArray();
+                writer.WriteStartArray("path_analyses");
                 foreach (var pathAnalysis in PathAnalyses)
                 {
                     pathAnalysis.Invoke().WriteParameters(writer);
