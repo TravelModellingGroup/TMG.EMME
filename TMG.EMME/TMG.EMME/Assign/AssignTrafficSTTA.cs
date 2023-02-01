@@ -181,12 +181,14 @@ namespace TMG.Emme.Assign
                 writer.WriteNumber("attribute_start_index", AttributeStartIndex.Invoke());
                 writer.WriteNumber("link_cost", LinkCost.Invoke());
                 writer.WriteString("link_toll_attribute", LinkTollAttribute.Invoke());
-                writer.WriteStartArray();
+                writer.WriteStartArray("toll_weights");
                 foreach (var toll_weight in TollWeights.Invoke())
                 {
                     writer.WriteNumberValue(toll_weight);
                 }
                 writer.WriteEndArray();
+                writer.WritePropertyName("interval_length_list");
+
                 writer.WriteStartArray("path_analyses");
                 foreach (var pathAnalysis in PathAnalyses)
                 {
@@ -225,7 +227,7 @@ namespace TMG.Emme.Assign
             context.Run(this, "tmg2.Assign.assign_traffic_stta", JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-                writer.WritePropertyName("interval_length_list");
+
                 writer.WriteString("start_time", StartTime.Invoke());
                 writer.WriteNumber("extra_time_interval", ExtraTimeInterval.Invoke());
                 writer.WriteNumber("number_of_extra_time_intervals", NumberOfExtraTimeIntervals.Invoke());
@@ -239,6 +241,13 @@ namespace TMG.Emme.Assign
                 writer.WriteNumber("norm_gap", normGap.Invoke());
                 writer.WriteBoolean("performance_flag", PerformanceFlag.Invoke());
                 writer.WriteString("run_title", RunTitle.Invoke());
+                writer.WritePropertyName("interval_length_list");
+                writer.WriteStartArray();
+                foreach (var interval in IntervalLengths.Invoke())
+                {
+                    writer.WriteNumberValue(interval);
+                }
+                writer.WriteEndArray();
                 writer.WritePropertyName("mixed_use_ttf_ranges");
                 writer.WriteStartArray();
                 foreach (var range in MixedUseTTFRanges.Invoke())
@@ -249,12 +258,7 @@ namespace TMG.Emme.Assign
                     writer.WriteEndObject();
                 }
                 writer.WriteEndArray();
-                writer.WriteStartArray();
-                foreach (var interval in IntervalLengths.Invoke())
-                {
-                    writer.WriteNumberValue(interval);
-                }
-                writer.WriteEndArray();
+
 
                 writer.WriteStartArray("traffic_classes");
                 foreach (var trafficClass in TrafficClasses)
