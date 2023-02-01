@@ -117,9 +117,25 @@ namespace TMG.Emme.Assign
                 Index = 3)]
             public IFunction<int> CostMatrixNumber;
 
+            [Parameter(Name = "Toll Matrix Number", DefaultValue = "0", Description = "The matrix to save the toll costs into.",
+                Index = 4)]
+            public IFunction<int> TollMatrixNumber;
+
+            [Parameter(Name = "Toll Weight", DefaultValue = "0", Description = "The toll weight",
+               Index = 7)]
+            public IFunction<float> TollWeight;
+
+            [Parameter(Name = "Toll Weights", DefaultValue = "true", Description = "The toll weight",
+            Index = 1)]
+            public IFunction<float[]> TollWeights;
+
             [Parameter(Name = "OD Fixed Cost", DefaultValue = "0", Description = "",
                 Index = 4)]
             public IFunction<string> ODFixedCost;
+
+            [Parameter(Name = "Toll Attribute", DefaultValue = " @toll", Description = "The attribute containing the road tolls for this class of vehicle.",
+                Index = 6)]
+            public IFunction<string> LinkTollAttribute;
 
             [Parameter(Name = "Peak Hour Factor", DefaultValue = "1", Description = "A factor to apply to the demand in order to build"
                 + "a representative hour.",
@@ -159,11 +175,20 @@ namespace TMG.Emme.Assign
                 writer.WriteNumber("demand_matrix_number", DemandMatrixNumber.Invoke());
                 writer.WriteNumber("time_matrix_number", TimeMatrixNumber.Invoke());
                 writer.WriteNumber("cost_matrix_number", CostMatrixNumber.Invoke());
+                writer.WriteNumber("toll_matrix_number", TollMatrixNumber.Invoke());
+                // writer.WriteNumber("toll_weight", TollWeight.Invoke());
                 writer.WriteString("od_fixed_cost", ODFixedCost.Invoke());
                 writer.WriteString("volume_attribute", VolumeAttribute.Invoke());
                 writer.WriteNumber("attribute_start_index", AttributeStartIndex.Invoke());
                 writer.WriteNumber("link_cost", LinkCost.Invoke());
+                writer.WriteString("link_toll_attribute", LinkTollAttribute.Invoke());
                 writer.WriteStartArray("path_analyses");
+                writer.WriteStartArray();
+                foreach (var toll_weight in TollWeights.Invoke())
+                {
+                    writer.WriteNumberValue(toll_weight);
+                }
+                writer.WriteEndArray();
                 foreach (var pathAnalysis in PathAnalyses)
                 {
                     pathAnalysis.Invoke().WriteParameters(writer);
@@ -201,7 +226,7 @@ namespace TMG.Emme.Assign
             context.Run(this, "tmg2.Assign.assign_traffic_stta", JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-                writer.WritePropertyName("interval_lengths");
+                writer.WritePropertyName("interval_length_list");
                 writer.WriteString("start_time", StartTime.Invoke());
                 writer.WriteNumber("extra_time_interval", ExtraTimeInterval.Invoke());
                 writer.WriteNumber("number_of_extra_time_intervals", NumberOfExtraTimeIntervals.Invoke());

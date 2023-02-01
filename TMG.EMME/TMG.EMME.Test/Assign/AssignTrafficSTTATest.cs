@@ -43,7 +43,7 @@ namespace TMG.Emme.Test.Assign
                 JSONParameterBuilder.BuildParameters(writer =>
                 {
                     writer.WriteNumber("scenario_number", 1);
-                    writer.WritePropertyName("interval_lengths");
+                    writer.WritePropertyName("interval_length_list");
                     writer.WriteStartArray();
                     writer.WriteNumberValue(300);
                     writer.WriteNumberValue(60);
@@ -76,6 +76,15 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("demand_matrix_number", 1000);
                     writer.WriteNumber("time_matrix_number", 10);
                     writer.WriteNumber("cost_matrix_number", 0);
+                    writer.WriteNumber("toll_matrix_number", 0);
+                    // writer.WriteNumber("toll_weight", 1.0);
+                    writer.WritePropertyName("toll_weight_list");
+                    writer.WriteStartArray();
+                    writer.WriteNumberValue(1);
+                    writer.WriteNumberValue(2);
+                    writer.WriteNumberValue(3);
+                    writer.WriteEndArray();
+                    writer.WriteString("link_toll_attribute", "@toll");
                     writer.WriteString("volume_attribute", "@auto_volume");
                     writer.WriteNumber("attribute_start_index", 1);
                     writer.WriteNumber("link_cost", 0.0);
