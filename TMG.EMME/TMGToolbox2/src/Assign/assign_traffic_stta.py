@@ -35,6 +35,7 @@ _bank = _MODELLER.emmebank
 _write = _m.logbook_write
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 EMME_VERSION = _util.get_emme_version(tuple)
+network_calculation_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 
 
 class AssignTrafficSTTA(_m.Tool()):
@@ -75,6 +76,10 @@ class AssignTrafficSTTA(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def _execute(self, scenario, parameters):
+        # check toll_weight_list
+        for tc in parameters["traffic_classes"]:
+            if len(tc["toll_weight_list"]) != len(parameters["interval_length_list"]):
+                raise Exception("Length of Toll weight list %s is not equal to the length of interval length list %s", (len(tc["toll_weight_list"]), len(parameters["interval_length_list"])))
         """
         matrix_indices_used_list keeps track of all the matrices already created/used
         """
@@ -83,14 +88,14 @@ class AssignTrafficSTTA(_m.Tool()):
         for tc in parameters["traffic_classes"]:
             all_matrix_dict = self._create_time_dependent_matrix_dict(
                 matrix_indices_used_list,
-                parameters["interval_lengths"],
+                parameters["interval_length_list"],
                 tc["demand_matrix_number"],
                 "demand_matrix",
-                [("cost_matrix", tc["cost_matrix_number"]), ("time_matrix", tc["time_matrix_number"])],
+                [("cost_matrix", tc["cost_matrix_number"]), ("time_matrix", tc["time_matrix_number"]), ("toll_matrix", tc["toll_matrix_number"])],
             )
         #   load all time dependent output matrices
         load_input_matrix_list = self._load_input_matrices(all_matrix_dict, "demand_matrix")
-        load_output_matrix_dict = self._load_output_matrices(all_matrix_dict, ["cost_matrix", "time_matrix"])
+        load_output_matrix_dict = self._load_output_matrices(all_matrix_dict, ["cost_matrix", "time_matrix", "toll_matrix"])
         # #   create list of time dependent input attribute
         with _trace(
             name="%s (%s v%s)" % (parameters["run_title"], self.__class__.__name__, self.version),
@@ -101,12 +106,26 @@ class AssignTrafficSTTA(_m.Tool()):
                 demand_matrix_list = self._init_input_matrices(load_input_matrix_list, temp_matrix_list)
                 cost_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_name="cost_matrix", description="")
                 time_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_name="time_matrix", description="")
+                toll_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_name="toll_matrix", description="")
                 with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
                     for tc in parameters["traffic_classes"]:
-                        time_dependent_volume_attribute_list = self._create_time_dependent_attribute_list(tc["volume_attribute"], parameters["interval_lengths"], tc["attribute_start_index"])
-                        self._create_volume_attribute(scenario, time_dependent_volume_attribute_list)
-                    time_dependent_component_attribute_list = self._create_time_dependent_attribute_list(parameters["link_component_attribute"], parameters["interval_lengths"], parameters["start_index"])
-                    transit_attribute_list = self._create_transit_traffic_attribute_list(scenario, time_dependent_component_attribute_list, temp_attribute_list)
+                        time_dependent_volume_attribute_list = self._create_time_dependent_attribute_list(tc["volume_attribute"], parameters["interval_length_list"], tc["attribute_start_index"])
+                        time_dependent_time_attribute_list = self._create_time_dependent_attribute_list("ltime", parameters["interval_length_list"], tc["attribute_start_index"])
+                        time_dependent_cost_attribute_list = self._create_time_dependent_attribute_list("lkcst", parameters["interval_length_list"], tc["attribute_start_index"])
+                        time_dependent_link_toll_attribute_list = self._create_time_dependent_attribute_list(tc["link_toll_attribute"], parameters["interval_length_list"], tc["attribute_start_index"])
+                    self._create_volume_attribute(scenario, time_dependent_volume_attribute_list)
+                    time_dependent_component_attribute_list = self._create_time_dependent_attribute_list(parameters["link_component_attribute"], parameters["interval_length_list"], parameters["start_index"])
+                    time_attribute_list = self._create_time_attribute_list(scenario, time_dependent_time_attribute_list, temp_attribute_list)
+                    cost_attribute_list = self._create_cost_attribute_list(scenario, time_dependent_cost_attribute_list, temp_attribute_list)
+                    link_component_attribute_list = self._create_transit_traffic_attribute_list(scenario, time_dependent_component_attribute_list, temp_attribute_list)
+                    toll_attribute_list = self._create_toll_attribute_list(scenario, time_dependent_link_toll_attribute_list)
+                    self._tracker.complete_subtask()
+                    # Calculate applied toll factor
+                    applied_toll_factor_lists = self._calculate_applied_toll_factor(parameters)
+                    self._calculate_link_cost(scenario, parameters, demand_matrix_list, applied_toll_factor_lists, cost_attribute_list, toll_attribute_list, self._tracker)
+                    self._tracker.complete_subtask()
+                    network = scenario.get_network()
+                    scenario.publish_network(network)
 
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
@@ -114,17 +133,17 @@ class AssignTrafficSTTA(_m.Tool()):
         atts = {"Run Title": run_title, "Scenario": str(scenario.id), "Times Matrix": str(", ".join(time_matrix_ids)), "Link Cost": str(", ".join(link_costs)), "Iterations": str(iterations), "self": modeller_namespace}
         return atts
 
-    def _create_time_dependent_attribute_list(self, attribute_name, interval_lengths_list, attribute_start_index):
+    def _create_time_dependent_attribute_list(self, attribute_name, interval_length_list, attribute_start_index):
         def check_att_name(at):
             if at.startswith("@"):
                 return at
             else:
                 return "@" + at
 
-        time_dependent_attribute_list = [check_att_name(attribute_name) + str(attribute_start_index + i) for i, j in enumerate(interval_lengths_list)]
+        time_dependent_attribute_list = [check_att_name(attribute_name) + str(attribute_start_index + i) for i, j in enumerate(interval_length_list)]
         return time_dependent_attribute_list
 
-    def _create_time_dependent_matrix_dict(self, matrix_indices_used_list, interval_lengths_list, input_matrix_number, input_matrix_name, output_matrix_name_list):
+    def _create_time_dependent_matrix_dict(self, matrix_indices_used_list, interval_length_list, input_matrix_number, input_matrix_name, output_matrix_name_list):
         """
         creates all time dependent input and output matrix in a dictionary.
         Matrix index depends on the input matrix. For example, if time dependent
@@ -137,7 +156,7 @@ class AssignTrafficSTTA(_m.Tool()):
             all_matrix_dict[output_matrix_name_list[i][0]] = ""
         #   add input matrix list
         input_matrix_list = []
-        for i, j in enumerate(interval_lengths_list):
+        for i, j in enumerate(interval_length_list):
             if input_matrix_number == 0:
                 input_matrix_list.append("mf0")
             else:
@@ -148,7 +167,7 @@ class AssignTrafficSTTA(_m.Tool()):
             matrix_name = output_matrix[0]
             matrix_number = output_matrix[1]
             output_matrix_list = []
-            for j in range(0, len(interval_lengths_list)):
+            for j in range(0, len(interval_length_list)):
                 if matrix_number == 0:
                     output_matrix_list.append("mf0")
                 else:
@@ -288,9 +307,60 @@ class AssignTrafficSTTA(_m.Tool()):
                 "Created extra attribute '%s'",
             )
         else:
-            temp_traffic_attrib = scenario.extra_attribute(temp_traffic_attrib)
+            temp_traffic_attrib = scenario.extra_attribute(traffic_attrib_id)
             temp_traffic_attrib.initialize(0)
         return temp_traffic_attrib, traffic_attrib_id
+
+    def _calculate_applied_toll_factor(self, parameters):
+        applied_toll_factor_list = []
+        for tc in parameters["traffic_classes"]:
+            if len(tc["toll_weight_list"]) != 0:
+                try:
+                    toll_weight_list = [60 / weight for weight in tc["toll_weight_list"]]
+                    applied_toll_factor_list.append(toll_weight_list)
+                except ZeroDivisionError:
+                    toll_weight_list = [0 * weight for weight in tc["toll_weight_list"]]
+                    applied_toll_factor_list.append(toll_weight_list)
+        return applied_toll_factor_list
+
+    def _create_time_attribute_list(self, scenario, time_dependent_time_attribute_list, temp_attribute_list):
+        time_attribute_list = []
+        for time_attribute in time_dependent_time_attribute_list:
+            attribute = self._create_temp_attribute(scenario, time_attribute, "LINK", default_value=0.0, assignment_type="traffic")
+            time_attribute_list.append(attribute)
+            temp_attribute_list.append(attribute)
+        return time_attribute_list
+
+    def _create_cost_attribute_list(self, scenario, time_dependent_cost_attribute_list, temp_attribute_list):
+        cost_attribute_list = []
+        for cost_attribute in time_dependent_cost_attribute_list:
+            cost_attribute = self._create_temp_attribute(scenario, cost_attribute, "LINK", default_value=0.0, assignment_type="traffic")
+            cost_attribute_list.append(cost_attribute)
+            temp_attribute_list.append(cost_attribute)
+        return cost_attribute_list
+
+    def _create_toll_attribute_list(self, scenario, time_dependent_link_toll_attribute_list):
+        toll_attribute_list = []
+        for toll_attribute in time_dependent_link_toll_attribute_list:
+            toll_attribute = self._create_temp_attribute(scenario, toll_attribute, "LINK", default_value=0.0, assignment_type="traffic")
+            toll_attribute_list.append(toll_attribute)
+        return toll_attribute_list
+
+    def _calculate_link_cost(self, scenario, parameters, demand_matrix_list, applied_toll_factor_lists, cost_attribute_list, toll_attribute_list, tracker):
+        with _trace("Calculating link costs"):
+            for i, tc in enumerate(parameters["traffic_classes"]):
+                for j in range(0, len(demand_matrix_list)):
+                    network_calculation_tool(self._get_link_cost_calc_spec(cost_attribute_list[j].id, tc["link_cost"], toll_attribute_list[j], applied_toll_factor_lists[i][j]), scenario=scenario)
+            tracker.complete_subtask()
+
+    def _get_link_cost_calc_spec(self, cost_attribute_id, link_cost, link_toll_attribute, perception):
+        return {
+            "result": cost_attribute_id,
+            "expression": "(length * %f + %s)*%f" % (link_cost, link_toll_attribute, perception),
+            "aggregation": None,
+            "selections": {"link": "all"},
+            "type": "NETWORK_CALCULATION",
+        }
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
