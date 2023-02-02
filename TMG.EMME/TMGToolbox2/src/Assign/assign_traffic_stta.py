@@ -124,8 +124,13 @@ class AssignTrafficSTTA(_m.Tool()):
                     applied_toll_factor_lists = self._calculate_applied_toll_factor(parameters)
                     self._calculate_link_cost(scenario, parameters, demand_matrix_list, applied_toll_factor_lists, cost_attribute_list, toll_attribute_list, self._tracker)
                     self._tracker.complete_subtask()
-                    network = scenario.get_network()
-                    scenario.publish_network(network)
+
+                    # Assign traffic to road network per time period
+                    with _trace("Running Road Assignments."):
+                        completed_path_analysis = False
+                        if completed_path_analysis is False:
+                            volume_attribute_list = self._load_attribute_list(parameters, demand_matrix_list)
+                            mode_list = self._load_mode_list(parameters)
 
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
@@ -361,6 +366,22 @@ class AssignTrafficSTTA(_m.Tool()):
             "selections": {"link": "all"},
             "type": "NETWORK_CALCULATION",
         }
+
+    def _load_attribute_list(self, parameters):
+        def check_att_name(at):
+            if at.startswith("@"):
+                return at
+            else:
+                return "@" + at
+
+        traffic_classes = parameters["traffic_classes"]
+        att = "volume_attribute"
+        vol_attribute_list = [check_att_name(vol[att]) + str(vol["attribute_start_index"]) for vol in traffic_classes]
+        return vol_attribute_list
+
+    def _load_mode_list(self, parameters):
+        mode_list = [mode["mode"] for mode in parameters["traffic_classes"]]
+        return mode_list
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
