@@ -129,11 +129,7 @@ class AssignTrafficSTTA(_m.Tool()):
                     with _trace("Running Road Assignments."):
                         completed_path_analysis = False
                         if completed_path_analysis is False:
-                            attributes = self._load_attribute_list(parameters, demand_matrix_list)
-                            attribute_list = attributes[0]
-                            volume_attribute_list = attributes[1]
-                            print(attribute_list)
-                            print(volume_attribute_list)
+                            volume_attribute_list = self._load_attribute_list(parameters, demand_matrix_list)
                             mode_list = self._load_mode_list(parameters)
 
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
@@ -371,7 +367,7 @@ class AssignTrafficSTTA(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    def _load_attribute_list(self, parameters, demand_matrix_list):
+    def _load_attribute_list(self, parameters):
         def check_att_name(at):
             if at.startswith("@"):
                 return at
@@ -379,12 +375,9 @@ class AssignTrafficSTTA(_m.Tool()):
                 return "@" + at
 
         traffic_classes = parameters["traffic_classes"]
-        attribute_list = []
         att = "volume_attribute"
         vol_attribute_list = [check_att_name(vol[att]) + str(vol["attribute_start_index"]) for vol in traffic_classes]
-        for i in range(0, len(demand_matrix_list)):
-            attribute_list.append(None)
-        return attribute_list, vol_attribute_list
+        return vol_attribute_list
 
     def _load_mode_list(self, parameters):
         mode_list = [mode["mode"] for mode in parameters["traffic_classes"]]
