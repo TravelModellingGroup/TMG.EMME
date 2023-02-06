@@ -76,6 +76,7 @@ class AssignTrafficSTTA(_m.Tool()):
             raise Exception(_util.format_reverse_stack())
 
     def _execute(self, scenario, parameters):
+
         # check toll_weight_list
         for tc in parameters["traffic_classes"]:
             if len(tc["toll_weight_list"]) != len(parameters["interval_length_list"]):
@@ -85,6 +86,7 @@ class AssignTrafficSTTA(_m.Tool()):
         """
         matrix_indices_used_list = []
         #   create all time dependent matrix dictionary
+        all_matrix_dicts_list = []
         for tc in parameters["traffic_classes"]:
             all_matrix_dict = self._create_time_dependent_matrix_dict(
                 matrix_indices_used_list,
@@ -93,43 +95,50 @@ class AssignTrafficSTTA(_m.Tool()):
                 "demand_matrix",
                 [("cost_matrix", tc["cost_matrix_number"]), ("time_matrix", tc["time_matrix_number"]), ("toll_matrix", tc["toll_matrix_number"])],
             )
+            all_matrix_dicts_list.append(all_matrix_dict)
         #   load all time dependent output matrices
-        load_input_matrix_list = self._load_input_matrices(all_matrix_dict, "demand_matrix")
-        load_output_matrix_dict = self._load_output_matrices(all_matrix_dict, ["cost_matrix", "time_matrix", "toll_matrix"])
-        # #   create list of time dependent input attribute
+        self._load_input_matrices(all_matrix_dicts_list, "demand_matrix")
+        self._load_output_matrices(all_matrix_dicts_list, ["cost_matrix", "time_matrix", "toll_matrix"])
+
         with _trace(
             name="%s (%s v%s)" % (parameters["run_title"], self.__class__.__name__, self.version),
             attributes=self._load_atts(scenario, parameters["run_title"], parameters["iterations"], parameters["traffic_classes"], self.__MODELLER_NAMESPACE__),
         ):
             self._tracker.reset()
             with _util.temporary_matrix_manager() as temp_matrix_list:
-                demand_matrix_list = self._init_input_matrices(load_input_matrix_list, temp_matrix_list)
-                cost_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_name="cost_matrix", description="")
-                time_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_name="time_matrix", description="")
-                toll_matrix_list = self._init_output_matrices(load_output_matrix_dict, temp_matrix_list, matrix_name="toll_matrix", description="")
+                # initialize input matrices
+                self._init_input_matrices(all_matrix_dicts_list, temp_matrix_list, input_matrix_name="demand_matrix")
+                # initialize output matrices
+                self._init_output_matrices(all_matrix_dicts_list, temp_matrix_list, output_matrix_name="cost_matrix", description="")
+
+                time_matrix_list = self._init_output_matrices(all_matrix_dicts_list, temp_matrix_list, output_matrix_name="time_matrix", description="")
+                toll_matrix_list = self._init_output_matrices(all_matrix_dicts_list, temp_matrix_list, output_matrix_name="toll_matrix", description="")
+                # create list of time dependent input attribute
                 with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
+                    time_dependent_volume_attribute_lists = []
+                    time_dependent_time_attribute_lists = []
+                    time_dependent_cost_attribute_lists = []
+                    time_dependent_link_toll_attribute_lists = []
                     for tc in parameters["traffic_classes"]:
-                        time_dependent_volume_attribute_list = self._create_time_dependent_attribute_list(tc["volume_attribute"], parameters["interval_length_list"], tc["attribute_start_index"])
-                        time_dependent_time_attribute_list = self._create_time_dependent_attribute_list("ltime", parameters["interval_length_list"], tc["attribute_start_index"])
-                        time_dependent_cost_attribute_list = self._create_time_dependent_attribute_list("lkcst", parameters["interval_length_list"], tc["attribute_start_index"])
-                        time_dependent_link_toll_attribute_list = self._create_time_dependent_attribute_list(tc["link_toll_attribute"], parameters["interval_length_list"], tc["attribute_start_index"])
-                    self._create_volume_attribute(scenario, time_dependent_volume_attribute_list)
+                        time_dependent_volume_attribute_lists.append(self._create_time_dependent_attribute_list(tc["volume_attribute"], parameters["interval_length_list"], tc["attribute_start_index"]))
+                        time_dependent_time_attribute_lists.append(self._create_time_dependent_attribute_list("ltime", parameters["interval_length_list"], tc["attribute_start_index"]))
+                        time_dependent_cost_attribute_lists.append(self._create_time_dependent_attribute_list("lkcst", parameters["interval_length_list"], tc["attribute_start_index"]))
+                        time_dependent_link_toll_attribute_lists.append(self._create_time_dependent_attribute_list(tc["link_toll_attribute"], parameters["interval_length_list"], tc["attribute_start_index"]))
+                    volume_attribute_list = self._create_volume_attribute(scenario, time_dependent_volume_attribute_lists)
                     time_dependent_component_attribute_list = self._create_time_dependent_attribute_list(parameters["link_component_attribute"], parameters["interval_length_list"], parameters["start_index"])
-                    time_attribute_list = self._create_time_attribute_list(scenario, time_dependent_time_attribute_list, temp_attribute_list)
-                    cost_attribute_list = self._create_cost_attribute_list(scenario, time_dependent_cost_attribute_list, temp_attribute_list)
+                    time_attribute_lists = self._create_time_dependent_attribute_lists(scenario, time_dependent_time_attribute_lists, temp_attribute_list, "LINK", "traffic")
+                    cost_attribute_lists = self._create_time_dependent_attribute_lists(scenario, time_dependent_cost_attribute_lists, temp_attribute_list, "LINK", "traffic")
+                    toll_attribute_lists = self._create_time_dependent_attribute_lists(scenario, time_dependent_link_toll_attribute_lists, temp_attribute_list, "LINK", "traffic", is_temp_attribute=False)
                     link_component_attribute_list = self._create_transit_traffic_attribute_list(scenario, time_dependent_component_attribute_list, temp_attribute_list)
-                    toll_attribute_list = self._create_toll_attribute_list(scenario, time_dependent_link_toll_attribute_list)
                     self._tracker.complete_subtask()
                     # Calculate applied toll factor
                     applied_toll_factor_lists = self._calculate_applied_toll_factor(parameters)
-                    self._calculate_link_cost(scenario, parameters, demand_matrix_list, applied_toll_factor_lists, cost_attribute_list, toll_attribute_list, self._tracker)
+                    self._calculate_link_cost(scenario, parameters, applied_toll_factor_lists, cost_attribute_lists, toll_attribute_lists)
                     self._tracker.complete_subtask()
-
                     # Assign traffic to road network per time period
                     with _trace("Running Road Assignments."):
                         completed_path_analysis = False
                         if completed_path_analysis is False:
-                            volume_attribute_list = self._load_attribute_list(parameters, demand_matrix_list)
                             mode_list = self._load_mode_list(parameters)
 
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
@@ -181,25 +190,39 @@ class AssignTrafficSTTA(_m.Tool()):
             all_matrix_dict[matrix_name] = output_matrix_list
         return all_matrix_dict
 
-    def _load_input_matrices(self, all_matrix_dict, input_matrix_name):
+    def _load_input_matrices(self, all_matrix_dicts_list, input_matrix_name):
         """
         Load input matrices creates and returns a list of (input) matrices based on matrix_name supplied.
         E.g of matrix_name: "demand_matrix", matrix_id: "mf2"
         """
 
-        def exception(mtx_id):
-            raise Exception("Matrix %s was not found!" % mtx_id)
+        def exception(mtx_id, mtx_name):
+            raise Exception('Matrix %s with matrix name "%s" was not found!' % (mtx_id, mtx_name))
 
-        input_matrix_list = [_bank.matrix(mtx) if mtx == "mf0" or self._get_or_create(mtx).id == mtx else exception(mtx) for mtx in all_matrix_dict[input_matrix_name]]
+        for matrix_list in all_matrix_dicts_list:
+            for i, mtx in enumerate(matrix_list[input_matrix_name]):
+                if mtx == "mf0" or self._get_or_create(mtx).id == mtx:
+                    matrix_list[input_matrix_name][i] = _bank.matrix(mtx)
+                else:
+                    exception(mtx, input_matrix_name)
 
-        return input_matrix_list
+        # input_matrix_list = [if mtx == "mf0" or self._get_or_create(mtx).id == mtx else exception(mtx) for i, mtx in enumerate(all_matrix_dicts_list[input_matrix_name])]
 
-    def _load_output_matrices(self, all_matrix_dict, matrix_name_list):
-        output_matrix_dict = {}
-        for matrix_name in matrix_name_list:
-            matrix = [None if matrix_number == "mf0" else self._get_or_create(matrix_number) for matrix_number in all_matrix_dict[matrix_name]]
-            output_matrix_dict[matrix_name] = matrix
-        return output_matrix_dict
+        # return all_matrix_dicts_list
+
+    def _load_output_matrices(self, all_matrix_dicts_list, matrix_name_list):
+        # output_matrix_dict = {}
+        # for matrix_name in matrix_name_list:
+        #     matrix = [None if matrix_number == "mf0" else self._get_or_create(matrix_number) for matrix_number in all_matrix_dict[matrix_name]]
+        #     output_matrix_dict[matrix_name] = matrix
+        for matrix_list in all_matrix_dicts_list:
+            for matrix_name in matrix_name_list:
+                for i, matrix_id in enumerate(matrix_list[matrix_name]):
+                    if matrix_id == "mf0":
+                        matrix_list[matrix_name][i] = None
+                    else:
+                        matrix_list[matrix_name][i] = self._get_or_create(matrix_id)
+        # return output_matrix_dict
 
     def _get_or_create(self, matrix_id):
         mtx = _bank.matrix(matrix_id)
@@ -207,49 +230,47 @@ class AssignTrafficSTTA(_m.Tool()):
             mtx = _bank.create_matrix(matrix_id, default_value=0)
         return mtx
 
-    def _init_input_matrices(self, load_input_matrix_list, temp_matrix_list):
+    def _init_input_matrices(self, all_matrix_dicts_list, temp_matrix_list, input_matrix_name=""):
         """
         - Checks the list of all load matrices in load_input_matrix_list,
             for None, create a temporary matrix and initialize
         - Returns a list of all input matrices provided
         """
-        input_matrix_list = []
-        for mtx in load_input_matrix_list:
-            if mtx == None:
-                mtx = _util.initialize_matrix(matrix_type="FULL")
-                temp_matrix_list.append(mtx)
-            input_matrix_list.append(mtx)
-        return input_matrix_list
+        # input_matrix_list = []
+        for matrix_list in all_matrix_dicts_list:
+            for i, mtx in enumerate(matrix_list[input_matrix_name]):
+                if mtx == None:
+                    mtx = _util.initialize_matrix(matrix_type="FULL")
+                    temp_matrix_list.append(mtx)
+                    matrix_list[input_matrix_name][i] = mtx
+        # return input_matrix_list
 
-    def _init_output_matrices(self, load_output_matrix_dict, temp_matrix_list, matrix_name="", description=""):
+    def _init_output_matrices(self, all_matrix_dicts_list, temp_matrix_list, output_matrix_name="", description=""):
         """
         - Checks the dictionary of all load matrices in load_output_matrix_dict,
             for None, create a temporary matrix and initialize
         - Returns a list of all input matrices provided
         """
-        output_matrix_list = []
-        desc = "AUTO %s FOR CLASS" % (matrix_name.upper())
-        if matrix_name in load_output_matrix_dict.keys():
-            for mtx in load_output_matrix_dict[matrix_name]:
+        desc = "AUTO %s FOR CLASS" % (output_matrix_name.upper())
+        for matrix_list in all_matrix_dicts_list:
+            for i, mtx in enumerate(matrix_list[output_matrix_name]):
                 if mtx == None:
-                    matrix = _util.initialize_matrix(
-                        name=matrix_name,
-                        description=description if description != "" else desc,
-                    )
+                    matrix = _util.initialize_matrix(name=output_matrix_name, description=description if description != "" else desc)
                     temp_matrix_list.append(matrix)
-                output_matrix_list.append(mtx)
-        else:
-            raise Exception('Output matrix name "%s" provided does not exist', matrix_name)
-        return output_matrix_list
+                    matrix_list[output_matrix_name][i] = matrix
+        # else:
+        #     raise Exception('Output matrix name "%s" provided does not exist', output_matrix_name)
 
-    def _create_volume_attribute(self, scenario, volume_attribute_list):
-        for volume_attribute in volume_attribute_list:
-            volume_attribute_at = scenario.extra_attribute(volume_attribute)
-            if volume_attribute_at is not None:
-                if volume_attribute_at.type != "LINK":
-                    raise Exception("Volume Attribute '%s' is not a link type attribute" % volume_attribute)
-                scenario.delete_extra_attribute(volume_attribute_at)
-            scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
+    def _create_volume_attribute(self, scenario, volume_attribute_lists):
+        for volume_attribute_list in volume_attribute_lists:
+            for volume_attribute in volume_attribute_list:
+                volume_attribute_at = scenario.extra_attribute(volume_attribute)
+                if volume_attribute_at is not None:
+                    if volume_attribute_at.type != "LINK":
+                        raise Exception("Volume Attribute '%s' is not a link type attribute" % volume_attribute)
+                    scenario.delete_extra_attribute(volume_attribute_at)
+                scenario.create_extra_attribute("LINK", volume_attribute, default_value=0)
+        return volume_attribute_lists
 
     def _create_transit_traffic_attribute_list(self, scenario, link_component_attribute_list, temp_attribute_list):
         transit_traffic_attribute_list = []
@@ -328,35 +349,32 @@ class AssignTrafficSTTA(_m.Tool()):
                     applied_toll_factor_list.append(toll_weight_list)
         return applied_toll_factor_list
 
-    def _create_time_attribute_list(self, scenario, time_dependent_time_attribute_list, temp_attribute_list):
-        time_attribute_list = []
-        for time_attribute in time_dependent_time_attribute_list:
-            attribute = self._create_temp_attribute(scenario, time_attribute, "LINK", default_value=0.0, assignment_type="traffic")
-            time_attribute_list.append(attribute)
-            temp_attribute_list.append(attribute)
-        return time_attribute_list
+    def _create_time_dependent_attribute_lists(self, scenario, time_dependent_time_attribute_lists, temp_attribute_list, attribute_type, assignment_type, is_temp_attribute=True):
+        time_attribute_lists = []
+        for time_dependent_attribute_list in time_dependent_time_attribute_lists:
+            time_attribute_list = []
+            for time_attribute in time_dependent_attribute_list:
+                attribute = self._create_temp_attribute(scenario, time_attribute, attribute_type, default_value=0.0, assignment_type=assignment_type)
+                time_attribute_list.append(attribute)
+                if is_temp_attribute is True:
+                    temp_attribute_list.append(attribute)
+            time_attribute_lists.append(time_attribute_list)
+        return time_attribute_lists
 
-    def _create_cost_attribute_list(self, scenario, time_dependent_cost_attribute_list, temp_attribute_list):
-        cost_attribute_list = []
-        for cost_attribute in time_dependent_cost_attribute_list:
-            cost_attribute = self._create_temp_attribute(scenario, cost_attribute, "LINK", default_value=0.0, assignment_type="traffic")
-            cost_attribute_list.append(cost_attribute)
-            temp_attribute_list.append(cost_attribute)
-        return cost_attribute_list
-
-    def _create_toll_attribute_list(self, scenario, time_dependent_link_toll_attribute_list):
-        toll_attribute_list = []
-        for toll_attribute in time_dependent_link_toll_attribute_list:
-            toll_attribute = self._create_temp_attribute(scenario, toll_attribute, "LINK", default_value=0.0, assignment_type="traffic")
-            toll_attribute_list.append(toll_attribute)
-        return toll_attribute_list
-
-    def _calculate_link_cost(self, scenario, parameters, demand_matrix_list, applied_toll_factor_lists, cost_attribute_list, toll_attribute_list, tracker):
+    def _calculate_link_cost(self, scenario, parameters, applied_toll_factor_lists, cost_attribute_lists, toll_attribute_lists):
         with _trace("Calculating link costs"):
-            for i, tc in enumerate(parameters["traffic_classes"]):
-                for j in range(0, len(demand_matrix_list)):
-                    network_calculation_tool(self._get_link_cost_calc_spec(cost_attribute_list[j].id, tc["link_cost"], toll_attribute_list[j], applied_toll_factor_lists[i][j]), scenario=scenario)
-            tracker.complete_subtask()
+
+            for i, cost_attribute_list in enumerate(cost_attribute_lists):
+                for j in range(0, len(cost_attribute_list)):
+                    network_calculation_tool(
+                        self._get_link_cost_calc_spec(
+                            cost_attribute_lists[i][j].id,
+                            parameters["traffic_classes"][i]["link_cost"],
+                            toll_attribute_lists[i][j].id,
+                            applied_toll_factor_lists[i][j],
+                        ),
+                        scenario=scenario,
+                    )
 
     def _get_link_cost_calc_spec(self, cost_attribute_id, link_cost, link_toll_attribute, perception):
         return {
@@ -366,18 +384,6 @@ class AssignTrafficSTTA(_m.Tool()):
             "selections": {"link": "all"},
             "type": "NETWORK_CALCULATION",
         }
-
-    def _load_attribute_list(self, parameters):
-        def check_att_name(at):
-            if at.startswith("@"):
-                return at
-            else:
-                return "@" + at
-
-        traffic_classes = parameters["traffic_classes"]
-        att = "volume_attribute"
-        vol_attribute_list = [check_att_name(vol[att]) + str(vol["attribute_start_index"]) for vol in traffic_classes]
-        return vol_attribute_list
 
     def _load_mode_list(self, parameters):
         mode_list = [mode["mode"] for mode in parameters["traffic_classes"]]

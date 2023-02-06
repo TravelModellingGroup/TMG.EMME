@@ -69,6 +69,7 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("stop", 128);
                     writer.WriteEndObject();
                     writer.WriteEndArray();
+
                     writer.WriteStartArray("traffic_classes");
                     writer.WriteStartObject();
                     writer.WriteString("name", "traffic class 1");
@@ -86,6 +87,31 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("link_toll_attribute", "@toll");
                     writer.WriteString("volume_attribute", "@auto_volume");
                     writer.WriteNumber("attribute_start_index", 1);
+                    writer.WriteNumber("link_cost", 0.0);
+                    writer.WriteStartArray("path_analyses");
+                    writer.WriteStartObject();
+                    writer.WriteString("attribute_id", "1");
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();
+                    writer.WriteEndObject();
+
+
+                    writer.WriteStartObject();
+                    writer.WriteString("name", "traffic class 2");
+                    writer.WriteString("mode", "c");
+                    writer.WriteNumber("demand_matrix_number", 1100);
+                    writer.WriteNumber("time_matrix_number", 40);
+                    writer.WriteNumber("cost_matrix_number", 0);
+                    writer.WriteNumber("toll_matrix_number", 0);
+                    writer.WritePropertyName("toll_weight_list");
+                    writer.WriteStartArray();
+                    writer.WriteNumberValue(4);
+                    writer.WriteNumberValue(5);
+                    writer.WriteNumberValue(6);
+                    writer.WriteEndArray();
+                    writer.WriteString("link_toll_attribute", "@toll");
+                    writer.WriteString("volume_attribute", "@auto_volume");
+                    writer.WriteNumber("attribute_start_index", 4);
                     writer.WriteNumber("link_cost", 0.0);
                     writer.WriteStartArray("path_analyses");
                     writer.WriteStartObject();
