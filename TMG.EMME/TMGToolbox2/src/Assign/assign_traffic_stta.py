@@ -139,8 +139,6 @@ class AssignTrafficSTTA(_m.Tool()):
                     with _trace("Running Road Assignments."):
                         completed_path_analysis = False
                         if completed_path_analysis is False:
-                            mode_list = self._load_mode_list(parameters)
-
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
         link_costs = [str(lc["link_cost"]) for lc in traffic_classes]
