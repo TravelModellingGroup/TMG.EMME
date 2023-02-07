@@ -111,8 +111,8 @@ class AssignTrafficSTTA(_m.Tool()):
                 # initialize output matrices
                 self._init_output_matrices(all_matrix_dicts_list, temp_matrix_list, output_matrix_name="cost_matrix", description="")
 
-                time_matrix_list = self._init_output_matrices(all_matrix_dicts_list, temp_matrix_list, output_matrix_name="time_matrix", description="")
-                toll_matrix_list = self._init_output_matrices(all_matrix_dicts_list, temp_matrix_list, output_matrix_name="toll_matrix", description="")
+                self._init_output_matrices(all_matrix_dicts_list, temp_matrix_list, output_matrix_name="time_matrix", description="")
+                self._init_output_matrices(all_matrix_dicts_list, temp_matrix_list, output_matrix_name="toll_matrix", description="")
                 # create list of time dependent input attribute
                 with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
                     time_dependent_volume_attribute_lists = []
@@ -124,7 +124,7 @@ class AssignTrafficSTTA(_m.Tool()):
                         time_dependent_time_attribute_lists.append(self._create_time_dependent_attribute_list("ltime", parameters["interval_length_list"], tc["attribute_start_index"]))
                         time_dependent_cost_attribute_lists.append(self._create_time_dependent_attribute_list("lkcst", parameters["interval_length_list"], tc["attribute_start_index"]))
                         time_dependent_link_toll_attribute_lists.append(self._create_time_dependent_attribute_list(tc["link_toll_attribute"], parameters["interval_length_list"], tc["attribute_start_index"]))
-                    volume_attribute_list = self._create_volume_attribute(scenario, time_dependent_volume_attribute_lists)
+                    volume_attribute_lists = self._create_volume_attribute(scenario, time_dependent_volume_attribute_lists)
                     time_dependent_component_attribute_list = self._create_time_dependent_attribute_list(parameters["link_component_attribute"], parameters["interval_length_list"], parameters["start_index"])
                     time_attribute_lists = self._create_time_dependent_attribute_lists(scenario, time_dependent_time_attribute_lists, temp_attribute_list, "LINK", "traffic")
                     cost_attribute_lists = self._create_time_dependent_attribute_lists(scenario, time_dependent_cost_attribute_lists, temp_attribute_list, "LINK", "traffic")
@@ -139,6 +139,17 @@ class AssignTrafficSTTA(_m.Tool()):
                     with _trace("Running Road Assignments."):
                         completed_path_analysis = False
                         if completed_path_analysis is False:
+                            mode_list = self._load_mode_list(parameters)
+                            stta_spec = self._get_primary_STTA_spec(
+                                all_matrix_dicts_list,
+                                mode_list,
+                                volume_attribute_lists,
+                                cost_attribute_lists,
+                                parameters,
+                                multiprocessing,
+                                link_component_attribute_list,
+                            )
+
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
         link_costs = [str(lc["link_cost"]) for lc in traffic_classes]
@@ -204,15 +215,7 @@ class AssignTrafficSTTA(_m.Tool()):
                 else:
                     exception(mtx, input_matrix_name)
 
-        # input_matrix_list = [if mtx == "mf0" or self._get_or_create(mtx).id == mtx else exception(mtx) for i, mtx in enumerate(all_matrix_dicts_list[input_matrix_name])]
-
-        # return all_matrix_dicts_list
-
     def _load_output_matrices(self, all_matrix_dicts_list, matrix_name_list):
-        # output_matrix_dict = {}
-        # for matrix_name in matrix_name_list:
-        #     matrix = [None if matrix_number == "mf0" else self._get_or_create(matrix_number) for matrix_number in all_matrix_dict[matrix_name]]
-        #     output_matrix_dict[matrix_name] = matrix
         for matrix_list in all_matrix_dicts_list:
             for matrix_name in matrix_name_list:
                 for i, matrix_id in enumerate(matrix_list[matrix_name]):
@@ -220,7 +223,6 @@ class AssignTrafficSTTA(_m.Tool()):
                         matrix_list[matrix_name][i] = None
                     else:
                         matrix_list[matrix_name][i] = self._get_or_create(matrix_id)
-        # return output_matrix_dict
 
     def _get_or_create(self, matrix_id):
         mtx = _bank.matrix(matrix_id)
@@ -234,14 +236,12 @@ class AssignTrafficSTTA(_m.Tool()):
             for None, create a temporary matrix and initialize
         - Returns a list of all input matrices provided
         """
-        # input_matrix_list = []
         for matrix_list in all_matrix_dicts_list:
             for i, mtx in enumerate(matrix_list[input_matrix_name]):
                 if mtx == None:
                     mtx = _util.initialize_matrix(matrix_type="FULL")
                     temp_matrix_list.append(mtx)
                     matrix_list[input_matrix_name][i] = mtx
-        # return input_matrix_list
 
     def _init_output_matrices(self, all_matrix_dicts_list, temp_matrix_list, output_matrix_name="", description=""):
         """
@@ -256,8 +256,6 @@ class AssignTrafficSTTA(_m.Tool()):
                     matrix = _util.initialize_matrix(name=output_matrix_name, description=description if description != "" else desc)
                     temp_matrix_list.append(matrix)
                     matrix_list[output_matrix_name][i] = matrix
-        # else:
-        #     raise Exception('Output matrix name "%s" provided does not exist', output_matrix_name)
 
     def _create_volume_attribute(self, scenario, volume_attribute_lists):
         for volume_attribute_list in volume_attribute_lists:
@@ -287,7 +285,6 @@ class AssignTrafficSTTA(_m.Tool()):
         # check if the type provided is correct
         if attribute_type not in ATTRIBUTE_TYPES:
             raise TypeError("Attribute type '%s' provided is not recognized." % attribute_type)
-
         if len(attribute_id) > 18:
             raise ValueError("Attribute id '%s' can only be 19 characters long with no spaces plus no '@'." % attribute_id)
         prefix = str(attribute_id)
@@ -387,6 +384,61 @@ class AssignTrafficSTTA(_m.Tool()):
         mode_list = [mode["mode"] for mode in parameters["traffic_classes"]]
         return mode_list
 
+    def _get_primary_STTA_spec(self, all_matrix_dicts_list, mode_list, volume_attribute_lists, cost_attribute_lists, parameters, multiprocessing, link_component_attribute_list):
+        if parameters["performance_flag"] == "true":
+            number_of_processors = multiprocessing.cpu_count()
+        else:
+            number_of_processors = max(multiprocessing.cpu_count() - 1, 1)
+        # Generic Spec for STTA
+        STTA_spec = {
+            "type": "SPACE_TIME_TRAFFIC_ASSIGNMENT",
+            "assignment_period": {
+                "start_time": parameters["start_time"],
+                "interval_lengths": parameters["interval_length_list"],
+                "extra_time_interval": parameters["extra_time_interval"],
+                "number_of_extra_time_intervals": parameters["number_of_extra_time_intervals"],
+            },
+            "background_traffic": {
+                "link_component": link_component_attribute_list[0].id,
+                "turn_component": None,
+            },
+            "variable_topology": None,
+            "classes": [],
+            "path_analysis": None,
+            "cutoff_analysis": None,
+            "traversal_analysis": None,
+            "performance_settings": {"number_of_processors": number_of_processors},
+            "stopping_criteria": {
+                "max_iterations": parameters["iterations"],
+                "relative_gap": parameters["r_gap"],
+                "best_relative_gap": parameters["br_gap"],
+                "normalized_gap": parameters["norm_gap"],
+            },
+        }
+
+        STTA_class_generator = []
+        for i, matrix_dict in enumerate(all_matrix_dicts_list):
+            stta_class = {
+                "mode": mode_list[i],
+                "demand": matrix_dict["demand_matrix"][0].id,
+                "generalized_cost": {
+                    "link_costs": cost_attribute_lists[i][0].id,
+                    "perception_factor": 1,
+                },
+                "results": {
+                    "link_volumes": volume_attribute_lists[i][0],
+                    "turn_volumes": None,
+                    "od_travel_times": matrix_dict["time_matrix"][0].id,
+                    "vehicle_count": None,
+                },
+                "analysis": None,
+            }
+
+            STTA_class_generator.append(stta_class)
+        STTA_spec["classes"] = STTA_class_generator
+        print(STTA_spec)
+        return STTA_spec
+
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
         return self._tracker.get_progress()
@@ -394,3 +446,61 @@ class AssignTrafficSTTA(_m.Tool()):
     @_m.method(return_type=str)
     def tool_run_msg_status(self):
         return self.tool_run_msg
+
+
+spec = {
+    "type": "SPACE_TIME_TRAFFIC_ASSIGNMENT",
+    "assignment_period": {
+        "start_time": "00:00",
+        "interval_lengths": [300, 60, 60],
+        "extra_time_interval": 60,
+        "number_of_extra_time_intervals": 2,
+    },
+    "background_traffic": {
+        "link_component": "@tvph1",
+        "turn_component": None,
+    },
+    "variable_topology": None,
+    "classes": [
+        {
+            "mode": "c",
+            "demand": "mf1000",
+            "generalized_cost": {
+                "link_costs": "@lkcst1",
+                "perception_factor": 1,
+            },
+            "results": {
+                "link_volumes": "@auto_volume1",
+                "turn_volumes": None,
+                "od_travel_times": "mf10",
+                "vehicle_count": None,
+            },
+            "analysis": None,
+        },
+        {
+            "mode": "c",
+            "demand": "mf1100",
+            "generalized_cost": {
+                "link_costs": "@lkcst4",
+                "perception_factor": 1,
+            },
+            "results": {
+                "link_volumes": "@auto_volume4",
+                "turn_volumes": None,
+                "od_travel_times": "mf40",
+                "vehicle_count": None,
+            },
+            "analysis": None,
+        },
+    ],
+    "path_analysis": None,
+    "cutoff_analysis": None,
+    "traversal_analysis": None,
+    "performance_settings": {"number_of_processors": 7},
+    "stopping_criteria": {
+        "max_iterations": 10,
+        "relative_gap": 0,
+        "best_relative_gap": 0,
+        "normalized_gap": 0,
+    },
+}
