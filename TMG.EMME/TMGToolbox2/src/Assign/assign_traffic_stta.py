@@ -387,7 +387,7 @@ class AssignTrafficSTTA(_m.Tool()):
         return mode_list
 
     def _get_primary_STTA_spec(self, all_matrix_dicts_list, mode_list, volume_attribute_lists, cost_attribute_lists, parameters, multiprocessing, link_component_attribute_list):
-        if parameters["performance_flag"] == "true":
+        if parameters["performance_flag"] == True:
             number_of_processors = multiprocessing.cpu_count()
         else:
             number_of_processors = max(multiprocessing.cpu_count() - 1, 1)
@@ -411,9 +411,10 @@ class AssignTrafficSTTA(_m.Tool()):
             "traversal_analysis": None,
             "performance_settings": {"number_of_processors": number_of_processors},
             "stopping_criteria": {
-                "max_iterations": parameters["iterations"],
-                "relative_gap": parameters["r_gap"],
-                "best_relative_gap": parameters["br_gap"],
+                "max_outer_iterations": 20,
+                "max_inner_iterations": parameters["iterations"],
+                "relative_gap": {"coarse": 0.001, "fine": parameters["r_gap"]},
+                "best_relative_gap": {"coarse": 0.1, "fine": parameters["br_gap"]},
                 "normalized_gap": parameters["norm_gap"],
             },
         }
