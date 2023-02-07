@@ -36,6 +36,7 @@ _write = _m.logbook_write
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 EMME_VERSION = _util.get_emme_version(tuple)
 network_calculation_tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
+traffic_assignment_tool = _MODELLER.tool("inro.emme.traffic_assignment.space_time_traffic_assignment")
 
 
 class AssignTrafficSTTA(_m.Tool()):
@@ -149,6 +150,7 @@ class AssignTrafficSTTA(_m.Tool()):
                                 multiprocessing,
                                 link_component_attribute_list,
                             )
+                            report = self._tracker.run_tool(traffic_assignment_tool, stta_spec, scenario=scenario)
 
     def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
@@ -446,61 +448,3 @@ class AssignTrafficSTTA(_m.Tool()):
     @_m.method(return_type=str)
     def tool_run_msg_status(self):
         return self.tool_run_msg
-
-
-spec = {
-    "type": "SPACE_TIME_TRAFFIC_ASSIGNMENT",
-    "assignment_period": {
-        "start_time": "00:00",
-        "interval_lengths": [300, 60, 60],
-        "extra_time_interval": 60,
-        "number_of_extra_time_intervals": 2,
-    },
-    "background_traffic": {
-        "link_component": "@tvph1",
-        "turn_component": None,
-    },
-    "variable_topology": None,
-    "classes": [
-        {
-            "mode": "c",
-            "demand": "mf1000",
-            "generalized_cost": {
-                "link_costs": "@lkcst1",
-                "perception_factor": 1,
-            },
-            "results": {
-                "link_volumes": "@auto_volume1",
-                "turn_volumes": None,
-                "od_travel_times": "mf10",
-                "vehicle_count": None,
-            },
-            "analysis": None,
-        },
-        {
-            "mode": "c",
-            "demand": "mf1100",
-            "generalized_cost": {
-                "link_costs": "@lkcst4",
-                "perception_factor": 1,
-            },
-            "results": {
-                "link_volumes": "@auto_volume4",
-                "turn_volumes": None,
-                "od_travel_times": "mf40",
-                "vehicle_count": None,
-            },
-            "analysis": None,
-        },
-    ],
-    "path_analysis": None,
-    "cutoff_analysis": None,
-    "traversal_analysis": None,
-    "performance_settings": {"number_of_processors": 7},
-    "stopping_criteria": {
-        "max_iterations": 10,
-        "relative_gap": 0,
-        "best_relative_gap": 0,
-        "normalized_gap": 0,
-    },
-}
