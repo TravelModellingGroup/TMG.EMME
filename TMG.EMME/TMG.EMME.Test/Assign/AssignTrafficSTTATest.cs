@@ -56,7 +56,8 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteString("link_component_attribute", "@tvph");
                     writer.WriteNumber("start_index", 1);
                     writer.WriteBoolean("variable_topology", false);
-                    writer.WriteNumber("iterations", 10);
+                    writer.WriteNumber("max_outer_iterations", 2);
+                    writer.WriteNumber("max_inner_iterations", 5);
                     writer.WriteNumber("r_gap", 0);
                     writer.WriteNumber("br_gap", 0);
                     writer.WriteNumber("norm_gap", 0);
@@ -69,7 +70,6 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteNumber("stop", 128);
                     writer.WriteEndObject();
                     writer.WriteEndArray();
-
                     writer.WriteStartArray("traffic_classes");
                     writer.WriteStartObject();
                     writer.WriteString("name", "traffic class 1");
@@ -94,8 +94,6 @@ namespace TMG.Emme.Test.Assign
                     writer.WriteEndObject();
                     writer.WriteEndArray();
                     writer.WriteEndObject();
-
-
                     writer.WriteStartObject();
                     writer.WriteString("name", "traffic class 2");
                     writer.WriteString("mode", "c");
