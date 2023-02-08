@@ -66,9 +66,14 @@ namespace TMG.Emme.Assign
             Index = 6)]
         public IFunction<bool> VariableTopology;
 
-        [Parameter(Name = "Iterations", DefaultValue = "", Description = "",
+        [Parameter(Name = "Max Outer Iterations", DefaultValue = "", Description = "",
             Index = 7)]
-        public IFunction<int> Iterations;
+        public IFunction<int> OuterIterations;
+
+        [Parameter(Name = "Max Inner Iterations", DefaultValue = "", Description = "",
+            Index = 7)]
+        public IFunction<int> InnerIterations;
+
 
         [Parameter(Name = "Relative Gap", DefaultValue = "", Description = "",
             Index = 8)]
@@ -235,7 +240,8 @@ namespace TMG.Emme.Assign
                 writer.WriteString("link_component_attribute", LinkComponentAttribute.Invoke());
                 writer.WriteNumber("start_index", StartIndex.Invoke());
                 writer.WriteBoolean("variable_topology", VariableTopology.Invoke());
-                writer.WriteNumber("iterations", Iterations.Invoke());
+                writer.WriteNumber("max_outer_iterations", OuterIterations.Invoke());
+                writer.WriteNumber("max_inner_iterations", InnerIterations.Invoke());
                 writer.WriteNumber("r_gap", rGap.Invoke());
                 writer.WriteNumber("br_gap", brGap.Invoke());
                 writer.WriteNumber("norm_gap", normGap.Invoke());

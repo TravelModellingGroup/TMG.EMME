@@ -20,7 +20,7 @@
 
 # ---METADATA---------------------
 """
-    Frist version by: WilliamsDiogu
+    V1.0.0 version by: WilliamsDiogu
 """
 import inro.modeller as _m
 import multiprocessing
@@ -103,7 +103,7 @@ class AssignTrafficSTTA(_m.Tool()):
 
         with _trace(
             name="%s (%s v%s)" % (parameters["run_title"], self.__class__.__name__, self.version),
-            attributes=self._load_atts(scenario, parameters["run_title"], parameters["iterations"], parameters["traffic_classes"], self.__MODELLER_NAMESPACE__),
+            attributes=self._load_atts(scenario, parameters["run_title"], parameters["max_outer_iterations"], parameters["max_inner_iterations"], parameters["traffic_classes"], self.__MODELLER_NAMESPACE__),
         ):
             self._tracker.reset()
             with _util.temporary_matrix_manager() as temp_matrix_list:
@@ -111,7 +111,6 @@ class AssignTrafficSTTA(_m.Tool()):
                 self._init_input_matrices(all_matrix_dicts_list, temp_matrix_list, input_matrix_name="demand_matrix")
                 # initialize output matrices
                 self._init_output_matrices(all_matrix_dicts_list, temp_matrix_list, output_matrix_name="cost_matrix", description="")
-
                 self._init_output_matrices(all_matrix_dicts_list, temp_matrix_list, output_matrix_name="time_matrix", description="")
                 self._init_output_matrices(all_matrix_dicts_list, temp_matrix_list, output_matrix_name="toll_matrix", description="")
                 # create list of time dependent input attribute
@@ -151,11 +150,25 @@ class AssignTrafficSTTA(_m.Tool()):
                                 link_component_attribute_list,
                             )
                             report = self._tracker.run_tool(traffic_assignment_tool, stta_spec, scenario=scenario)
+                            checked = self._load_stopping_criteria(report)
+                            number = checked[0]
+                            stopping_criterion = checked[1]
+                            value = checked[2]
+                            print("Primary assignment complete at %s iterations." % number)
+                            print("Stopping criterion was %s with a value of %s." % (stopping_criterion, value))
 
-    def _load_atts(self, scenario, run_title, iterations, traffic_classes, modeller_namespace):
+    def _load_atts(self, scenario, run_title, max_outer_iterations, max_inner_iterations, traffic_classes, modeller_namespace):
         time_matrix_ids = ["mf" + str(mtx["time_matrix_number"]) for mtx in traffic_classes]
         link_costs = [str(lc["link_cost"]) for lc in traffic_classes]
-        atts = {"Run Title": run_title, "Scenario": str(scenario.id), "Times Matrix": str(", ".join(time_matrix_ids)), "Link Cost": str(", ".join(link_costs)), "Iterations": str(iterations), "self": modeller_namespace}
+        atts = {
+            "Run Title": run_title,
+            "Scenario": str(scenario.id),
+            "Times Matrix": str(", ".join(time_matrix_ids)),
+            "Link Cost": str(", ".join(link_costs)),
+            "Max Outer Iterations": str(max_outer_iterations),
+            "Max Inner Iterations": str(max_inner_iterations),
+            "self": modeller_namespace,
+        }
         return atts
 
     def _create_time_dependent_attribute_list(self, attribute_name, interval_length_list, attribute_start_index):
@@ -409,10 +422,16 @@ class AssignTrafficSTTA(_m.Tool()):
             "path_analysis": None,
             "cutoff_analysis": None,
             "traversal_analysis": None,
+            "results": {
+                "link_volumes": None,
+                "link_costs": None,
+                "turn_volumes": None,
+                "turn_costs": None,
+            },
             "performance_settings": {"number_of_processors": number_of_processors},
             "stopping_criteria": {
-                "max_outer_iterations": 20,
-                "max_inner_iterations": parameters["iterations"],
+                "max_outer_iterations": parameters["max_outer_iterations"],
+                "max_inner_iterations": parameters["max_inner_iterations"],
                 "relative_gap": {"coarse": 0.001, "fine": parameters["r_gap"]},
                 "best_relative_gap": {"coarse": 0.1, "fine": parameters["br_gap"]},
                 "normalized_gap": parameters["norm_gap"],
@@ -426,7 +445,7 @@ class AssignTrafficSTTA(_m.Tool()):
                 "demand": matrix_dict["demand_matrix"][0].id,
                 "generalized_cost": {
                     "link_costs": cost_attribute_lists[i][0].id,
-                    "perception_factor": 1,
+                    "od_fixed_cost": None,
                 },
                 "results": {
                     "link_volumes": volume_attribute_lists[i][0],
@@ -439,8 +458,28 @@ class AssignTrafficSTTA(_m.Tool()):
 
             STTA_class_generator.append(stta_class)
         STTA_spec["classes"] = STTA_class_generator
-        print(STTA_spec)
         return STTA_spec
+
+    def _load_stopping_criteria(self, report):
+        stopping_criterion = report["stopping_criterion"]
+        iterations = report["iterations"]
+        if len(iterations) > 0:
+            final_iteration = iterations[-1]
+        else:
+            final_iteration = {"number": 0}
+            stopping_criterion == "MAX_ITERATIONS"
+        number = final_iteration["number"]
+        if stopping_criterion == "MAX_ITERATIONS":
+            value = final_iteration["number"]
+        elif stopping_criterion == "RELATIVE_GAP":
+            value = final_iteration["gaps"]["relative"]
+        elif stopping_criterion == "NORMALIZED_GAP":
+            value = final_iteration["gaps"]["normalized"]
+        elif stopping_criterion == "BEST_RELATIVE_GAP":
+            value = final_iteration["gaps"]["best_relative"]
+        else:
+            value = "undefined"
+        return number, stopping_criterion, value
 
     @_m.method(return_type=_m.TupleType)
     def percent_completed(self):
