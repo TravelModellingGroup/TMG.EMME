@@ -30,18 +30,19 @@ namespace TMG.Emme.Calculate
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
     public class CalculateBackgroundTraffic : BaseAction<ModellerController>
     {
-        [Parameter(Name = "Scenario Number", DefaultValue = 0, Description = "The scenario number to execute against.",
+        [Parameter(Name = "Scenario Number", DefaultValue = "0", Description = "The scenario number to execute against.",
             Index = 0)]
         public IFunction<int> ScenarioNumber;
 
-        [Parameter(Name = "Interval Lengths", DefaultValue = 0, Description = "Defines how the assignment time is split into intervals.",
+        [Parameter(Name = "Interval Lengths", DefaultValue = "", Description = "Defines how the assignment time is split into intervals.",
             Index = 1)]
         public IFunction<float[]> IntervalLengths;
 
-        [Parameter(Name = "Background Traffic Link Component Extra Attribute", DefaultValue = " @tvph", Description = "",
+        [Parameter(Name = "Background Traffic Link Component Extra Attribute", DefaultValue = "@tvph", Description = "",
                 Index = 5)]
         public IFunction<string> LinkComponentAttribute;
-         [Parameter(Name = "Time Dependent Start Index for Attributes", DefaultValue = "1", Description = "Time Dependent Start Indices used to create the alphanumerical attribute name string for attributes in this class.",
+        
+        [Parameter(Name = "Time Dependent Start Index for Attributes", DefaultValue = "0", Description = "Time Dependent Start Indices used to create the alphanumerical attribute name string for attributes in this class.",
             Index = 5)]
         public IFunction<int> StartIndex;
 
