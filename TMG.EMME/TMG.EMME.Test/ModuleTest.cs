@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -22,17 +22,16 @@ using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
 
-namespace TMG.Emme.Test
+namespace TMG.Emme.Test;
+
+[TestClass]
+public class ModuleTest
 {
-    [TestClass]
-    public class ModuleTest
+    [TestMethod]
+    public void LaunchXTMFRuntime()
     {
-        [TestMethod]
-        public void LaunchXTMFRuntime()
-        {
-            // make sure that all of our module are loadable
-            XTMF2.XTMFRuntime runtime = XTMF2.XTMFRuntime.CreateRuntime();
-            runtime.SystemConfiguration.LoadAssembly(typeof(ModellerController).GetTypeInfo().Assembly);
-        }
+        // make sure that all of our module are loadable
+        XTMF2.XTMFRuntime runtime = XTMF2.XTMFRuntime.CreateRuntime();
+        runtime.SystemConfiguration.LoadAssembly(typeof(ModellerController).GetTypeInfo().Assembly);
     }
 }

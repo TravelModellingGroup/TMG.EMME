@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -22,22 +22,21 @@ using System.IO;
 using System.Text.Json;
 using XTMF2;
 
-namespace TMG.Emme.Delete
-{
-    [Module(Name = "Delete Scenario", Description = "Delete an EMME scenario from the Emmebank.",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class DeleteScenario : BaseAction<ModellerController>
-    {
-        [Parameter(DefaultValue = "1", Index = 0, Name = "Scenario", Description = "The scenario to be deleted.")]
-        public IFunction<int> Scenario;
+namespace TMG.Emme.Delete;
 
-        public override void Invoke(ModellerController context)
-        {
-            context.Run(this, "tmg2.Delete.delete_scenario",
-                    JSONParameterBuilder.BuildParameters(writer =>
-                    {
-                        writer.WriteNumber("scenario", Scenario.Invoke());
-                    }), LogbookLevel.None);
-        }
+[Module(Name = "Delete Scenario", Description = "Delete an EMME scenario from the Emmebank.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class DeleteScenario : BaseAction<ModellerController>
+{
+    [Parameter(DefaultValue = "1", Index = 0, Name = "Scenario", Description = "The scenario to be deleted.")]
+    public IFunction<int> Scenario;
+
+    public override void Invoke(ModellerController context)
+    {
+        context.Run(this, "tmg2.Delete.delete_scenario",
+                JSONParameterBuilder.BuildParameters(writer =>
+                {
+                    writer.WriteNumber("scenario", Scenario.Invoke());
+                }), LogbookLevel.None);
     }
 }

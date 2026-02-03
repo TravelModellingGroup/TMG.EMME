@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 University of Toronto
+    Copyright 2022-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -23,37 +23,36 @@ using System.Text;
 using TMG.Emme;
 using XTMF2;
 
-namespace TMG.Emme.Export
+namespace TMG.Emme.Export;
+
+[Module(Name = "Export Boarding And Alighting", Description = "This tool extracts the total boarding and alighting for each transit stop of intrest in a given scenario..",
+    DocumentationLink = "https://tmg.utoronto.ca/doc/2.0/tmgtoolbox2_emme/tools/Export/ExportBoardingAndAlighting.html")]
+public class ExportBoardingAndAlighting : BaseAction<ModellerController>
 {
-    [Module(Name = "Export Boarding And Alighting", Description = "This tool extracts the total boarding and alighting for each transit stop of intrest in a given scenario..",
-        DocumentationLink = "https://tmg.utoronto.ca/doc/2.0/tmgtoolbox2_emme/tools/Export/ExportBoardingAndAlighting.html")]
-    public class ExportBoardingAndAlighting : BaseAction<ModellerController>
+    [Parameter(Name = "Scenario Number", Description = "The scenario number to extract transit information from.",
+        Index = 0)]
+    public IFunction<int> ScenarioNumber;
+
+    [Parameter(Name = "File Location", Description = "The location file containing transit stop of intrest to import.",
+        Index = 1)]
+    public IFunction<string> FileLocation;
+
+    [Parameter(Name = "Save To", Description = "The location to write the output file.",
+        Index = 2)]
+    public IFunction<string> SaveTo;
+
+    [Parameter(Name = "Write to File", Description = "Tell the tool if you want your input file used or what to create yours",
+        Index = 3)]
+    public IFunction<bool> WriteToFile;
+
+    public override void Invoke(ModellerController context)
     {
-        [Parameter(Name = "Scenario Number", Description = "The scenario number to extract transit information from.",
-            Index = 0)]
-        public IFunction<int> ScenarioNumber;
-
-        [Parameter(Name = "File Location", Description = "The location file containing transit stop of intrest to import.",
-            Index = 1)]
-        public IFunction<string> FileLocation;
-
-        [Parameter(Name = "Save To", Description = "The location to write the output file.",
-            Index = 2)]
-        public IFunction<string> SaveTo;
-
-        [Parameter(Name = "Write to File", Description = "Tell the tool if you want your input file used or what to create yours",
-            Index = 3)]
-        public IFunction<bool> WriteToFile;
-
-        public override void Invoke(ModellerController context)
-        {
-            context.Run(this, "tmg2.Export.export_boarding_and_alighting", JSONParameterBuilder.BuildParameters(writer =>
-                    {
-                        writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-                        writer.WriteString("export_file", Path.GetFullPath(SaveTo.Invoke()));
-                        writer.WriteString("input_file", Path.GetFullPath(FileLocation.Invoke()));
-                        writer.WriteBoolean("write_to_file", WriteToFile.Invoke());
-                    }), LogbookLevel.Standard);
-        }
+        context.Run(this, "tmg2.Export.export_boarding_and_alighting", JSONParameterBuilder.BuildParameters(writer =>
+                {
+                    writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
+                    writer.WriteString("export_file", Path.GetFullPath(SaveTo.Invoke()));
+                    writer.WriteString("input_file", Path.GetFullPath(FileLocation.Invoke()));
+                    writer.WriteBoolean("write_to_file", WriteToFile.Invoke());
+                }), LogbookLevel.Standard);
     }
 }

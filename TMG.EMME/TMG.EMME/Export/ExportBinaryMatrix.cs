@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -22,42 +22,41 @@ using System.IO;
 using System.Text;
 using XTMF2;
 
-namespace TMG.Emme.Export
+namespace TMG.Emme.Export;
+
+[Module(Name = "Export Binary Matrix", Description = "Export a binary matrix from EMME.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class ExportBinaryMatrix : BaseAction<ModellerController>
 {
-    [Module(Name = "Export Binary Matrix", Description = "Export a binary matrix from EMME.",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class ExportBinaryMatrix : BaseAction<ModellerController>
+    [Parameter(Name = "Scenario Number", Description = "The scenario number of export the matrix from.",
+        Index = 0)]
+    public IFunction<int> ScenarioNumber;
+
+    [Parameter(Name = "Matrix Number", Description = "The matrix number to export.",
+        Index = 1)]
+    public IFunction<int> MatrixNumber;
+
+    [Parameter(Name = "Save To", Description = "The location to write the file.",
+        Index = 2)]
+    public IFunction<string> SaveTo;
+
+    [Parameter(Name = "Matrix Type", Description = "The matrix type to export. eg. 1=ms, 2=mo, 3=md, 4=mf",
+        Index = 3)]
+    public IFunction<MatrixTypes> MatrixType;
+
+    public override void Invoke(ModellerController context)
     {
-        [Parameter(Name = "Scenario Number", Description = "The scenario number of export the matrix from.",
-            Index = 0)]
-        public IFunction<int> ScenarioNumber;
+        context.Run(this, "tmg2.Export.export_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
+                {
+                    writer.WriteNumber("matrix_type", (int)MatrixType.Invoke());
+                    writer.WriteNumber("matrix_number", MatrixNumber.Invoke());
+                    writer.WriteString("file_location", Path.GetFullPath(SaveTo.Invoke()));
+                    writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
+                }), LogbookLevel.Standard);
+    }
 
-        [Parameter(Name = "Matrix Number", Description = "The matrix number to export.",
-            Index = 1)]
-        public IFunction<int> MatrixNumber;
-
-        [Parameter(Name = "Save To", Description = "The location to write the file.",
-            Index = 2)]
-        public IFunction<string> SaveTo;
-
-        [Parameter(Name = "Matrix Type", Description = "The matrix type to export. eg. 1=ms, 2=mo, 3=md, 4=mf",
-            Index = 3)]
-        public IFunction<MatrixTypes> MatrixType;
-
-        public override void Invoke(ModellerController context)
-        {
-            context.Run(this, "tmg2.Export.export_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
-                    {
-                        writer.WriteNumber("matrix_type", (int)MatrixType.Invoke());
-                        writer.WriteNumber("matrix_number", MatrixNumber.Invoke());
-                        writer.WriteString("file_location", Path.GetFullPath(SaveTo.Invoke()));
-                        writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-                    }), LogbookLevel.Standard);
-        }
-
-        public enum MatrixTypes
-        {
-            MS = 1, MO = 2, MD = 3, MF = 4
-        }
+    public enum MatrixTypes
+    {
+        MS = 1, MO = 2, MD = 3, MF = 4
     }
 }

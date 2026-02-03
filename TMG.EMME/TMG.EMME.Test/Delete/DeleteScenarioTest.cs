@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -20,30 +20,29 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Text.Json;
 
-namespace TMG.Emme.Test.Delete
-{
-    [TestClass]
-    public class DeleteScenarioTest : TestBase
-    {
-        [TestMethod]
-        public void DeleteScenario()
-        {
-            Assert.IsTrue(
-            Helper.Modeller.Run(null, "tmg2.Delete.delete_scenario", JSONParameterBuilder.BuildParameters(writer =>
-                {
-                    writer.WriteNumber("scenario", 2);
-                }), LogbookLevel.Standard));
-        }
+namespace TMG.Emme.Test.Delete;
 
-        [TestMethod]
-        public void DeleteScenarioModule()
-        {
-            var module = new Emme.Delete.DeleteScenario()
+[TestClass]
+public class DeleteScenarioTest : TestBase
+{
+    [TestMethod]
+    public void DeleteScenario()
+    {
+        Assert.IsTrue(
+        Helper.Modeller.Run(null, "tmg2.Delete.delete_scenario", JSONParameterBuilder.BuildParameters(writer =>
             {
-                Name = "DeleteScenario",
-                Scenario = Helper.CreateParameter(2, "Delete"),
-            };
-            module.Invoke(Helper.Modeller);
-        }
+                writer.WriteNumber("scenario", 2);
+            }), LogbookLevel.Standard));
+    }
+
+    [TestMethod]
+    public void DeleteScenarioModule()
+    {
+        var module = new Emme.Delete.DeleteScenario()
+        {
+            Name = "DeleteScenario",
+            Scenario = Helper.CreateParameter(2, "Delete"),
+        };
+        module.Invoke(Helper.Modeller);
     }
 }

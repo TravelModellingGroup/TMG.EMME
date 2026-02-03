@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 University of Toronto
+    Copyright 2022-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -24,187 +24,186 @@ using System.Text;
 using TMG.Emme;
 using XTMF2;
 
-namespace TMG.Emme.Generate
+namespace TMG.Emme.Generate;
+
+[Module(Name = "Generate Full Network Set", Description = "Generates a cleaned base network for all time periods in a GTAModel run.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class GenerateTimePeriodNetworks : BaseAction<ModellerController>
 {
-    [Module(Name = "Generate Full Network Set", Description = "Generates a cleaned base network for all time periods in a GTAModel run.",
+    [Parameter(Name = "BaseScenarioNumber", Description = "The scenario number for the base network.",
+        Index = 0)]
+    public IFunction<int> BaseScenarioNumber;
+
+    [Parameter(Name = "Transit Service Table File", Description = "A link to the file containing transit service data.",
+            Index = 1)]
+    public IFunction<string> TransitServiceTableFile;
+
+    [Parameter(Name = "Attribute Aggregator", Description = "The formatted string to aggregate attributes.",
+        Index = 2)]
+    public IFunction<string> AttributeAggregator;
+
+    [Parameter(Name = "Connector Filter Attribute", Description = "The name of the attribute to use as a filter.",
+        Index = 3)]
+    public IFunction<string> ConnectorFilterAttribute;
+
+    [Parameter(Name = "Default Aggregation", Description = "The name of the attribute to use as a filter. Set to either Agg or naive",
+        Index = 4)]
+    public IFunction<DefaultAggregations> DefaultAggregation;
+
+    [Parameter(Name = "Line Filter Expression", Description = "The formatted string to use as an expression to filter lines. Leave blank to skip prorating transit speeds.",
+        Index = 5)]
+    public IFunction<string> LineFilterExpression;
+
+    [Parameter(Name = "NodeFilterAttribute", Description = "A string of the transfer mode IDs.",
+        Index = 6)]
+    public IFunction<string> NodeFilterAttribute;
+
+    [Parameter(Name = "Stop Filter Attribute", Description = "The name of the attribute to use as a filter.",
+        Index = 7)]
+    public IFunction<string> StopFilterAttribute;
+
+    [Parameter(Name = "Transfer Mode String", Description = "Modes used to transfer between transit stops, or to transit stops. Default list contains three modes: tuy ",
+        Index = 8)]
+    public IFunction<string> TransferModeString;
+
+    [Parameter(Name = "Batch Edit File", Description = "A path to the batch edit file.",
+        Index = 9)]
+    public IFunction<string> BatchEditFile;
+
+    [Parameter(Name = "Transit Aggreggation Selection Table File", Description = "A link to the file containing how to aggregate schedules.",
+        Index = 10)]
+    public IFunction<string> TransitAggreggationSelectionTableFile;
+
+    [Parameter(Name = "Transit Alternative Table", Description = "A link to the file containing how to modify transit schedules.",
+        Index = 11)]
+    public IFunction<string> TransitAlternativeTableFile;
+
+    [Parameter(Name = "Unposted Speed Limit", Description = "Unposted Speed Limit in km/h",
+        Index = 12)]
+    public IFunction<int> UnpostedSpeedLimit;
+
+    [SubModule(Name = "Time Periods", Description = "Time periods to consider.", 
+        Index = 13)]
+    public IFunction<TimePeriod>[] TimePeriods;
+
+    [SubModule(Name = "Additional Transit Alternative Tables", Description = "Additional files containing how to modify transit schedules. Each will be applied in order.", 
+        Index = 14)]
+    public IFunction<AdditionalTransitAlternativeTable>[] AdditionalTransitAlternativeTables;
+
+    [Module(Name = "Additional Transit Alternative Table Time Periods", Description = "Additional Alternative Table File.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class GenerateTimePeriodNetworks : BaseAction<ModellerController>
+    public class AdditionalTransitAlternativeTable : XTMF2.IModule
     {
-        [Parameter(Name = "BaseScenarioNumber", Description = "The scenario number for the base network.",
-            Index = 0)]
-        public IFunction<int> BaseScenarioNumber;
+        [Parameter(Name = "Alternative Table File", Description = "Alternative Table File.",
+           Index = 0)]
+        public IFunction<string> AlternativeTableFile;
 
-        [Parameter(Name = "Transit Service Table File", Description = "A link to the file containing transit service data.",
-                Index = 1)]
-        public IFunction<string> TransitServiceTableFile;
+        public string Name { get; set; }
 
-        [Parameter(Name = "Attribute Aggregator", Description = "The formatted string to aggregate attributes.",
-            Index = 2)]
-        public IFunction<string> AttributeAggregator;
+        public bool RuntimeValidation(ref string error)
+        {
+            return true;
+        }
 
-        [Parameter(Name = "Connector Filter Attribute", Description = "The name of the attribute to use as a filter.",
+        public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("name", Name);
+            writer.WriteString("alternative_table_file", Path.GetFullPath(AlternativeTableFile.Invoke()));
+            writer.WriteEndObject();
+        }
+    }
+
+    [Module(Name = "Time Periods", Description = "Time periods to consider.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+    public class TimePeriod : XTMF2.IModule
+    {
+        [Parameter(Name = "Uncleaned Scenario Number", Description = "The scenario number for the uncleaned network",
+           Index = 0)]
+        public IFunction<int> UncleanedScenarioNumber;
+
+        [Parameter(Name = "Uncleaned Description", Description = "The description for the uncleaned scenario",
+            Index = 1)]
+        public IFunction<string> UncleanedDescription;
+
+        [Parameter(Name = "Cleaned Scenario Number", Description = "The scenario number for the cleaned network",
+           Index = 2)]
+        public IFunction<int> CleanedScenarioNumber;
+
+        [Parameter(Name = "Cleaned Description", Description = "The description for the cleaned scenario",
             Index = 3)]
-        public IFunction<string> ConnectorFilterAttribute;
+        public IFunction<string> CleanedDescription;
 
-        [Parameter(Name = "Default Aggregation", Description = "The name of the attribute to use as a filter. Set to either Agg or naive",
-            Index = 4)]
-        public IFunction<DefaultAggregations> DefaultAggregation;
+        [Parameter(Name = "Start Time", Description = "The start time for this scenario. Use integer time, e.g., 2:30PM should be 1430",
+           Index = 4)]
+        public IFunction<int> StartTime;
 
-        [Parameter(Name = "Line Filter Expression", Description = "The formatted string to use as an expression to filter lines. Leave blank to skip prorating transit speeds.",
-            Index = 5)]
-        public IFunction<string> LineFilterExpression;
+        [Parameter(Name = "End Time", Description = "The end time for this scenario. User integer time, e.g., 12:30PM should be 1230",
+           Index = 5)]
+        public IFunction<int> EndTime;
 
-        [Parameter(Name = "NodeFilterAttribute", Description = "A string of the transfer mode IDs.",
+        [Parameter(Name = "Scenario Network Update File", Description = "The location of the network update file for this time period.",
             Index = 6)]
-        public IFunction<string> NodeFilterAttribute;
+        public IFunction<string> ScenarioNetworkUpdateFile;
 
-        [Parameter(Name = "Stop Filter Attribute", Description = "The name of the attribute to use as a filter.",
-            Index = 7)]
-        public IFunction<string> StopFilterAttribute;
+        public string Name { get; set; }
 
-        [Parameter(Name = "Transfer Mode String", Description = "Modes used to transfer between transit stops, or to transit stops. Default list contains three modes: tuy ",
-            Index = 8)]
-        public IFunction<string> TransferModeString;
-
-        [Parameter(Name = "Batch Edit File", Description = "A path to the batch edit file.",
-            Index = 9)]
-        public IFunction<string> BatchEditFile;
-
-        [Parameter(Name = "Transit Aggreggation Selection Table File", Description = "A link to the file containing how to aggregate schedules.",
-            Index = 10)]
-        public IFunction<string> TransitAggreggationSelectionTableFile;
-
-        [Parameter(Name = "Transit Alternative Table", Description = "A link to the file containing how to modify transit schedules.",
-            Index = 11)]
-        public IFunction<string> TransitAlternativeTableFile;
-
-        [Parameter(Name = "Unposted Speed Limit", Description = "Unposted Speed Limit in km/h",
-            Index = 12)]
-        public IFunction<int> UnpostedSpeedLimit;
-
-        [SubModule(Name = "Time Periods", Description = "Time periods to consider.", 
-            Index = 13)]
-        public IFunction<TimePeriod>[] TimePeriods;
-
-        [SubModule(Name = "Additional Transit Alternative Tables", Description = "Additional files containing how to modify transit schedules. Each will be applied in order.", 
-            Index = 14)]
-        public IFunction<AdditionalTransitAlternativeTable>[] AdditionalTransitAlternativeTables;
-
-        [Module(Name = "Additional Transit Alternative Table Time Periods", Description = "Additional Alternative Table File.",
-            DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-        public class AdditionalTransitAlternativeTable : XTMF2.IModule
+        public bool RuntimeValidation(ref string error)
         {
-            [Parameter(Name = "Alternative Table File", Description = "Alternative Table File.",
-               Index = 0)]
-            public IFunction<string> AlternativeTableFile;
-
-            public string Name { get; set; }
-
-            public bool RuntimeValidation(ref string error)
-            {
-                return true;
-            }
-
-            public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
-            {
-                writer.WriteStartObject();
-                writer.WriteString("name", Name);
-                writer.WriteString("alternative_table_file", Path.GetFullPath(AlternativeTableFile.Invoke()));
-                writer.WriteEndObject();
-            }
+            return true;
         }
 
-        [Module(Name = "Time Periods", Description = "Time periods to consider.",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-        public class TimePeriod : XTMF2.IModule
+        public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
         {
-            [Parameter(Name = "Uncleaned Scenario Number", Description = "The scenario number for the uncleaned network",
-               Index = 0)]
-            public IFunction<int> UncleanedScenarioNumber;
+            writer.WriteStartObject();
+            writer.WriteString("name", Name);
+            writer.WriteNumber("uncleaned_scenario_number", UncleanedScenarioNumber.Invoke());
+            writer.WriteNumber("cleaned_scenario_number", CleanedScenarioNumber.Invoke());
+            writer.WriteString("uncleaned_description", UncleanedDescription.Invoke());
+            writer.WriteString("cleaned_description", CleanedDescription.Invoke());
+            writer.WriteNumber("start_time", StartTime.Invoke());
+            writer.WriteNumber("end_time", EndTime.Invoke());
+            writer.WriteString("scenario_network_update_file", ScenarioNetworkUpdateFile.Invoke());
+            writer.WriteEndObject();
+        }
+    }
 
-            [Parameter(Name = "Uncleaned Description", Description = "The description for the uncleaned scenario",
-                Index = 1)]
-            public IFunction<string> UncleanedDescription;
-
-            [Parameter(Name = "Cleaned Scenario Number", Description = "The scenario number for the cleaned network",
-               Index = 2)]
-            public IFunction<int> CleanedScenarioNumber;
-
-            [Parameter(Name = "Cleaned Description", Description = "The description for the cleaned scenario",
-                Index = 3)]
-            public IFunction<string> CleanedDescription;
-
-            [Parameter(Name = "Start Time", Description = "The start time for this scenario. Use integer time, e.g., 2:30PM should be 1430",
-               Index = 4)]
-            public IFunction<int> StartTime;
-
-            [Parameter(Name = "End Time", Description = "The end time for this scenario. User integer time, e.g., 12:30PM should be 1230",
-               Index = 5)]
-            public IFunction<int> EndTime;
-
-            [Parameter(Name = "Scenario Network Update File", Description = "The location of the network update file for this time period.",
-                Index = 6)]
-            public IFunction<string> ScenarioNetworkUpdateFile;
-
-            public string Name { get; set; }
-
-            public bool RuntimeValidation(ref string error)
+    public override void Invoke(ModellerController context)
+    {
+        context.Run(this, "tmg2.Generate.generate_time_period_networks", JSONParameterBuilder.BuildParameters(writer =>
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("base_scenario_number", BaseScenarioNumber.Invoke());
+            writer.WriteString("transit_service_table_file", Path.GetFullPath(TransitServiceTableFile.Invoke()));
+            writer.WriteString("attribute_aggregator", AttributeAggregator.Invoke());
+            writer.WriteString("connector_filter_attribute", ConnectorFilterAttribute.Invoke());
+            writer.WriteNumber("default_aggregation", (int)DefaultAggregation.Invoke());
+            writer.WriteString("line_filter_expression", LineFilterExpression.Invoke());
+            writer.WriteString("node_filter_attribute", NodeFilterAttribute.Invoke());
+            writer.WriteString("stop_filter_attribute", StopFilterAttribute.Invoke());
+            writer.WriteString("transfer_mode_string", TransferModeString.Invoke());
+            writer.WriteString("batch_edit_file", Path.GetFullPath(BatchEditFile.Invoke()));
+            writer.WriteString("transit_aggregation_selection_table_file", Path.GetFullPath(TransitAggreggationSelectionTableFile.Invoke()));
+            writer.WriteString("transit_alternative_table_file", Path.GetFullPath(TransitAlternativeTableFile.Invoke()));
+            writer.WriteNumber("unposted_speed_limit", UnpostedSpeedLimit.Invoke());
+            writer.WriteStartArray("time_periods");
+            foreach (var timePeriod in TimePeriods)
             {
-                return true;
+                timePeriod.Invoke().WriteParameters(writer);
             }
-
-            public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
+            writer.WriteEndArray();
+            writer.WriteStartArray("additional_transit_alternative_table");
+            foreach (var additionalTransitAlternativeTable in AdditionalTransitAlternativeTables)
             {
-                writer.WriteStartObject();
-                writer.WriteString("name", Name);
-                writer.WriteNumber("uncleaned_scenario_number", UncleanedScenarioNumber.Invoke());
-                writer.WriteNumber("cleaned_scenario_number", CleanedScenarioNumber.Invoke());
-                writer.WriteString("uncleaned_description", UncleanedDescription.Invoke());
-                writer.WriteString("cleaned_description", CleanedDescription.Invoke());
-                writer.WriteNumber("start_time", StartTime.Invoke());
-                writer.WriteNumber("end_time", EndTime.Invoke());
-                writer.WriteString("scenario_network_update_file", ScenarioNetworkUpdateFile.Invoke());
-                writer.WriteEndObject();
+                additionalTransitAlternativeTable.Invoke().WriteParameters(writer);
             }
-        }
+            writer.WriteEndArray();
+            writer.WriteEndObject();
 
-        public override void Invoke(ModellerController context)
-        {
-            context.Run(this, "tmg2.Generate.generate_time_period_networks", JSONParameterBuilder.BuildParameters(writer =>
-            {
-                writer.WriteStartObject();
-                writer.WriteNumber("base_scenario_number", BaseScenarioNumber.Invoke());
-                writer.WriteString("transit_service_table_file", Path.GetFullPath(TransitServiceTableFile.Invoke()));
-                writer.WriteString("attribute_aggregator", AttributeAggregator.Invoke());
-                writer.WriteString("connector_filter_attribute", ConnectorFilterAttribute.Invoke());
-                writer.WriteNumber("default_aggregation", (int)DefaultAggregation.Invoke());
-                writer.WriteString("line_filter_expression", LineFilterExpression.Invoke());
-                writer.WriteString("node_filter_attribute", NodeFilterAttribute.Invoke());
-                writer.WriteString("stop_filter_attribute", StopFilterAttribute.Invoke());
-                writer.WriteString("transfer_mode_string", TransferModeString.Invoke());
-                writer.WriteString("batch_edit_file", Path.GetFullPath(BatchEditFile.Invoke()));
-                writer.WriteString("transit_aggregation_selection_table_file", Path.GetFullPath(TransitAggreggationSelectionTableFile.Invoke()));
-                writer.WriteString("transit_alternative_table_file", Path.GetFullPath(TransitAlternativeTableFile.Invoke()));
-                writer.WriteNumber("unposted_speed_limit", UnpostedSpeedLimit.Invoke());
-                writer.WriteStartArray("time_periods");
-                foreach (var timePeriod in TimePeriods)
-                {
-                    timePeriod.Invoke().WriteParameters(writer);
-                }
-                writer.WriteEndArray();
-                writer.WriteStartArray("additional_transit_alternative_table");
-                foreach (var additionalTransitAlternativeTable in AdditionalTransitAlternativeTables)
-                {
-                    additionalTransitAlternativeTable.Invoke().WriteParameters(writer);
-                }
-                writer.WriteEndArray();
-                writer.WriteEndObject();
-
-            }), LogbookLevel.Standard);
-        }
-        public enum DefaultAggregations
-        {
-            Naive = 0, Average = 1
-        }
+        }), LogbookLevel.Standard);
+    }
+    public enum DefaultAggregations
+    {
+        Naive = 0, Average = 1
     }
 }

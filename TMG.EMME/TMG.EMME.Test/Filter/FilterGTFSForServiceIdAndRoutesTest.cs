@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 University of Toronto
+    Copyright 2022-2026 University of Toronto
     This file is part of TMG.EMME for XTMF2.
     TMG.EMME for XTMF2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,35 +18,34 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 
-namespace TMG.Emme.Test.Filter
-{
-    [TestClass]
-    public class FilterGTFSForServiceIdAndRoutesTest : TestBase
-    {
-        [TestMethod]
-        public void FilterGTFSForServiceIdAndRoutes()
-        {
-            Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Filter.filter_gtfs_for_service_id_and_routes",
-                 JSONParameterBuilder.BuildParameters(writer =>
-                 {
-                     writer.WriteString("gtfs_folder", Path.GetFullPath("TestFiles/FrabtiztownGTFS"));
-                     writer.WriteString("service_id", "FrabtiztownTransit");
-                     writer.WriteString("routes_file", "");
-                 }), LogbookLevel.Standard));
-        }
+namespace TMG.Emme.Test.Filter;
 
-        [TestMethod]
-        public void FilterGTFSForServiceIdAndRoutesModule()
+[TestClass]
+public class FilterGTFSForServiceIdAndRoutesTest : TestBase
+{
+    [TestMethod]
+    public void FilterGTFSForServiceIdAndRoutes()
+    {
+        Assert.IsTrue(
+            Helper.Modeller.Run(null, "tmg2.Filter.filter_gtfs_for_service_id_and_routes",
+             JSONParameterBuilder.BuildParameters(writer =>
+             {
+                 writer.WriteString("gtfs_folder", Path.GetFullPath("TestFiles/FrabtiztownGTFS"));
+                 writer.WriteString("service_id", "FrabtiztownTransit");
+                 writer.WriteString("routes_file", "");
+             }), LogbookLevel.Standard));
+    }
+
+    [TestMethod]
+    public void FilterGTFSForServiceIdAndRoutesModule()
+    {
+        var module = new Emme.Filter.FilterGTFSForServiceIdAndRoutes()
         {
-            var module = new Emme.Filter.FilterGTFSForServiceIdAndRoutes()
-            {
-                Name = "FilterGTFS",
-                GTFSFolder = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS"), "GTFS Folder Names"),
-                ServiceID = Helper.CreateParameter("FrabtiztownTransit", "Service ID"),
-                UpdatedRoutesFile = Helper.CreateParameter("", "Routes File")
-            };
-            module.Invoke(Helper.Modeller);
-        }
+            Name = "FilterGTFS",
+            GTFSFolder = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS"), "GTFS Folder Names"),
+            ServiceID = Helper.CreateParameter("FrabtiztownTransit", "Service ID"),
+            UpdatedRoutesFile = Helper.CreateParameter("", "Routes File")
+        };
+        module.Invoke(Helper.Modeller);
     }
 }

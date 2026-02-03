@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2022 University of Toronto
+    Copyright 2022-2026 University of Toronto
     This file is part of TMG.EMME for XTMF2.
     TMG.EMME for XTMF2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,33 +18,32 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 
-namespace TMG.Emme.Test.Convert
-{
-    [TestClass]
-    public class ConvertGTFSStopsToShapefileTest : TestBase
-    {
-        [TestMethod]
-        public void ConvertGtfsStopsToShp()
-        {
-            Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Convert.convert_gtfs_stops_to_shapefile",
-                 JSONParameterBuilder.BuildParameters(writer =>
-                 {
-                     writer.WriteString("gtfs_folder", Path.GetFullPath("TestFiles/FrabtiztownGTFS"));
-                     writer.WriteString("shape_file_name", Path.GetFullPath("OutputTestFiles/FrabtiztownStopShp"));
-                 }), LogbookLevel.Standard));
-        }
+namespace TMG.Emme.Test.Convert;
 
-        [TestMethod]
-        public void ConvertGtfsStopsToShpModule()
+[TestClass]
+public class ConvertGTFSStopsToShapefileTest : TestBase
+{
+    [TestMethod]
+    public void ConvertGtfsStopsToShp()
+    {
+        Assert.IsTrue(
+            Helper.Modeller.Run(null, "tmg2.Convert.convert_gtfs_stops_to_shapefile",
+             JSONParameterBuilder.BuildParameters(writer =>
+             {
+                 writer.WriteString("gtfs_folder", Path.GetFullPath("TestFiles/FrabtiztownGTFS"));
+                 writer.WriteString("shape_file_name", Path.GetFullPath("OutputTestFiles/FrabtiztownStopShp"));
+             }), LogbookLevel.Standard));
+    }
+
+    [TestMethod]
+    public void ConvertGtfsStopsToShpModule()
+    {
+        var module = new Emme.Convert.ConvertGTFSStopsToShapefile()
         {
-            var module = new Emme.Convert.ConvertGTFSStopsToShapefile()
-            {
-                Name = "ConvertGtfsStops",
-                GTFSFolder = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS"), "GTFS Folder Names"),
-                ShapefileName = Helper.CreateParameter("FrabtiztownStopShp", "Shapefile Name"),
-            };
-            module.Invoke(Helper.Modeller);
-        }
+            Name = "ConvertGtfsStops",
+            GTFSFolder = Helper.CreateParameter(Path.GetFullPath("TestFiles/FrabtiztownGTFS"), "GTFS Folder Names"),
+            ShapefileName = Helper.CreateParameter("FrabtiztownStopShp", "Shapefile Name"),
+        };
+        module.Invoke(Helper.Modeller);
     }
 }

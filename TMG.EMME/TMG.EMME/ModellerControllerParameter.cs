@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -16,17 +16,16 @@
     You should have received a copy of the GNU General Public License
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
-namespace TMG.Emme
-{
-    public class ModellerControllerParameter
-    {
-        internal string Name;
-        internal string Value;
+namespace TMG.Emme;
 
-        public ModellerControllerParameter(string name, string value)
-        {
-            Name = name;
-            Value = value;
-        }
+public class ModellerControllerParameter
+{
+    internal string Name;
+    internal string Value;
+
+    public ModellerControllerParameter(string name, string value)
+    {
+        Name = name;
+        Value = value;
     }
 }

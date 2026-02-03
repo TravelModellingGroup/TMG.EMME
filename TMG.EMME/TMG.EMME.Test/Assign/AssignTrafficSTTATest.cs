@@ -1,5 +1,5 @@
 /*
-    Copyright 2023 University of Toronto
+    Copyright 2023-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 

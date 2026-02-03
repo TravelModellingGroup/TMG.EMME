@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2022 University of Toronto
+    Copyright 2022-2026 University of Toronto
     This file is part of TMG.EMME for XTMF2.
     TMG.EMME for XTMF2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,33 +20,32 @@ using System.Text;
 using System.Text.Json;
 using XTMF2;
 
-namespace TMG.Emme.Test.Convert
+namespace TMG.Emme.Test.Convert;
+
+[TestClass]
+public class ReverseTransitLinesTest : TestBase
 {
-    [TestClass]
-    public class ReverseTransitLinesTest : TestBase
+    [TestMethod]
+    public void ReverseTransitLines()
     {
-        [TestMethod]
-        public void ReverseTransitLines()
-        {
-            Helper.ImportNetwork(3, "TestFiles/test00.nwp", "reverse_network");
-            Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Convert.reverse_transit_lines",
-                JSONParameterBuilder.BuildParameters(writer =>
-                {
-                    writer.WriteNumber("scenario_number", 3);
-                    writer.WriteString("line_selector_expression", "mode=r");
-                }), LogbookLevel.Standard));
-        }
-        [TestMethod]
-        public void ReverseTransitLinesModule()
-        {
-            var module = new Emme.Convert.ReverseTransitLines()
+        Helper.ImportNetwork(3, "TestFiles/test00.nwp", "reverse_network");
+        Assert.IsTrue(
+            Helper.Modeller.Run(null, "tmg2.Convert.reverse_transit_lines",
+            JSONParameterBuilder.BuildParameters(writer =>
             {
-                Name = "ReverseTransitLines",
-                ScenarioNumber = Helper.CreateParameter(3),
-                LineSelectorExpression = Helper.CreateParameter("mode=r"),
-            };
-            module.Invoke(Helper.Modeller);
-        }
+                writer.WriteNumber("scenario_number", 3);
+                writer.WriteString("line_selector_expression", "mode=r");
+            }), LogbookLevel.Standard));
+    }
+    [TestMethod]
+    public void ReverseTransitLinesModule()
+    {
+        var module = new Emme.Convert.ReverseTransitLines()
+        {
+            Name = "ReverseTransitLines",
+            ScenarioNumber = Helper.CreateParameter(3),
+            LineSelectorExpression = Helper.CreateParameter("mode=r"),
+        };
+        module.Invoke(Helper.Modeller);
     }
 }

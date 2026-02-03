@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -19,32 +19,31 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 
-namespace TMG.Emme.Test.Import
-{
-    [TestClass]
-    public class ImportBinaryMatrixTest : TestBase
-    {
-        [TestMethod]
-        public void ImportBinaryMatrix()
-        {
-            Helper.ImportFrabitztownNetwork(1);
-            Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
-        }
+namespace TMG.Emme.Test.Import;
 
-        [TestMethod]
-        public void ImportBinaryMatrixModule()
+[TestClass]
+public class ImportBinaryMatrixTest : TestBase
+{
+    [TestMethod]
+    public void ImportBinaryMatrix()
+    {
+        Helper.ImportFrabitztownNetwork(1);
+        Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+    }
+
+    [TestMethod]
+    public void ImportBinaryMatrixModule()
+    {
+        Helper.ImportFrabitztownNetwork(1);
+        var importModule = new Emme.Import.ImportBinaryMatrix()
         {
-            Helper.ImportFrabitztownNetwork(1);
-            var importModule = new Emme.Import.ImportBinaryMatrix()
-            {
-                Name = "Importer",
-                ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
-                MatrixNumber = Helper.CreateParameter(10, "Matrix Number"),
-                FileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.mtx"), "Matrix File Name"),
-                Description = Helper.CreateParameter("Module Loaded", "Description"),
-                MatrixType = Helper.CreateParameter(Emme.Import.ImportBinaryMatrix.MatrixTypes.MF)
-            };
-            importModule.Invoke(Helper.Modeller);
-        }
+            Name = "Importer",
+            ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
+            MatrixNumber = Helper.CreateParameter(10, "Matrix Number"),
+            FileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.mtx"), "Matrix File Name"),
+            Description = Helper.CreateParameter("Module Loaded", "Description"),
+            MatrixType = Helper.CreateParameter(Emme.Import.ImportBinaryMatrix.MatrixTypes.MF)
+        };
+        importModule.Invoke(Helper.Modeller);
     }
 }
