@@ -51,6 +51,7 @@ The path to the location of the DebugProject folder is the following:
 ```
 ~\TMG.EMME\TMG.EMME\TMG.EMME.Test\bin\Debug\net10.0\DebugProject
 ```
+**Note:** The reason the Debug project is in the Debug folder is because it wasn't compiled to a Release build. 
 
 Use Emme software to create a new Emme project with the database dimensions below. Do not the name of the project 
 must be named **DebugProject**. Note for the city use Toronto (GTA) for the map of interest (initially). 
