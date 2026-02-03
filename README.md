@@ -33,12 +33,17 @@ the files within the TMGToolbox2 project. This toolbox is not portable to other 
 to compile a portable toolbox use "Build Consolidated Toolbox.bat".  If you build a consolidated
 toolbox you will need to rebuild it every time you alter the TMGToolbox2 source code.
 
+There are 2 configurations, `Debug` and `Release` (default names for .Net). Pick one of them.
+For the Release compile the command is 
 ```
 cd TMG.EMME
 dotnet build --configuration Release
+OR 
+dotnet build --configuration Debug
 cd TMGToolbox2
 "Build Toolbox.bat"
 ```
+
 
 ### Testing
 
