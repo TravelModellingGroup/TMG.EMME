@@ -6,16 +6,16 @@
     <ProjectGuid>{4df03671-3110-422d-8a00-950dbaa44cf1}</ProjectGuid>
     <ProjectHome />
     <StartupFile>..\TMG.EMME\ModellerBridge.py</StartupFile>
-    <SearchPath>..\TMG.EMME;..\TMG.EMME.Test\bin\Debug\net6.0</SearchPath>
+    <SearchPath>..\TMG.EMME;..\TMG.EMME.Test\bin\Debug\net10.0</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <InterpreterId>Global|VisualStudio|Python37</InterpreterId>
+    <InterpreterId>Global|VisualStudio|Python311</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>"..\TMG.EMME.Test\bin\$(Configuration)\net6.0\DebugProject\DebugProject.emp" XTMF 0 DEBUG_EMME</CommandLineArguments>
+    <CommandLineArguments>"..\TMG.EMME.Test\bin\$(Configuration)\net10.0\DebugProject\DebugProject.emp" XTMF 0 DEBUG_EMME</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
-    <Environment>Path="C:\Program Files\INRO\Emme\Emme 4\Emme-4.6.0\Python37";C:\Program Files\INRO\Emme\Emme 4\Emme-4.6.0\programs"</Environment>
+    <Environment>Path="C:\Program Files\Bentley\OpenPaths\EMME 25.00.00\Python37";C:\Program Files\Bentley\OpenPaths\EMME 25.00.00\programs"</Environment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -23,8 +23,7 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
-    <InterpreterReference Include="Global|PythonCore|2.7" />
-    <InterpreterReference Include="Global|VisualStudio|Python37" />
+    <InterpreterReference Include="Global|VisualStudio|Python311" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\TMG.EMME\ModellerBridge.py">

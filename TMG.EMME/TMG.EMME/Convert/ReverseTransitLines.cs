@@ -22,7 +22,7 @@ using XTMF2;
 
 namespace TMG.Emme.Convert
 {
-    [Module(Name = "Reverse Transit Lines", Description = "",
+    [Module(Name = "Reverse Transit Lines", Description = "Reverses the itineraries of a subset of transit lines.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
     public class ReverseTransitLines : BaseAction<ModellerController>
     {

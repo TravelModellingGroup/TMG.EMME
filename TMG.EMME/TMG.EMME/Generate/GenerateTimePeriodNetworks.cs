@@ -26,7 +26,7 @@ using XTMF2;
 
 namespace TMG.Emme.Generate
 {
-    [Module(Name = "Generate Full Network Set", Description = "",
+    [Module(Name = "Generate Full Network Set", Description = "Generates a cleaned base network for all time periods in a GTAModel run.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
     public class GenerateTimePeriodNetworks : BaseAction<ModellerController>
     {
@@ -82,17 +82,19 @@ namespace TMG.Emme.Generate
             Index = 12)]
         public IFunction<int> UnpostedSpeedLimit;
 
-        [SubModule(Name = "Time Periods", Description = "Time periods to consider.", Index = 13)]
+        [SubModule(Name = "Time Periods", Description = "Time periods to consider.", 
+            Index = 13)]
         public IFunction<TimePeriod>[] TimePeriods;
 
-        [SubModule(Name = "Additional Transit Alternative Tables", Description = "Additional files containing how to modify transit schedules. Each will be applied in order.", Index = 13)]
+        [SubModule(Name = "Additional Transit Alternative Tables", Description = "Additional files containing how to modify transit schedules. Each will be applied in order.", 
+            Index = 14)]
         public IFunction<AdditionalTransitAlternativeTable>[] AdditionalTransitAlternativeTables;
 
-        [Module(Name = "Additional Transit Alternative Table Time Periods", Description = "",
+        [Module(Name = "Additional Transit Alternative Table Time Periods", Description = "Additional Alternative Table File.",
             DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
         public class AdditionalTransitAlternativeTable : XTMF2.IModule
         {
-            [Parameter(Name = "Alternative Table File", Description = "",
+            [Parameter(Name = "Alternative Table File", Description = "Alternative Table File.",
                Index = 0)]
             public IFunction<string> AlternativeTableFile;
 
