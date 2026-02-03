@@ -24,256 +24,257 @@ using System.Text;
 using TMG.Emme;
 using XTMF2;
 
-namespace TMG.Emme.Assign
+namespace TMG.Emme.Assign;
+
+[Module(Name = "Assign Demand To Road Network Using STTA Method", Description = "Executes a multi-class road assignment which allows for the generalized penalty of road tolls. Toll based road assignment tool.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class AssignTrafficSTTA : BaseAction<ModellerController>
 {
-    [Module(Name = "Assign Demand To Road Network Using STTA Method", Description = "",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class AssignTrafficSTTA : BaseAction<ModellerController>
+    [Parameter(Name = "Scenario Number", DefaultValue = "", Description = "The scenario number to execute against.",
+        Index = 0)]
+    public IFunction<int> ScenarioNumber;
+
+    [Parameter(Name = "Interval Lengths", DefaultValue = "true", Description = "Defines how the assignment time is split into intervals.",
+        Index = 1)]
+    public IFunction<float[]> IntervalLengths;
+
+    [Parameter(Name = "Start Time", DefaultValue = "00:00", Description = "Start Time.",
+        Index = 2)]
+    public IFunction<string> StartTime;
+
+    [Parameter(Name = "ExtraTimeInterval", DefaultValue = "", Description = "Extra Time Interval.",
+        Index = 3)]
+    public IFunction<float> ExtraTimeInterval;
+
+    [Parameter(Name = "NumberOfExtraTimeIntervals", DefaultValue = "", Description = "Number of Extra Time Intervals.",
+        Index = 4)]
+    public IFunction<int> NumberOfExtraTimeIntervals;
+
+    [Parameter(Name = "BackgroundTraffic", DefaultValue = "", Description = "Background Traffic",
+        Index = 5)]
+    public IFunction<bool> BackgroundTraffic;
+
+    [Parameter(Name = "Background Traffic Link Component Extra Attribute", DefaultValue = " @tvph", Description = "Background Traffic Link Component Extra Attribute",
+        Index = 6)]
+    public IFunction<string> LinkComponentAttribute;
+
+    [Parameter(Name = "Time Dependent Start Index for Attributes", DefaultValue = "1", Description = "Time Dependent Start Indices used to create the alphanumerical attribute name string for attributes in this class.",
+        Index = 7)]
+    public IFunction<int> StartIndex;
+
+    [Parameter(Name = "Variable Topology", DefaultValue = "", Description = "Variable Topology",
+        Index = 8)]
+    public IFunction<bool> VariableTopology;
+
+    [Parameter(Name = "Max Outer Iterations", DefaultValue = "", Description = "Max Outer Iterations",
+        Index = 9)]
+    public IFunction<int> OuterIterations;
+
+    [Parameter(Name = "Max Inner Iterations", DefaultValue = "", Description = "Max Inner Iterations",
+        Index = 10)]
+    public IFunction<int> InnerIterations;
+
+    [Parameter(Name = "Relative Gap", DefaultValue = "", Description = "Relative Gap",
+        Index = 11)]
+    public IFunction<float> rGap;
+
+    [Parameter(Name = "Best Relative Gap", DefaultValue = "", Description = "Best Relative Gap",
+        Index = 12)]
+    public IFunction<float> brGap;
+
+    [Parameter(Name = "Normalized Gap", DefaultValue = "", Description = "Normalized Gap",
+        Index = 13)]
+    public IFunction<float> normGap;
+
+    [Parameter(Name = "Performance Flag", DefaultValue = "", Description = "Performance Flag",
+        Index = 14)]
+    public IFunction<bool> PerformanceFlag;
+
+    [Parameter(Name = "Run Title", DefaultValue = "", Description = "Run Title",
+        Index = 15)]
+    public IFunction<string> RunTitle;
+
+    [Parameter(Name = "Mixed Used TTF Ranged", DefaultValue = "3-128", Description = "The TTFs where transit vehicles will occupy"
+        + " some capacity on links. The ranges are inclusive.", 
+        Index = 16)]
+    public IFunction<RangeSet> MixedUseTTFRanges;
+
+    [SubModule(Name = "Traffic Classes", Description = "Traffic Classes", 
+        Index = 17)]
+    public IFunction<TrafficClass>[] TrafficClasses;
+
+    [Module(Name = "Traffic Class", Description = "Traffic Class",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+    public class TrafficClass : XTMF2.IModule
     {
-        [Parameter(Name = "Scenario Number", DefaultValue = "", Description = "The scenario number to execute against.",
+        [Parameter(Name = "Demand Matrix", DefaultValue = "", Description = "The id of the demand matrix to use.",
             Index = 0)]
-        public IFunction<int> ScenarioNumber;
+        public IFunction<int> DemandMatrixNumber;
 
-        [Parameter(Name = "Interval Lengths", DefaultValue = "true", Description = "Defines how the assignment time is split into intervals.",
+        [Parameter(Name = "Mode", DefaultValue = "c", Description = "The mode for this class.",
             Index = 1)]
-        public IFunction<float[]> IntervalLengths;
+        public IFunction<char> Mode;
 
-        [Parameter(Name = "Start Time", DefaultValue = "00:00", Description = "",
+        [Parameter(Name = "Time Matrix", DefaultValue = "0", Description = "The matrix number to save in vehicle travel times",
             Index = 2)]
-        public IFunction<string> StartTime;
+        public IFunction<int> TimeMatrixNumber;
 
-        [Parameter(Name = "ExtraTimeInterval", DefaultValue = "", Description = "",
+        [Parameter(Name = "Cost Matrix", DefaultValue = "0", Description = "The matrix number to save the total cost into.",
             Index = 3)]
-        public IFunction<float> ExtraTimeInterval;
+        public IFunction<int> CostMatrixNumber;
 
-        [Parameter(Name = "NumberOfExtraTimeIntervals", DefaultValue = "", Description = "",
+        [Parameter(Name = "Toll Matrix Number", DefaultValue = "0", Description = "The matrix to save the toll costs into.",
             Index = 4)]
-        public IFunction<int> NumberOfExtraTimeIntervals;
+        public IFunction<int> TollMatrixNumber;
 
-        [Parameter(Name = "BackgroundTraffic", DefaultValue = "", Description = "",
-            Index = 5)]
-        public IFunction<bool> BackgroundTraffic;
+        [Parameter(Name = "Toll Weight", DefaultValue = "0", Description = "The toll weight",
+           Index = 7)]
+        public IFunction<float> TollWeight;
 
-        [Parameter(Name = "Background Traffic Link Component Extra Attribute", DefaultValue = " @tvph", Description = "",
-                Index = 5)]
-        public IFunction<string> LinkComponentAttribute;
-
-        [Parameter(Name = "Time Dependent Start Index for Attributes", DefaultValue = "1", Description = "Time Dependent Start Indices used to create the alphanumerical attribute name string for attributes in this class.",
-            Index = 5)]
-        public IFunction<int> StartIndex;
-
-        [Parameter(Name = "Variable Topology", DefaultValue = "", Description = "",
-            Index = 6)]
-        public IFunction<bool> VariableTopology;
-
-        [Parameter(Name = "Max Outer Iterations", DefaultValue = "", Description = "",
-            Index = 7)]
-        public IFunction<int> OuterIterations;
-
-        [Parameter(Name = "Max Inner Iterations", DefaultValue = "", Description = "",
-            Index = 7)]
-        public IFunction<int> InnerIterations;
-
-
-        [Parameter(Name = "Relative Gap", DefaultValue = "", Description = "",
+        [Parameter(Name = "Toll Weights", DefaultValue = "true", Description = "The toll weight",
             Index = 8)]
-        public IFunction<float> rGap;
+        public IFunction<float[]> TollWeights;
 
-        [Parameter(Name = "Best Relative Gap", DefaultValue = "", Description = "",
+        [Parameter(Name = "OD Fixed Cost", DefaultValue = "0", Description = "OD Fixed Cost",
             Index = 9)]
-        public IFunction<float> brGap;
+        public IFunction<string> ODFixedCost;
 
-        [Parameter(Name = "Normalized Gap", DefaultValue = "", Description = "",
+        [Parameter(Name = "Toll Attribute", DefaultValue = " @toll", Description = "The attribute containing the road tolls for this class of vehicle.",
+            Index = 6)]
+        public IFunction<string> LinkTollAttribute;
+
+        [Parameter(Name = "Peak Hour Factor", DefaultValue = "1", Description = "A factor to apply to the demand in order to build"
+            + "a representative hour.",
             Index = 10)]
-        public IFunction<float> normGap;
+        public IFunction<float> PeakHourFactor;
 
-        [Parameter(Name = "Performance Flag", DefaultValue = "", Description = "",
+        [Parameter(Name = "Volume Attribute", DefaultValue = " @auto_volume", Description = "The name of the attribute to save the volumes into"
+            + "(or None for no saving).",
+            Index = 5)]
+        public IFunction<string> VolumeAttribute;
+
+        [Parameter(Name = "Time Dependent Start Index for Attributes in this Class", DefaultValue = "1", Description = "Time Dependent Start Indices used to create "
+            + "the alphanumerical attribute name string for attributes in this class. e.g. if 1 is specified, "
+            + "then @auto_volume1, @auto_volume2 etc are created depending on the number of time period intervals).",
             Index = 11)]
-        public IFunction<bool> PerformanceFlag;
+        public IFunction<int> AttributeStartIndex;
 
-        [Parameter(Name = "Run Title", DefaultValue = "", Description = "",
+        [Parameter(Name = "Link Cost", DefaultValue = "0", Description = "The penalty in minutes per dollar to apply when traversing a link.",
             Index = 12)]
-        public IFunction<string> RunTitle;
+        public IFunction<float> LinkCost;
 
-        [Parameter(Name = "Mixed Used TTF Ranged", DefaultValue = "3-128", Description = "The TTFs where transit vehicles will occupy"
-            + " some capacity on links. The ranges are inclusive.", Index = 13)]
-        public IFunction<RangeSet> MixedUseTTFRanges;
+        [SubModule(Name = "Path Analysis", Description = "Path Analysis", 
+            Index = 13, Required = false)]
+        public IFunction<PathAnalysis>[] PathAnalyses;
 
-        [SubModule(Name = "Traffic Classes", Description = "", Index = 14)]
-        public IFunction<TrafficClass>[] TrafficClasses;
+        public string Name { get; set; }
 
-        [Module(Name = "Traffic Class", Description = "",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-        public class TrafficClass : XTMF2.IModule
+        public bool RuntimeValidation(ref string error)
         {
-            [Parameter(Name = "Demand Matrix", DefaultValue = "", Description = "The id of the demand matrix to use.",
-                Index = 0)]
-            public IFunction<int> DemandMatrixNumber;
-
-            [Parameter(Name = "Mode", DefaultValue = "c", Description = "The mode for this class.",
-                Index = 1)]
-            public IFunction<char> Mode;
-
-            [Parameter(Name = "Time Matrix", DefaultValue = "0", Description = "The matrix number to save in vehicle travel times",
-                Index = 2)]
-            public IFunction<int> TimeMatrixNumber;
-
-            [Parameter(Name = "Cost Matrix", DefaultValue = "0", Description = "The matrix number to save the total cost into.",
-                Index = 3)]
-            public IFunction<int> CostMatrixNumber;
-
-            [Parameter(Name = "Toll Matrix Number", DefaultValue = "0", Description = "The matrix to save the toll costs into.",
-                Index = 4)]
-            public IFunction<int> TollMatrixNumber;
-
-            [Parameter(Name = "Toll Weight", DefaultValue = "0", Description = "The toll weight",
-               Index = 7)]
-            public IFunction<float> TollWeight;
-
-            [Parameter(Name = "Toll Weights", DefaultValue = "true", Description = "The toll weight",
-            Index = 1)]
-            public IFunction<float[]> TollWeights;
-
-            [Parameter(Name = "OD Fixed Cost", DefaultValue = "0", Description = "",
-                Index = 4)]
-            public IFunction<string> ODFixedCost;
-
-            [Parameter(Name = "Toll Attribute", DefaultValue = " @toll", Description = "The attribute containing the road tolls for this class of vehicle.",
-                Index = 6)]
-            public IFunction<string> LinkTollAttribute;
-
-            [Parameter(Name = "Peak Hour Factor", DefaultValue = "1", Description = "A factor to apply to the demand in order to build"
-                + "a representative hour.",
-                Index = 4)]
-            public IFunction<float> PeakHourFactor;
-
-            [Parameter(Name = "Volume Attribute", DefaultValue = " @auto_volume", Description = "The name of the attribute to save the volumes into"
-                + "(or None for no saving).",
-                Index = 5)]
-            public IFunction<string> VolumeAttribute;
-
-            [Parameter(Name = "Time Dependent Start Index for Attributes in this Class", DefaultValue = "1", Description = "Time Dependent Start Indices used to create "
-                + "the alphanumerical attribute name string for attributes in this class. e.g. if 1 is specified, "
-                + "then @auto_volume1, @auto_volume2 etc are created depending on the number of time period intervals).",
-                Index = 5)]
-            public IFunction<int> AttributeStartIndex;
-
-            [Parameter(Name = "Link Cost", DefaultValue = "0", Description = "The penalty in minutes per dollar to apply when traversing a link.",
-                Index = 8)]
-            public IFunction<float> LinkCost;
-
-            [SubModule(Name = "Path Analysis", Description = "", Index = 9, Required = false)]
-            public IFunction<PathAnalysis>[] PathAnalyses;
-
-            public string Name { get; set; }
-
-            public bool RuntimeValidation(ref string error)
-            {
-                return true;
-            }
-
-            public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
-            {
-                writer.WriteStartObject();
-                writer.WriteString("name", Name);
-                writer.WriteString("mode", Mode.Invoke().ToString());
-                writer.WriteNumber("demand_matrix_number", DemandMatrixNumber.Invoke());
-                writer.WriteNumber("time_matrix_number", TimeMatrixNumber.Invoke());
-                writer.WriteNumber("cost_matrix_number", CostMatrixNumber.Invoke());
-                writer.WriteNumber("toll_matrix_number", TollMatrixNumber.Invoke());
-                writer.WriteString("od_fixed_cost", ODFixedCost.Invoke());
-                writer.WriteString("volume_attribute", VolumeAttribute.Invoke());
-                writer.WriteNumber("attribute_start_index", AttributeStartIndex.Invoke());
-                writer.WriteNumber("link_cost", LinkCost.Invoke());
-                writer.WriteString("link_toll_attribute", LinkTollAttribute.Invoke());
-                writer.WriteStartArray("toll_weights");
-                foreach (var toll_weight in TollWeights.Invoke())
-                {
-                    writer.WriteNumberValue(toll_weight);
-                }
-                writer.WriteEndArray();
-                writer.WritePropertyName("interval_length_list");
-
-                writer.WriteStartArray("path_analyses");
-                foreach (var pathAnalysis in PathAnalyses)
-                {
-                    pathAnalysis.Invoke().WriteParameters(writer);
-                }
-                writer.WriteEndArray();
-                writer.WriteEndObject();
-            }
+            return true;
         }
 
-        [Module(Name = "Path Analysis", Description = "",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-        public class PathAnalysis : XTMF2.IModule
+        public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
         {
-            [Parameter(Name = "Attribute ID", DefaultValue = "0", Description = "The attribute to use for analysis",
-                Index = 0)]
-            public IFunction<string> AttributeId;
-
-
-            public string Name { get; set; }
-
-            public bool RuntimeValidation(ref string error)
+            writer.WriteStartObject();
+            writer.WriteString("name", Name);
+            writer.WriteString("mode", Mode.Invoke().ToString());
+            writer.WriteNumber("demand_matrix_number", DemandMatrixNumber.Invoke());
+            writer.WriteNumber("time_matrix_number", TimeMatrixNumber.Invoke());
+            writer.WriteNumber("cost_matrix_number", CostMatrixNumber.Invoke());
+            writer.WriteNumber("toll_matrix_number", TollMatrixNumber.Invoke());
+            writer.WriteString("od_fixed_cost", ODFixedCost.Invoke());
+            writer.WriteString("volume_attribute", VolumeAttribute.Invoke());
+            writer.WriteNumber("attribute_start_index", AttributeStartIndex.Invoke());
+            writer.WriteNumber("link_cost", LinkCost.Invoke());
+            writer.WriteString("link_toll_attribute", LinkTollAttribute.Invoke());
+            writer.WriteStartArray("toll_weights");
+            foreach (var toll_weight in TollWeights.Invoke())
             {
-                return true;
+                writer.WriteNumberValue(toll_weight);
             }
+            writer.WriteEndArray();
+            writer.WritePropertyName("interval_length_list");
 
-            public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
+            writer.WriteStartArray("path_analyses");
+            foreach (var pathAnalysis in PathAnalyses)
             {
-                writer.WriteStartObject();
-                writer.WriteEndObject();
+                pathAnalysis.Invoke().WriteParameters(writer);
             }
+            writer.WriteEndArray();
+            writer.WriteEndObject();
         }
-
-        public override void Invoke(ModellerController context)
-        {
-            context.Run(this, "tmg2.Assign.assign_traffic_stta", JSONParameterBuilder.BuildParameters(writer =>
-            {
-                writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-
-                writer.WriteString("start_time", StartTime.Invoke());
-                writer.WriteNumber("extra_time_interval", ExtraTimeInterval.Invoke());
-                writer.WriteNumber("number_of_extra_time_intervals", NumberOfExtraTimeIntervals.Invoke());
-                writer.WriteBoolean("background_traffic", BackgroundTraffic.Invoke());
-                writer.WriteString("link_component_attribute", LinkComponentAttribute.Invoke());
-                writer.WriteNumber("start_index", StartIndex.Invoke());
-                writer.WriteBoolean("variable_topology", VariableTopology.Invoke());
-                writer.WriteNumber("max_outer_iterations", OuterIterations.Invoke());
-                writer.WriteNumber("max_inner_iterations", InnerIterations.Invoke());
-                writer.WriteNumber("r_gap", rGap.Invoke());
-                writer.WriteNumber("br_gap", brGap.Invoke());
-                writer.WriteNumber("norm_gap", normGap.Invoke());
-                writer.WriteBoolean("performance_flag", PerformanceFlag.Invoke());
-                writer.WriteString("run_title", RunTitle.Invoke());
-                writer.WritePropertyName("interval_length_list");
-                writer.WriteStartArray();
-                foreach (var interval in IntervalLengths.Invoke())
-                {
-                    writer.WriteNumberValue(interval);
-                }
-                writer.WriteEndArray();
-                writer.WritePropertyName("mixed_use_ttf_ranges");
-                writer.WriteStartArray();
-                foreach (var range in MixedUseTTFRanges.Invoke())
-                {
-                    writer.WriteStartObject();
-                    writer.WriteNumber("start", range.Start);
-                    writer.WriteNumber("stop", range.Stop);
-                    writer.WriteEndObject();
-                }
-                writer.WriteEndArray();
-
-
-                writer.WriteStartArray("traffic_classes");
-                foreach (var trafficClass in TrafficClasses)
-                {
-                    trafficClass.Invoke().WriteParameters(writer);
-                }
-                writer.WriteEndArray();
-            }), LogbookLevel.Standard);
-        }
-
     }
+
+    [Module(Name = "Path Analysis", Description = "Path Analysis",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+    public class PathAnalysis : XTMF2.IModule
+    {
+        [Parameter(Name = "Attribute ID", DefaultValue = "0", Description = "The attribute to use for analysis",
+            Index = 0)]
+        public IFunction<string> AttributeId;
+
+
+        public string Name { get; set; }
+
+        public bool RuntimeValidation(ref string error)
+        {
+            return true;
+        }
+
+        public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
+        {
+            writer.WriteStartObject();
+            writer.WriteEndObject();
+        }
+    }
+
+    public override void Invoke(ModellerController context)
+    {
+        context.Run(this, "tmg2.Assign.assign_traffic_stta", JSONParameterBuilder.BuildParameters(writer =>
+        {
+            writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
+
+            writer.WriteString("start_time", StartTime.Invoke());
+            writer.WriteNumber("extra_time_interval", ExtraTimeInterval.Invoke());
+            writer.WriteNumber("number_of_extra_time_intervals", NumberOfExtraTimeIntervals.Invoke());
+            writer.WriteBoolean("background_traffic", BackgroundTraffic.Invoke());
+            writer.WriteString("link_component_attribute", LinkComponentAttribute.Invoke());
+            writer.WriteNumber("start_index", StartIndex.Invoke());
+            writer.WriteBoolean("variable_topology", VariableTopology.Invoke());
+            writer.WriteNumber("max_outer_iterations", OuterIterations.Invoke());
+            writer.WriteNumber("max_inner_iterations", InnerIterations.Invoke());
+            writer.WriteNumber("r_gap", rGap.Invoke());
+            writer.WriteNumber("br_gap", brGap.Invoke());
+            writer.WriteNumber("norm_gap", normGap.Invoke());
+            writer.WriteBoolean("performance_flag", PerformanceFlag.Invoke());
+            writer.WriteString("run_title", RunTitle.Invoke());
+            writer.WritePropertyName("interval_length_list");
+            writer.WriteStartArray();
+            foreach (var interval in IntervalLengths.Invoke())
+            {
+                writer.WriteNumberValue(interval);
+            }
+            writer.WriteEndArray();
+            writer.WritePropertyName("mixed_use_ttf_ranges");
+            writer.WriteStartArray();
+            foreach (var range in MixedUseTTFRanges.Invoke())
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber("start", range.Start);
+                writer.WriteNumber("stop", range.Stop);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+
+
+            writer.WriteStartArray("traffic_classes");
+            foreach (var trafficClass in TrafficClasses)
+            {
+                trafficClass.Invoke().WriteParameters(writer);
+            }
+            writer.WriteEndArray();
+        }), LogbookLevel.Standard);
+    }
+
 }

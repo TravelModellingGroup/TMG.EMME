@@ -19,81 +19,82 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Linq;
+using System.Text;
+using System.Xml.Linq;
 using XTMF2;
 
-namespace TMG.Emme.Assign
+namespace TMG.Emme.Assign;
+
+[Module(Name = "Assign Boarding Penalty", Description = "Assigns line-specific boarding penalties",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class AssignBoardingPenalty : BaseAction<ModellerController>
 {
-    [Module(Name = "Assign Boarding Penalty", Description = "Assigns line-specific boarding penalties",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class AssignBoardingPenalty : BaseAction<ModellerController>
+    [Parameter(Name = "Scenario Number", Description = "The scenario number to assign boarding penalty to.",
+        Index = 0)]
+    public IFunction<int[]> ScenarioNumbers;
+
+    [Parameter(Name = "Penalty Filter String", Description = "A colon seperated list of penalty in the order label:filter:initial:transfer:ivttPerception",
+        Index = 1)]
+    public IFunction<PenaltyFilter[]> PenaltyFilterString;
+
+    public override void Invoke(ModellerController context)
     {
-        [Parameter(Name = "Scenario Number", Description = "The scenario number to assign boarding penalty to.",
-            Index = 0)]
-        public IFunction<int[]> ScenarioNumbers;
-
-        [Parameter(Name = "Penalty Filter String", Description = "A colon seperated list of penalty in the order label:filter:initial:transfer:ivttPerception",
-            Index = 1)]
-        public IFunction<PenaltyFilter[]> PenaltyFilterString;
-
-        public override void Invoke(ModellerController context)
+        context.Run(this, "tmg2.Assign.assign_boarding_penalty", JSONParameterBuilder.BuildParameters(writer =>
         {
-            context.Run(this, "tmg2.Assign.assign_boarding_penalty", JSONParameterBuilder.BuildParameters(writer =>
+            writer.WritePropertyName("scenario_numbers");
+            writer.WriteStartArray();
+            foreach (var scenario in ScenarioNumbers.Invoke())
             {
-                writer.WritePropertyName("scenario_numbers");
-                writer.WriteStartArray();
-                foreach (var scenario in ScenarioNumbers.Invoke())
-                {
-                    writer.WriteNumberValue(scenario);
-                }
-                writer.WriteEndArray();
-
-                writer.WritePropertyName("penalty_filter_string");
-                writer.WriteStartArray();
-                foreach (var penaltyFilter in PenaltyFilterString.Invoke())
-                {
-                    writer.WriteStartObject();
-                    writer.WriteString("label", penaltyFilter.Label.Invoke());
-                    writer.WriteString("filter", penaltyFilter.Filter.Invoke());
-                    writer.WriteNumber("initial", penaltyFilter.Initial.Invoke());
-                    writer.WriteNumber("transfer", penaltyFilter.Transfer.Invoke());
-                    writer.WriteNumber("ivttPerception", penaltyFilter.IvttPerception.Invoke());
-                    writer.WriteEndObject();
-                }
-                writer.WriteEndArray();
-
-            }), LogbookLevel.Standard);
-
-        }
-        public class PenaltyFilter : BaseFunction<PenaltyFilter>
-        {
-            [Parameter(Name = "label", Description = "The line group name e.g. GO Train.",
-            Index = 0)]
-            public IFunction<string> Label;
-
-            [Parameter(Name = "filter", Description = "The network selector expression",
-                Index = 1)]
-            public IFunction<string> Filter;
-
-            [Parameter(Name = "initial", Description = "The number representing the initial boarding penalty",
-                Index = 2)]
-            public IFunction<float> Initial;
-
-            [Parameter(Name = "transfer", Description = "The number representing the transfer boarding penalty",
-                Index = 3)]
-            public IFunction<float> Transfer;
-
-            [Parameter(Name = "ivttPerception", Description = "The number representing the IVTT perception Factor",
-                Index = 4)]
-            public IFunction<float> IvttPerception;
-
-            public override PenaltyFilter Invoke()
-            {
-                return this;
+                writer.WriteNumberValue(scenario);
             }
-        }
+            writer.WriteEndArray();
+
+            writer.WritePropertyName("penalty_filter_string");
+            writer.WriteStartArray();
+            foreach (var penaltyFilter in PenaltyFilterString.Invoke())
+            {
+                writer.WriteStartObject();
+                writer.WriteString("label", penaltyFilter.Label.Invoke());
+                writer.WriteString("filter", penaltyFilter.Filter.Invoke());
+                writer.WriteNumber("initial", penaltyFilter.Initial.Invoke());
+                writer.WriteNumber("transfer", penaltyFilter.Transfer.Invoke());
+                writer.WriteNumber("ivttPerception", penaltyFilter.IvttPerception.Invoke());
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+
+        }), LogbookLevel.Standard);
+
     }
 
+    [Module(Name = "Penalty Filter", Description = "The Assign Boarding Penalty tool for transit assignment estimation.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+    public class PenaltyFilter : BaseFunction<PenaltyFilter>
+    {
+        [Parameter(Name = "label", Description = "The line group name e.g. GO Train.",
+            Index = 0)]
+        public IFunction<string> Label;
 
+        [Parameter(Name = "filter", Description = "The network selector expression",
+            Index = 1)]
+        public IFunction<string> Filter;
+
+        [Parameter(Name = "initial", Description = "The number representing the initial boarding penalty",
+            Index = 2)]
+        public IFunction<float> Initial;
+
+        [Parameter(Name = "transfer", Description = "The number representing the transfer boarding penalty",
+            Index = 3)]
+        public IFunction<float> Transfer;
+
+        [Parameter(Name = "ivttPerception", Description = "The number representing the IVTT perception Factor",
+            Index = 4)]
+        public IFunction<float> IvttPerception;
+
+        public override PenaltyFilter Invoke()
+        {
+            return this;
+        }
+    }
 }

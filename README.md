@@ -33,21 +33,36 @@ the files within the TMGToolbox2 project. This toolbox is not portable to other 
 to compile a portable toolbox use "Build Consolidated Toolbox.bat".  If you build a consolidated
 toolbox you will need to rebuild it every time you alter the TMGToolbox2 source code.
 
+There are 2 configurations, `Debug` and `Release` (default names for .Net). Pick one of them.
+For the Release compile the command is 
 ```
 cd TMG.EMME
 dotnet build --configuration Release
+OR 
+dotnet build --configuration Debug
 cd TMGToolbox2
 "Build Toolbox.bat"
 ```
+
 
 ### Testing
 
 #### Initial Setup
 
 TMG.EMME's unit tests are currently setup to expect a EMME project named __DebugProject__ inside
-of the test project configuration's output directory.  That project will then need to have a 
-reference to a the built 'TMG_Toolbox.mtbx' that was created from running either "Build Toolbox.bat"
-or "Build Consolidated Toolbox.bat".  If you are going to be editing the toolbox's source code
+of the test project configuration's output directory. 
+
+The path to the location of the DebugProject folder is the following:
+```
+~\TMG.EMME\TMG.EMME\TMG.EMME.Test\bin\Release\net10.0\DebugProject
+```
+**Note:** The reason the Debug project is in the Debug folder is because it wasn't compiled to a Release build. 
+
+Use Emme software to create a new Emme project with the database dimensions below. Do not the name of the project 
+must be named **DebugProject**. Note for the city use Toronto (GTA) for the map of interest (initially). 
+
+That project will then need to have a reference to a the built 'TMG_Toolbox.mtbx' that was created from running either "Build Toolbox.bat"
+or "Build Consolidated Toolbox.bat". If you are going to be editing the toolbox's source code
 it is recommended to use "Build Toolbox.bat" so you only need to rebuild it if you add or remove
 a tool.
 
@@ -65,6 +80,15 @@ The recommended database dimensions for the __DebugProject__ is shown below:
 | Transit segments | 600000 |
 | Extra attribute values | 5000000 |
 
+Upon succesfully creating the Emme project. click the modeller icon in Emme (the blue cube icon) and then upload the TMGToolbox2.
+Use the TMGToolbox2 tool import network and upload the Frabitztown network located in this repo called test.nwp. 
+
+Ensure the Emme system path is correct under your system environment varaibles and set the EMME system path to the following: 
+```
+C:\Program Files\Bentley\OpenPaths\EMME 25.00.00
+```
+You do need to sign-out or restart the machine for the path effect change to take effect. 
+
 
 #### Unit Tests
 
@@ -74,6 +98,42 @@ In addition to the command below you will also need to have an active license fo
 cd TMG.EMME
 dotnet test
 ```
+
+In some instances you may wish to run the unittests in debug mode for debugging purpose. To run the project in debug mode
+the following steps are needed: 
+1. Open the same project TMG.Emme again so you have two instances of the visual studio project. 
+1. On the left side open the test explorer and run a test in debug mode like ImportBinaryMatrix. 
+1. if successful the system will hang 
+1. On the right side, right click the TMGToolBox2 and select **set it as startup project**
+1. Then click F5 to run the Python instance and both sides should now work. 
+
+Note: In the instance the system crashes (which can happen sometimes), you can delete the emme.lock file located in the 
+Emme Database folder:
+```
+~\TMG.EMME\TMG.EMME\TMG.EMME.Test\bin\Debug\net10.0\DebugProject\Database
+```
+
+### Updating DotNet version (If Applicable and Required) 
+Check to make sure the TMG.EMME and TMG.EMME.Tests projects are working on the most current version of dotnet.
+To modify the project dotnet version in Visual Studio right click on project and click **Edit Project Settings**.
+From there under TargetFramework change the value the recent version of dotnet. 
+As of the time of writing this tutorial the current version net10. 
+```  
+<PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+```
+
+### Setting up Python Environment 
+It may be necessary to setup a Python virtual environment for this project. These are the steps to setup a Python virtual 
+environment in Visual Studio.
+- Right click on **python environment** (under TMGToolbox2) and select **add environment**
+- Select *existing environment* tab/section
+- Under the section seelect **custom path, path to existing environment**
+- Then find and search for the Bentley Python path. The path is the following: 
+- ```C:\Program Files\Bentley\OpenPaths\EMME 25.00.00\Python311```
+- click Add and your new python environment using the Bentley version of Python will be setup and ready to use.
+
+
 
 ## TMGToolbox2 for EMME tool Format
 

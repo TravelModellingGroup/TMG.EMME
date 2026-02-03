@@ -38,7 +38,7 @@ Import Binary Matrix
 """
 
 
-from inspect import Parameter
+#from inspect import Parameter
 from sqlite3 import paramstyle
 import inro.modeller as _m
 import traceback as _traceback

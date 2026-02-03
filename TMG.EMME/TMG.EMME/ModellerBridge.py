@@ -142,7 +142,9 @@ class XTMFBridge:
                     self.SwitchToDatabank(TheEmmeEnvironmentXMTF, databank)
                 self.Modeller = inro.modeller.Modeller(TheEmmeEnvironmentXMTF)
                 _m.logbook_write("Activated modeller from ModellerBridge for XTMF")
-            except:
+            except Exception as e:
+                # Code to handle the exception
+                print(f"An error occurred: {e}")
                 #Terminate the bridge if we are unable to
                 terminate = True
         else:

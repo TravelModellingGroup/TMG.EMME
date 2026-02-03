@@ -26,8 +26,8 @@ using XTMF2;
 
 namespace TMG.Emme.Assign
 {
-    [Module(Name = "Assign Demand To Road Network", Description = "",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+    [Module(Name = "Assign Demand To Road Network", Description = "Executes a multi-class road assignment which allows for the generalized penalty of road tolls.",
+        DocumentationLink = "https://tmg.utoronto.ca/doc/2.0/tmgtoolbox2_emme/tools/Assign/AssignTraffic.html")]
     public class AssignTraffic : BaseAction<ModellerController>
     {
         [Parameter(Name = "Background Transit", DefaultValue = "true", Description = "Set this to false to not assign transit vehicles on the roads",
@@ -70,10 +70,11 @@ namespace TMG.Emme.Assign
             Index = 10)]
         public IFunction<RangeSet> MixedUseTTFRanges;
 
-        [SubModule(Name = "Traffic Classes", Description = "", Index = 11)]
+        [SubModule(Name = "Traffic Classes", Description = "Traffic Classes", 
+            Index = 11)]
         public IFunction<TrafficClass>[] TrafficClasses;
 
-        [Module(Name = "Traffic Class", Description = "",
+        [Module(Name = "Traffic Class", Description = "Traffic Class",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
         public class TrafficClass : XTMF2.IModule
         {
@@ -98,7 +99,7 @@ namespace TMG.Emme.Assign
             public IFunction<string> TollMatrix;
 
             [Parameter(Name = "Peak Hour Factor", DefaultValue = "1", Description = "A factor to apply to the demand in order to build a representative hour.",
-            Index = 4)]
+                Index = 9)]
             public IFunction<float> PeakHourFactor;
 
             [Parameter(Name = "Volume Attribute", DefaultValue = " @auto_volume1", Description = "The name of the attribute to save the volumes into (or None for no saving).",
@@ -117,7 +118,8 @@ namespace TMG.Emme.Assign
                 Index = 8)]
             public IFunction<float> LinkCost;
 
-            [SubModule(Name = "Path Analysis", Description = "", Index = 9, Required = false)]
+            [SubModule(Name = "Path Analysis", Description = "Path Analysis", 
+                Index = 10, Required = false)]
             public IFunction<PathAnalysis>[] PathAnalyses;
 
             public string Name { get; set; }
@@ -151,8 +153,8 @@ namespace TMG.Emme.Assign
             }
         }
 
-        [Module(Name = "Path Analysis", Description = "",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+        [Module(Name = "Path Analysis", Description = "Path Analysis",
+        DocumentationLink = "https://tmg.utoronto.ca/doc/2.0/tmgtoolbox2_emme/tools/Assign/AssignTraffic.html#sub-module-parameter-explanation-traffic-classes---path-analysis")]
         public class PathAnalysis : XTMF2.IModule
         {
             [Parameter(Name = "Attribute ID", DefaultValue = "0", Description = "The attribute to use for analysis",

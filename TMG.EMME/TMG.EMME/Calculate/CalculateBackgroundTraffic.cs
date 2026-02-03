@@ -24,58 +24,57 @@ using System.Text;
 using TMG.Emme;
 using XTMF2;
 
-namespace TMG.Emme.Calculate
+namespace TMG.Emme.Calculate;
+
+[Module(Name = "Calculate Background Traffic", Description = "Calculate the background traffic to be used be a space time traffic assignemnt tool.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class CalculateBackgroundTraffic : BaseAction<ModellerController>
 {
-    [Module(Name = "Calculate Background Traffic", Description = "",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class CalculateBackgroundTraffic : BaseAction<ModellerController>
+    [Parameter(Name = "Scenario Number", DefaultValue = "0", Description = "The scenario number to execute against.",
+        Index = 0)]
+    public IFunction<int> ScenarioNumber;
+
+    [Parameter(Name = "Interval Lengths", DefaultValue = "0", Description = "Defines how the assignment time is split into intervals.",
+        Index = 1)]
+    public IFunction<float[]> IntervalLengths;
+
+    [Parameter(Name = "Background Traffic Link Component Extra Attribute", DefaultValue = "@tvph", Description = "Background Traffic link Component Extra Attribute.",
+        Index = 4)]
+    public IFunction<string> LinkComponentAttribute;
+    
+    [Parameter(Name = "Time Dependent Start Index for Attributes", DefaultValue = "0", Description = "Time Dependent Start Indices used to create the alphanumerical attribute name string for attributes in this class.",
+        Index = 5)]
+    public IFunction<int> StartIndex;
+
+    [Parameter(Name = "Mixed Used TTF Ranged", DefaultValue = "3-128", Description = "The TTFs where transit vehicles will occupy"
+        + " some capacity on links. The ranges are inclusive.", Index = 3)]
+    public IFunction<RangeSet> MixedUseTTFRanges;
+
+    public override void Invoke(ModellerController context)
     {
-        [Parameter(Name = "Scenario Number", DefaultValue = "0", Description = "The scenario number to execute against.",
-            Index = 0)]
-        public IFunction<int> ScenarioNumber;
-
-        [Parameter(Name = "Interval Lengths", DefaultValue = "", Description = "Defines how the assignment time is split into intervals.",
-            Index = 1)]
-        public IFunction<float[]> IntervalLengths;
-
-        [Parameter(Name = "Background Traffic Link Component Extra Attribute", DefaultValue = "@tvph", Description = "",
-                Index = 5)]
-        public IFunction<string> LinkComponentAttribute;
-        
-        [Parameter(Name = "Time Dependent Start Index for Attributes", DefaultValue = "0", Description = "Time Dependent Start Indices used to create the alphanumerical attribute name string for attributes in this class.",
-            Index = 5)]
-        public IFunction<int> StartIndex;
-
-        [Parameter(Name = "Mixed Used TTF Ranged", DefaultValue = "3-128", Description = "The TTFs where transit vehicles will occupy"
-            + " some capacity on links. The ranges are inclusive.", Index = 3)]
-        public IFunction<RangeSet> MixedUseTTFRanges;
-
-        public override void Invoke(ModellerController context)
+        context.Run(this, "tmg2.Calculate.calculate_background_traffic", JSONParameterBuilder.BuildParameters(writer =>
         {
-            context.Run(this, "tmg2.Calculate.calculate_background_traffic", JSONParameterBuilder.BuildParameters(writer =>
+            writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
+            writer.WriteString("link_component_attribute", LinkComponentAttribute.Invoke());
+            writer.WriteNumber("start_index", StartIndex.Invoke());
+            writer.WritePropertyName("interval_length_list");
+            writer.WriteStartArray();
+            foreach (var interval in IntervalLengths.Invoke())
             {
-                writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-                writer.WriteString("link_component_attribute", LinkComponentAttribute.Invoke());
-                writer.WriteNumber("start_index", StartIndex.Invoke());
-                writer.WritePropertyName("interval_length_list");
-                writer.WriteStartArray();
-                foreach (var interval in IntervalLengths.Invoke())
-                {
-                    writer.WriteNumberValue(interval);
-                }
-                writer.WriteEndArray();
-                writer.WritePropertyName("mixed_use_ttf_ranges");
-                writer.WriteStartArray();
-                foreach (var range in MixedUseTTFRanges.Invoke())
-                {
-                    writer.WriteStartObject();
-                    writer.WriteNumber("start", range.Start);
-                    writer.WriteNumber("stop", range.Stop);
-                    writer.WriteEndObject();
-                }
-                writer.WriteEndArray();
-            }), LogbookLevel.Standard);
-        }
-
+                writer.WriteNumberValue(interval);
+            }
+            writer.WriteEndArray();
+            writer.WritePropertyName("mixed_use_ttf_ranges");
+            writer.WriteStartArray();
+            foreach (var range in MixedUseTTFRanges.Invoke())
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber("start", range.Start);
+                writer.WriteNumber("stop", range.Stop);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }), LogbookLevel.Standard);
     }
+
 }
