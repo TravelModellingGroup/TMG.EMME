@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -22,30 +22,29 @@ using System.IO;
 using System.Text.Json;
 using XTMF2;
 
-namespace TMG.Emme.Copy
+namespace TMG.Emme.Copy;
+
+[Module(Name = "Copy Scenario", Description = "Copy an EMME scenario optionally also copying the assignments.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class CopyScenario : BaseAction<ModellerController>
 {
-    [Module(Name = "Copy Scenario", Description = "Copy an EMME scenario optionally also copying the assignments.",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class CopyScenario : BaseAction<ModellerController>
+    [Parameter(DefaultValue = "1", Index = 0, Name = "From Scenario", Description = "The scenario to copy from.")]
+    public IFunction<int> FromScenario;
+
+    [Parameter(DefaultValue = "2", Index = 1, Name = "To Scenario", Description = "The scenario to copy to.")]
+    public IFunction<int> ToScenario;
+
+    [Parameter(DefaultValue = "false", Index = 2, Name = "Copy Strategy", Description = "Should assignment strategies also be copied?")]
+    public IFunction<bool> CopyStrategy;
+
+    public override void Invoke(ModellerController context)
     {
-        [Parameter(DefaultValue = "1", Index = 0, Name = "From Scenario", Description = "The scenario to copy from.")]
-        public IFunction<int> FromScenario;
-
-        [Parameter(DefaultValue = "2", Index = 1, Name = "To Scenario", Description = "The scenario to copy to.")]
-        public IFunction<int> ToScenario;
-
-        [Parameter(DefaultValue = "false", Index = 2, Name = "Copy Strategy", Description = "Should assignment strategies also be copied?")]
-        public IFunction<bool> CopyStrategy;
-
-        public override void Invoke(ModellerController context)
-        {
-            context.Run(this, "tmg2.Copy.copy_scenario",
-                    JSONParameterBuilder.BuildParameters(writer =>
-                    {
-                        writer.WriteNumber("from_scenario", FromScenario.Invoke());
-                        writer.WriteNumber("to_scenario", ToScenario.Invoke());
-                        writer.WriteBoolean("copy_strategy", CopyStrategy.Invoke());
-                    }), LogbookLevel.None);
-        }
+        context.Run(this, "tmg2.Copy.copy_scenario",
+                JSONParameterBuilder.BuildParameters(writer =>
+                {
+                    writer.WriteNumber("from_scenario", FromScenario.Invoke());
+                    writer.WriteNumber("to_scenario", ToScenario.Invoke());
+                    writer.WriteBoolean("copy_strategy", CopyStrategy.Invoke());
+                }), LogbookLevel.None);
     }
 }

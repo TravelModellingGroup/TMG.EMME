@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2022 University of Toronto
+    Copyright 2022-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -24,60 +24,59 @@ using System.Text;
 using XTMF2;
 
 
-namespace TMG.Emme.Test.Export
+namespace TMG.Emme.Test.Export;
+
+[TestClass]
+public class ExportNetworkPackageTest : TestBase
 {
-    [TestClass]
-    public class ExportNetworkPackageTest : TestBase
+    [TestMethod]
+    public void ExportNetworkPackage()
     {
-        [TestMethod]
-        public void ExportNetworkPackage()
+        /*Ensure the project has a valid network to be exported*/
+        Assert.IsTrue(
+            Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
+             JSONParameterBuilder.BuildParameters(writer =>
+             {
+                 writer.WriteString("network_package_file", Path.GetFullPath("TestFiles/test.nwp"));
+                 writer.WriteString("scenario_description", "Test Network");
+                 writer.WriteNumber("scenario_number", 1);
+                 writer.WriteString("conflict_option", "PRESERVE");
+             }), LogbookLevel.Standard));
+
+        Assert.IsTrue(
+            Helper.Modeller.Run(null, "tmg2.Export.export_network_package",
+            JSONParameterBuilder.BuildParameters(writer =>
+                {
+                    writer.WriteString("export_file", Path.GetFullPath("OutputTestFiles/exportedNWPFriday.nwp"));
+                    writer.WriteNumber("scenario_number", 1);
+                    writer.WriteString("extra_attributes", "all");
+                    writer.WriteBoolean("export_all_flag", true);
+                    writer.WriteString("export_meta_data", "");
+                }), LogbookLevel.Standard));
+    }
+
+    [TestMethod]
+    public void ExportNetworkPackageModule()
+    {
+        /*Ensure the project has a valid network to be exported*/
+        var importModule = new Emme.Import.ImportNetworkPackage()
         {
-            /*Ensure the project has a valid network to be exported*/
-            Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
-                 JSONParameterBuilder.BuildParameters(writer =>
-                 {
-                     writer.WriteString("network_package_file", Path.GetFullPath("TestFiles/test.nwp"));
-                     writer.WriteString("scenario_description", "Test Network");
-                     writer.WriteNumber("scenario_number", 1);
-                     writer.WriteString("conflict_option", "PRESERVE");
-                 }), LogbookLevel.Standard));
+            Name = "Importer",
+            ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
+            NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.nwp"), "NWP File Name"),
+            ScenarioDescription = Helper.CreateParameter("From XTMF", "Description")
+        };
+        importModule.Invoke(Helper.Modeller);
 
-            Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Export.export_network_package",
-                JSONParameterBuilder.BuildParameters(writer =>
-                    {
-                        writer.WriteString("export_file", Path.GetFullPath("OutputTestFiles/exportedNWPFriday.nwp"));
-                        writer.WriteNumber("scenario_number", 1);
-                        writer.WriteString("extra_attributes", "all");
-                        writer.WriteBoolean("export_all_flag", true);
-                        writer.WriteString("export_meta_data", "");
-                    }), LogbookLevel.Standard));
-        }
-
-        [TestMethod]
-        public void ExportNetworkPackageModule()
+        var module = new TMG.Emme.Export.ExportNetworkPackage()
         {
-            /*Ensure the project has a valid network to be exported*/
-            var importModule = new Emme.Import.ImportNetworkPackage()
-            {
-                Name = "Importer",
-                ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
-                NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.nwp"), "NWP File Name"),
-                ScenarioDescription = Helper.CreateParameter("From XTMF", "Description")
-            };
-            importModule.Invoke(Helper.Modeller);
-
-            var module = new TMG.Emme.Export.ExportNetworkPackage()
-            {
-                ScenarioNumber = Helper.CreateParameter(1),
-                SaveTo = Helper.CreateParameter("OutputTestFiles/Exported.nwp"),
-                Attributes = Helper.CreateParameter("all"),
-                ExportAllFlag = Helper.CreateParameter(true),
-                ExportMetaData = Helper.CreateParameter(""),
-            };
-            module.Invoke(Helper.Modeller);
-        }
+            ScenarioNumber = Helper.CreateParameter(1),
+            SaveTo = Helper.CreateParameter("OutputTestFiles/Exported.nwp"),
+            Attributes = Helper.CreateParameter("all"),
+            ExportAllFlag = Helper.CreateParameter(true),
+            ExportMetaData = Helper.CreateParameter(""),
+        };
+        module.Invoke(Helper.Modeller);
     }
 }
 

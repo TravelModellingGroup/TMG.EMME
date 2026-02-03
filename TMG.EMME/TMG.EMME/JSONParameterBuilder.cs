@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -24,19 +24,18 @@ using System.Text.Json;
 using TMG.Emme;
 using XTMF2;
 
-namespace TMG.Emme
+namespace TMG.Emme;
+
+public static class JSONParameterBuilder
 {
-    public static class JSONParameterBuilder
+    public static string BuildParameters(Action<Utf8JsonWriter> toExecute)
     {
-        public static string BuildParameters(Action<Utf8JsonWriter> toExecute)
-        {
-            using var backing = new MemoryStream();
-            using var writer = new Utf8JsonWriter(backing);
-            writer.WriteStartObject();
-            toExecute(writer);
-            writer.WriteEndObject();
-            writer.Flush();
-            return Encoding.UTF8.GetString(backing.GetBuffer().AsSpan(0, (int)backing.Length));
-        }
+        using var backing = new MemoryStream();
+        using var writer = new Utf8JsonWriter(backing);
+        writer.WriteStartObject();
+        toExecute(writer);
+        writer.WriteEndObject();
+        writer.Flush();
+        return Encoding.UTF8.GetString(backing.GetBuffer().AsSpan(0, (int)backing.Length));
     }
 }

@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 University of Toronto
+    Copyright 2022-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -24,32 +24,31 @@ using System.Linq;
 using System.IO;
 using XTMF2;
 
-namespace TMG.Emme.Export
+namespace TMG.Emme.Export;
+
+[Module(Name = "Export Network Shapefile", Description = "Export Emme Network as Shapefile",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class ExportNetworkShapefile : BaseAction<ModellerController>
 {
-    [Module(Name = "Export Network Shapefile", Description = "Export Emme Network as Shapefile",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class ExportNetworkShapefile : BaseAction<ModellerController>
+    [Parameter(Name = "Scenario Number", Description = "The scenario number containing network to export.",
+        Index = 0)]
+    public IFunction<int> ScenarioNumbers;
+
+    [Parameter(Name = "Save To", Description = "The location to write the file.",
+        Index = 1)]
+    public IFunction<string> SaveTo;
+
+    [Parameter(Name = "TransitShapes", Description = "Type of geometry or transit shape to export",
+        Index = 2)]
+    public IFunction<string> TransitShapes;
+
+    public override void Invoke(ModellerController context)
     {
-        [Parameter(Name = "Scenario Number", Description = "The scenario number containing network to export.",
-            Index = 0)]
-        public IFunction<int> ScenarioNumbers;
-
-        [Parameter(Name = "Save To", Description = "The location to write the file.",
-            Index = 1)]
-        public IFunction<string> SaveTo;
-
-        [Parameter(Name = "TransitShapes", Description = "Type of geometry or transit shape to export",
-            Index = 2)]
-        public IFunction<string> TransitShapes;
-
-        public override void Invoke(ModellerController context)
+        context.Run(this, "tmg2.Export.export_network_shapefile", JSONParameterBuilder.BuildParameters(writer =>
         {
-            context.Run(this, "tmg2.Export.export_network_shapefile", JSONParameterBuilder.BuildParameters(writer =>
-            {
-                writer.WriteNumber("scenario_number", ScenarioNumbers.Invoke());
-                writer.WriteString("export_path", Path.GetFullPath(SaveTo.Invoke()));
-                writer.WriteString("transit_shapes", TransitShapes.Invoke());
-            }), LogbookLevel.Standard);
-        }
+            writer.WriteNumber("scenario_number", ScenarioNumbers.Invoke());
+            writer.WriteString("export_path", Path.GetFullPath(SaveTo.Invoke()));
+            writer.WriteString("transit_shapes", TransitShapes.Invoke());
+        }), LogbookLevel.Standard);
     }
 }

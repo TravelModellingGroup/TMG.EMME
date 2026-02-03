@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2022 University of Toronto
+    Copyright 2022-2026 University of Toronto
     This file is part of TMG.EMME for XTMF2.
     TMG.EMME for XTMF2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,32 +19,31 @@ using System.Text;
 using TMG.Emme;
 using XTMF2;
 
-namespace TMG.Emme.Convert
+namespace TMG.Emme.Convert;
+
+[Module(Name = "Convert GTFS Stops to Shapefile", Description = "Converts the stops.txt file to a shapefile.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class ConvertGTFSStopsToShapefile : BaseAction<ModellerController>
 {
-    [Module(Name = "Convert GTFS Stops to Shapefile", Description = "Converts the stops.txt file to a shapefile.",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class ConvertGTFSStopsToShapefile : BaseAction<ModellerController>
+    public override void Invoke(ModellerController context)
     {
-        public override void Invoke(ModellerController context)
+        context.Run(this, "tmg2.Convert.convert_gtfs_stops_to_shapefile", GetParameters(), LogbookLevel.Standard);
+    }
+
+    [Parameter(DefaultValue = "FrabtiztownGTFS", Index = 0, Name = "GTFS Folder",
+        Description = "The GTFS folder that contains the stops.txt file")]
+    public IFunction<string> GTFSFolder;
+
+    [Parameter(DefaultValue = "FrabtiztownStopShp", Index = 1, Name = "Shapefile Name",
+        Description = "The name of the shapefile for export.")]
+    public IFunction<string> ShapefileName;
+
+    private string GetParameters()
+    {
+        return JSONParameterBuilder.BuildParameters(writer =>
         {
-            context.Run(this, "tmg2.Convert.convert_gtfs_stops_to_shapefile", GetParameters(), LogbookLevel.Standard);
-        }
-
-        [Parameter(DefaultValue = "FrabtiztownGTFS", Index = 0, Name = "GTFS Folder",
-            Description = "The GTFS folder that contains the stops.txt file")]
-        public IFunction<string> GTFSFolder;
-
-        [Parameter(DefaultValue = "FrabtiztownStopShp", Index = 1, Name = "Shapefile Name",
-            Description = "The name of the shapefile for export.")]
-        public IFunction<string> ShapefileName;
-
-        private string GetParameters()
-        {
-            return JSONParameterBuilder.BuildParameters(writer =>
-            {
-                writer.WriteString("gtfs_folder", Path.GetFullPath(GTFSFolder.Invoke()));
-                writer.WriteString("shape_file_name", ShapefileName.Invoke());
-            });
-        }
+            writer.WriteString("gtfs_folder", Path.GetFullPath(GTFSFolder.Invoke()));
+            writer.WriteString("shape_file_name", ShapefileName.Invoke());
+        });
     }
 }

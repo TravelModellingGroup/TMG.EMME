@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 University of Toronto
+    Copyright 2022-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -24,34 +24,33 @@ using System.Linq;
 using System.IO;
 using XTMF2;
 
-namespace TMG.Emme.Test.Export
-{
-    [TestClass]
-    public class ExportNetworkShapefileTest : TestBase
-    {
-        [TestMethod]
-        public void ExportNetworkShapefile()
-        {
-            Assert.IsTrue(
-                Helper.Modeller.Run(null, "tmg2.Export.export_network_shapefile",
-                JSONParameterBuilder.BuildParameters(writer =>
-                {
-                    writer.WriteNumber("scenario_number", 1);
-                    writer.WriteString("export_path", Path.GetFullPath("OutputTestFiles/exportedSHP.shp"));
-                    writer.WriteString("transit_shapes", "SEGMENTS");
-                }), LogbookLevel.Standard));
-        }
+namespace TMG.Emme.Test.Export;
 
-        [TestMethod]
-        public void ExportNetworkShapefileModule()
-        {
-            var module = new TMG.Emme.Export.ExportNetworkShapefile()
+[TestClass]
+public class ExportNetworkShapefileTest : TestBase
+{
+    [TestMethod]
+    public void ExportNetworkShapefile()
+    {
+        Assert.IsTrue(
+            Helper.Modeller.Run(null, "tmg2.Export.export_network_shapefile",
+            JSONParameterBuilder.BuildParameters(writer =>
             {
-                ScenarioNumbers = Helper.CreateParameter(1),
-                SaveTo = Helper.CreateParameter(Path.GetFullPath("OutputTestFiles/exportedSHP_m.shp")),
-                TransitShapes = Helper.CreateParameter("SEGMENTS"),
-            };
-            module.Invoke(Helper.Modeller);
-        }
+                writer.WriteNumber("scenario_number", 1);
+                writer.WriteString("export_path", Path.GetFullPath("OutputTestFiles/exportedSHP.shp"));
+                writer.WriteString("transit_shapes", "SEGMENTS");
+            }), LogbookLevel.Standard));
+    }
+
+    [TestMethod]
+    public void ExportNetworkShapefileModule()
+    {
+        var module = new TMG.Emme.Export.ExportNetworkShapefile()
+        {
+            ScenarioNumbers = Helper.CreateParameter(1),
+            SaveTo = Helper.CreateParameter(Path.GetFullPath("OutputTestFiles/exportedSHP_m.shp")),
+            TransitShapes = Helper.CreateParameter("SEGMENTS"),
+        };
+        module.Invoke(Helper.Modeller);
     }
 }

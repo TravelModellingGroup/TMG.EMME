@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -22,46 +22,45 @@ using System.IO;
 using System.Text;
 using XTMF2;
 
-namespace TMG.Emme.Import
+namespace TMG.Emme.Import;
+
+[Module(Name = "Import Binary Package", Description = "Import a binary matrix into EMME.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class ImportBinaryMatrix : BaseAction<ModellerController>
 {
-    [Module(Name = "Import Binary Package", Description = "Import a binary matrix into EMME.",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class ImportBinaryMatrix : BaseAction<ModellerController>
+    [Parameter(Name = "Scenario Number", Description = "The number of the scenario that this matrix is for.",
+        Index = 0)]
+    public IFunction<int> ScenarioNumber;
+
+    [Parameter(Name = "File Location", Description = "The location of the matrix file to import.",
+        Index = 1)]
+    public IFunction<string> FileLocation;
+
+    [Parameter(Name = "Matrix Number", Description = "The matrix number to import this matrix to.",
+        Index = 2)]
+    public IFunction<int> MatrixNumber;
+
+    [Parameter(Name = "Matrix Type", Description = "The matrix type to export. eg. 1=ms, 2=mo, 3=md, 4=mf",
+        Index = 3)]
+    public IFunction<MatrixTypes> MatrixType;
+
+    [Parameter(Name = "Description", Description = "The description to apply to the matrix"
+        ,Index = 4)]
+    public IFunction<string> Description;
+
+    public override void Invoke(ModellerController context)
     {
-        [Parameter(Name = "Scenario Number", Description = "The number of the scenario that this matrix is for.",
-            Index = 0)]
-        public IFunction<int> ScenarioNumber;
-
-        [Parameter(Name = "File Location", Description = "The location of the matrix file to import.",
-            Index = 1)]
-        public IFunction<string> FileLocation;
-
-        [Parameter(Name = "Matrix Number", Description = "The matrix number to import this matrix to.",
-            Index = 2)]
-        public IFunction<int> MatrixNumber;
-
-        [Parameter(Name = "Matrix Type", Description = "The matrix type to export. eg. 1=ms, 2=mo, 3=md, 4=mf",
-            Index = 3)]
-        public IFunction<MatrixTypes> MatrixType;
-
-        [Parameter(Name = "Description", Description = "The description to apply to the matrix"
-            ,Index = 4)]
-        public IFunction<string> Description;
-
-        public override void Invoke(ModellerController context)
-        {
-            context.Run(this, "tmg2.Import.import_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
-                    {
-                        writer.WriteNumber("matrix_type", (int)MatrixType.Invoke());
-                        writer.WriteNumber("matrix_number", MatrixNumber.Invoke());
-                        writer.WriteString("binary_matrix_file", Path.GetFullPath(FileLocation.Invoke()));
-                        writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-                        writer.WriteString("matrix_description", Description.Invoke());
-                    }), LogbookLevel.Standard);
-        }
-        public enum MatrixTypes
-        {
-            MS = 1, MO = 2, MD = 3, MF = 4
-        }
+        context.Run(this, "tmg2.Import.import_binary_matrix", JSONParameterBuilder.BuildParameters(writer =>
+                {
+                    writer.WriteNumber("matrix_type", (int)MatrixType.Invoke());
+                    writer.WriteNumber("matrix_number", MatrixNumber.Invoke());
+                    writer.WriteString("binary_matrix_file", Path.GetFullPath(FileLocation.Invoke()));
+                    writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
+                    writer.WriteString("matrix_description", Description.Invoke());
+                }), LogbookLevel.Standard);
+    }
+    public enum MatrixTypes
+    {
+        MS = 1, MO = 2, MD = 3, MF = 4
     }
 }

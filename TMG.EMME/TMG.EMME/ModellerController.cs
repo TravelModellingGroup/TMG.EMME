@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2022 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -26,490 +26,489 @@ using System.Threading;
 using System.Threading.Tasks;
 using XTMF2;
 
-namespace TMG.Emme
+namespace TMG.Emme;
+
+public sealed class ModellerController : IDisposable
 {
-    public sealed class ModellerController : IDisposable
+    private static readonly char[] LogbookStandard = new[] { 'A', 'L', 'L' };
+    private static readonly char[] LogbookDebug = new[] { 'D', 'E', 'B', 'U', 'G' };
+    private static readonly char[] LogbookNone = new[] { 'N', 'O', 'N', 'E' };
+
+    private Process _emme;
+    private NamedPipeServerStream _emmePipe;
+
+    #region SignalCodes
+
+    /// <summary>
+    /// We receive this error if the bridge can not get the parameters to match
+    /// the selected tool
+    /// </summary>
+    private const int SignalParameterError = 4;
+
+    /// <summary>
+    /// Receive a signal that contains a progress report
+    /// </summary>
+    private const int SignalProgressReport = 7;
+
+    /// <summary>
+    /// We receive this when the Bridge has completed its module run
+    /// </summary>
+    private const int SignalRunComplete = 3;
+
+    /// <summary>
+    /// We receive this when the Bridge has completed its module run and that there is a return value as well
+    /// </summary>
+    private const int SignalRunCompleteWithParameter = 8;
+
+    /// <summary>
+    /// We revive this error if the tool that we tell the bridge to run throws a
+    /// runtime exception that is not handled within the tool
+    /// </summary>
+    private const int SignalRuntimeError = 5;
+
+    /// <summary>
+    /// We will receive this from the ModellerBridge
+    /// when it is ready to start processing
+    /// </summary>
+    private const int SignalStart = 0;
+
+    /// <summary>
+    /// We will send this signal when we want to start to run a new module with binary parameters
+    /// </summary>
+    private const int SignalStartModuleBinaryParameters = 14;
+
+    /// <summary>
+    /// This is the message that we will send when it is time to shutdown the bridge.
+    /// If we receive it, then we know that the bridge is in a panic and has exited
+    /// </summary>
+    private const int SignalTermination = 1;
+
+    /// <summary>
+    /// Signal the bridge to check if a tool namespace exists
+    /// </summary>
+    private const int SignalCheckToolExists = 9;
+
+    /// <summary>
+    /// Signal from the bridge throwing an exception that the tool namespace could not be found
+    /// </summary>
+    private const int SignalToolDoesNotExistError = 10;
+
+    /// <summary>
+    /// Signal from the bridge that a print statement has been called, to write to the XTMF Console
+    /// </summary>
+    private const int SignalSentPrintMessage = 11;
+
+    /// <summary>
+    /// A signal from the modeller bridge saying that the tool that was requested to execute does not
+    /// contain an entry point for a call from XTMF2.
+    /// </summary>
+    private const int SignalIncompatibleTool = 15;
+
+    /// <summary>
+    /// A signal to the modeller bridge saying that it should check all of the loaded toolboxes to ensure
+    /// that all of their unconsolidated tools' script files exist.
+    /// </summary>
+    private const int SignalCheckForMissingTools = 16;
+
+    #endregion
+
+    public ModellerController(IModule caller, string projectFile, string pipeName,
+        bool performanceAnalysis = false, string userInitials = "XTMF", bool launchInNewProcess = true, 
+        string databank = null, string emmePath = null)
     {
-        private static readonly char[] LogbookStandard = new[] { 'A', 'L', 'L' };
-        private static readonly char[] LogbookDebug = new[] { 'D', 'E', 'B', 'U', 'G' };
-        private static readonly char[] LogbookNone = new[] { 'N', 'O', 'N', 'E' };
-
-        private Process _emme;
-        private NamedPipeServerStream _emmePipe;
-
-        #region SignalCodes
-
-        /// <summary>
-        /// We receive this error if the bridge can not get the parameters to match
-        /// the selected tool
-        /// </summary>
-        private const int SignalParameterError = 4;
-
-        /// <summary>
-        /// Receive a signal that contains a progress report
-        /// </summary>
-        private const int SignalProgressReport = 7;
-
-        /// <summary>
-        /// We receive this when the Bridge has completed its module run
-        /// </summary>
-        private const int SignalRunComplete = 3;
-
-        /// <summary>
-        /// We receive this when the Bridge has completed its module run and that there is a return value as well
-        /// </summary>
-        private const int SignalRunCompleteWithParameter = 8;
-
-        /// <summary>
-        /// We revive this error if the tool that we tell the bridge to run throws a
-        /// runtime exception that is not handled within the tool
-        /// </summary>
-        private const int SignalRuntimeError = 5;
-
-        /// <summary>
-        /// We will receive this from the ModellerBridge
-        /// when it is ready to start processing
-        /// </summary>
-        private const int SignalStart = 0;
-
-        /// <summary>
-        /// We will send this signal when we want to start to run a new module with binary parameters
-        /// </summary>
-        private const int SignalStartModuleBinaryParameters = 14;
-
-        /// <summary>
-        /// This is the message that we will send when it is time to shutdown the bridge.
-        /// If we receive it, then we know that the bridge is in a panic and has exited
-        /// </summary>
-        private const int SignalTermination = 1;
-
-        /// <summary>
-        /// Signal the bridge to check if a tool namespace exists
-        /// </summary>
-        private const int SignalCheckToolExists = 9;
-
-        /// <summary>
-        /// Signal from the bridge throwing an exception that the tool namespace could not be found
-        /// </summary>
-        private const int SignalToolDoesNotExistError = 10;
-
-        /// <summary>
-        /// Signal from the bridge that a print statement has been called, to write to the XTMF Console
-        /// </summary>
-        private const int SignalSentPrintMessage = 11;
-
-        /// <summary>
-        /// A signal from the modeller bridge saying that the tool that was requested to execute does not
-        /// contain an entry point for a call from XTMF2.
-        /// </summary>
-        private const int SignalIncompatibleTool = 15;
-
-        /// <summary>
-        /// A signal to the modeller bridge saying that it should check all of the loaded toolboxes to ensure
-        /// that all of their unconsolidated tools' script files exist.
-        /// </summary>
-        private const int SignalCheckForMissingTools = 16;
-
-        #endregion
-
-        public ModellerController(IModule caller, string projectFile, string pipeName,
-            bool performanceAnalysis = false, string userInitials = "XTMF", bool launchInNewProcess = true, 
-            string databank = null, string emmePath = null)
+        if (!projectFile.EndsWith(".emp") | !File.Exists(projectFile))
         {
-            if (!projectFile.EndsWith(".emp") | !File.Exists(projectFile))
-            {
-                throw new XTMFRuntimeException(caller, AddQuotes(projectFile) + " is not an existing Emme project file (*.emp)");
-            }
+            throw new XTMFRuntimeException(caller, AddQuotes(projectFile) + " is not an existing Emme project file (*.emp)");
+        }
 
-            FailTimer = 30;
-            ProjectFile = projectFile;
-            string workingDirectory = ProjectFile;
+        FailTimer = 30;
+        ProjectFile = projectFile;
+        string workingDirectory = ProjectFile;
 
-            //Python invocation command:
-            //[FullPath...python.exe] -u [FullPath...ModellerBridge.py] [FullPath...EmmeProject.emp] [User initials] [[Performance (optional)]] 
+        //Python invocation command:
+        //[FullPath...python.exe] -u [FullPath...ModellerBridge.py] [FullPath...EmmeProject.emp] [User initials] [[Performance (optional)]] 
 
-            // Get the path of the Python executable
-            emmePath = emmePath ?? Environment.GetEnvironmentVariable("EMMEPATH");
-            if (String.IsNullOrWhiteSpace(emmePath))
-            {
-                throw new XTMFRuntimeException(caller, "Please make sure that EMMEPATH is on the system environment variables!");
-            }
-            string pythonDirectory = Path.Combine(emmePath, FindPython(caller, emmePath));
-            string pythonPath = AddQuotes(Path.Combine(pythonDirectory, @"python.exe"));
-            string pythonLib = Path.Combine(pythonDirectory, "Lib");
+        // Get the path of the Python executable
+        emmePath = emmePath ?? Environment.GetEnvironmentVariable("EMMEPATH");
+        if (String.IsNullOrWhiteSpace(emmePath))
+        {
+            throw new XTMFRuntimeException(caller, "Please make sure that EMMEPATH is on the system environment variables!");
+        }
+        string pythonDirectory = Path.Combine(emmePath, FindPython(caller, emmePath));
+        string pythonPath = AddQuotes(Path.Combine(pythonDirectory, @"python.exe"));
+        string pythonLib = Path.Combine(pythonDirectory, "Lib");
 
-            // Get the path of ModellerBridge
-            // Learn where the modules are stored so we can find the python script
-            // The Entry assembly will be the XTMF.GUI or XTMF.RemoteClient
-            var codeBase = typeof(ModellerController).GetTypeInfo().Assembly.Location;
-            // When EMME is installed it will link the .py to their python interpreter properly
-            string argumentString = AddQuotes(Path.Combine(Path.GetDirectoryName(codeBase), "ModellerBridge.py"));
-            _emmePipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
-            try
-            {
-                Parallel.Invoke(() =>
+        // Get the path of ModellerBridge
+        // Learn where the modules are stored so we can find the python script
+        // The Entry assembly will be the XTMF.GUI or XTMF.RemoteClient
+        var codeBase = typeof(ModellerController).GetTypeInfo().Assembly.Location;
+        // When EMME is installed it will link the .py to their python interpreter properly
+        string argumentString = AddQuotes(Path.Combine(Path.GetDirectoryName(codeBase), "ModellerBridge.py"));
+        _emmePipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+        try
+        {
+            Parallel.Invoke(() =>
+           {
+               // no more standard out
+               _emmePipe.WaitForConnection();
+               using var reader = new BinaryReader(_emmePipe, Encoding.UTF8, true);
+               // wait for the start
+               reader.ReadInt32();
+           }, () =>
+           {
+               //The first argument that gets passed into the Bridge is the name of the Emme project file
+               argumentString += " " + AddQuotes(projectFile) + " " + userInitials + " " + (performanceAnalysis ? 1 : 0) + " \"" + pipeName + "\"";
+               if (!String.IsNullOrWhiteSpace(databank))
                {
-                   // no more standard out
-                   _emmePipe.WaitForConnection();
-                   using var reader = new BinaryReader(_emmePipe, Encoding.UTF8, true);
-                   // wait for the start
-                   reader.ReadInt32();
-               }, () =>
+                   argumentString += " " + AddQuotes(databank);
+               }
+               if (launchInNewProcess)
                {
-                   //The first argument that gets passed into the Bridge is the name of the Emme project file
-                   argumentString += " " + AddQuotes(projectFile) + " " + userInitials + " " + (performanceAnalysis ? 1 : 0) + " \"" + pipeName + "\"";
-                   if (!String.IsNullOrWhiteSpace(databank))
+                   //Setup up the new process
+                   // When creating this process, we can not start in our own window because we are re-directing the I/O
+                   // and windows won't allow us to have a window and take its standard I/O streams at the same time
+                   _emme = new Process();
+                   var startInfo = new ProcessStartInfo(pythonPath, argumentString);
+                   startInfo.Environment["PATH"] += ";" + pythonLib + ";" + Path.Combine(emmePath, "programs");
+                   _emme.StartInfo = startInfo;
+                   _emme.StartInfo.CreateNoWindow = false;
+                   _emme.StartInfo.UseShellExecute = false;
+                   _emme.StartInfo.RedirectStandardInput = false;
+                   _emme.StartInfo.RedirectStandardOutput = false;
+
+                   //Start the new process
+                   try
                    {
-                       argumentString += " " + AddQuotes(databank);
+                       _emme.Start();
                    }
-                   if (launchInNewProcess)
+                   catch
                    {
-                       //Setup up the new process
-                       // When creating this process, we can not start in our own window because we are re-directing the I/O
-                       // and windows won't allow us to have a window and take its standard I/O streams at the same time
-                       _emme = new Process();
-                       var startInfo = new ProcessStartInfo(pythonPath, argumentString);
-                       startInfo.Environment["PATH"] += ";" + pythonLib + ";" + Path.Combine(emmePath, "programs");
-                       _emme.StartInfo = startInfo;
-                       _emme.StartInfo.CreateNoWindow = false;
-                       _emme.StartInfo.UseShellExecute = false;
-                       _emme.StartInfo.RedirectStandardInput = false;
-                       _emme.StartInfo.RedirectStandardOutput = false;
-
-                       //Start the new process
-                       try
-                       {
-                           _emme.Start();
-                       }
-                       catch
-                       {
-                           throw new XTMFRuntimeException(caller, "Unable to create a bridge to EMME to '" + AddQuotes(projectFile) + "'!");
-                       }
+                       throw new XTMFRuntimeException(caller, "Unable to create a bridge to EMME to '" + AddQuotes(projectFile) + "'!");
                    }
-               });
-            }
-            catch (AggregateException e)
+               }
+           });
+        }
+        catch (AggregateException e)
+        {
+            throw e.InnerException;
+        }
+    }
+    /// <summary>
+    /// </summary>
+    /// <param name="projectFile"></param>
+    /// <param name="performanceAnalysis"></param>
+    /// <param name="userInitials"></param>
+    public ModellerController(IModule caller, string projectFile, bool performanceAnalysis = false, string userInitials = "XTMF", string emmePath = null)
+        : this(caller, projectFile, Guid.NewGuid().ToString(), performanceAnalysis, userInitials, emmePath:emmePath)
+    {
+
+    }
+
+    ~ModellerController()
+    {
+        Dispose(false);
+    }
+
+    private bool WaitForEmmeResponse(IModule caller, ref string returnValue, Action<float> updateProgress)
+    {
+        // now we need to wait
+        try
+        {
+            string toPrint;
+            while (true)
             {
-                throw e.InnerException;
-            }
-        }
-        /// <summary>
-        /// </summary>
-        /// <param name="projectFile"></param>
-        /// <param name="performanceAnalysis"></param>
-        /// <param name="userInitials"></param>
-        public ModellerController(IModule caller, string projectFile, bool performanceAnalysis = false, string userInitials = "XTMF", string emmePath = null)
-            : this(caller, projectFile, Guid.NewGuid().ToString(), performanceAnalysis, userInitials, emmePath:emmePath)
-        {
-
-        }
-
-        ~ModellerController()
-        {
-            Dispose(false);
-        }
-
-        private bool WaitForEmmeResponse(IModule caller, ref string returnValue, Action<float> updateProgress)
-        {
-            // now we need to wait
-            try
-            {
-                string toPrint;
-                while (true)
+                using var reader = new BinaryReader(_emmePipe, Encoding.Unicode, true);
+                int result = reader.ReadInt32();
+                switch (result)
                 {
-                    using var reader = new BinaryReader(_emmePipe, Encoding.Unicode, true);
-                    int result = reader.ReadInt32();
-                    switch (result)
-                    {
-                        case SignalStart:
-                            {
-                                continue;
-                            }
-                        case SignalRunComplete:
-                            {
-                                return true;
-                            }
-                        case SignalRunCompleteWithParameter:
-                            {
-                                returnValue = reader.ReadString();
-                                return true;
-                            }
-                        case SignalTermination:
-                            {
-                                throw new XTMFRuntimeException(caller, "The EMME ModellerBridge panicked and unexpectedly shutdown.");
-                            }
-                        case SignalParameterError:
-                            {
-                                throw new EmmeToolParameterException(caller, "EMME Parameter Error: " + reader.ReadString());
-                            }
-                        case SignalRuntimeError:
-                            {
-                                throw new EmmeToolRuntimeException(caller, "EMME Runtime " + reader.ReadString());
-                            }
-                        case SignalToolDoesNotExistError:
-                            {
-                                throw new EmmeToolCouldNotBeFoundException(caller, reader.ReadString());
-                            }
-                        case SignalIncompatibleTool:
-                            {
-                                throw new EmmeToolIncompatibleError(caller, reader.ReadString());
-                            }
-                        case SignalCheckToolExists:
-                            {
-                                return true;
-                            }
-                        case SignalSentPrintMessage:
-                            {
-                                toPrint = reader.ReadString();
-                                Console.Write(toPrint);
-                                break;
-                            }
-                        case SignalProgressReport:
-                            {
-                                var progress = reader.ReadSingle();
-                                updateProgress?.Invoke(progress);
-                                break;
-                            }
-                        default:
-                            {
-                                throw new XTMFRuntimeException(caller, "Unknown message passed back from the EMME ModellerBridge.  Signal number " + result);
-                            }
-                    }
+                    case SignalStart:
+                        {
+                            continue;
+                        }
+                    case SignalRunComplete:
+                        {
+                            return true;
+                        }
+                    case SignalRunCompleteWithParameter:
+                        {
+                            returnValue = reader.ReadString();
+                            return true;
+                        }
+                    case SignalTermination:
+                        {
+                            throw new XTMFRuntimeException(caller, "The EMME ModellerBridge panicked and unexpectedly shutdown.");
+                        }
+                    case SignalParameterError:
+                        {
+                            throw new EmmeToolParameterException(caller, "EMME Parameter Error: " + reader.ReadString());
+                        }
+                    case SignalRuntimeError:
+                        {
+                            throw new EmmeToolRuntimeException(caller, "EMME Runtime " + reader.ReadString());
+                        }
+                    case SignalToolDoesNotExistError:
+                        {
+                            throw new EmmeToolCouldNotBeFoundException(caller, reader.ReadString());
+                        }
+                    case SignalIncompatibleTool:
+                        {
+                            throw new EmmeToolIncompatibleError(caller, reader.ReadString());
+                        }
+                    case SignalCheckToolExists:
+                        {
+                            return true;
+                        }
+                    case SignalSentPrintMessage:
+                        {
+                            toPrint = reader.ReadString();
+                            Console.Write(toPrint);
+                            break;
+                        }
+                    case SignalProgressReport:
+                        {
+                            var progress = reader.ReadSingle();
+                            updateProgress?.Invoke(progress);
+                            break;
+                        }
+                    default:
+                        {
+                            throw new XTMFRuntimeException(caller, "Unknown message passed back from the EMME ModellerBridge.  Signal number " + result);
+                        }
                 }
             }
-            catch (EndOfStreamException)
+        }
+        catch (EndOfStreamException)
+        {
+            throw new XTMFRuntimeException(caller, "We were unable to communicate with EMME.  Please make sure you have an active EMME license.  If the problem persists, sometimes rebooting has helped fix this issue with EMME.");
+        }
+        catch (IOException e)
+        {
+            throw new XTMFRuntimeException(caller, "I/O Connection with EMME ended while waiting for data, with:\r\n" + e.Message);
+        }
+    }
+
+    /// <summary>
+    /// Throws an exception if the bridge has been disposed
+    /// </summary>
+    private void EnsureWriteAvailable(IModule caller)
+    {
+        if (_emmePipe == null)
+        {
+            throw new XTMFRuntimeException(caller, "EMME Bridge was invoked even though it has already been disposed.");
+        }
+    }
+
+    public bool Run(IModule caller, string macroName, string jsonParameters, LogbookLevel level)
+    {
+        string unused = null;
+        return Run(caller, macroName, jsonParameters, level, null, ref unused);
+    }
+
+    public bool Run(IModule caller, string macroName, string jsonParameters, LogbookLevel level, ref string returnValue)
+    {
+        return Run(caller, macroName, jsonParameters, level, null, ref returnValue);
+    }
+
+    public bool Run(IModule caller, string macroName, string jsonParameters, LogbookLevel level, Action<float> progressUpdate, ref string returnValue)
+    {
+        lock (this)
+        {
+            try
             {
-                throw new XTMFRuntimeException(caller, "We were unable to communicate with EMME.  Please make sure you have an active EMME license.  If the problem persists, sometimes rebooting has helped fix this issue with EMME.");
+                EnsureWriteAvailable(caller);
+                // clear out all of the old input before starting
+                using var writer = new BinaryWriter(_emmePipe, Encoding.Unicode, true);
+                writer.Write(SignalStartModuleBinaryParameters);
+                writer.Write(macroName.Length);
+                writer.Write(macroName.ToCharArray());
+                if (jsonParameters == null)
+                {
+                    writer.Write((int)0);
+                }
+                else
+                {
+                    writer.Write(jsonParameters.Length);
+                    writer.Write(jsonParameters.ToCharArray());
+                }
+                var logbookLevel = level switch
+                {
+                    LogbookLevel.Standard => LogbookStandard,
+                    LogbookLevel.Debug => LogbookDebug,
+                    LogbookLevel.None => LogbookNone,
+                    _ => LogbookStandard
+                };
+                writer.Write(logbookLevel.Length);
+                writer.Write(logbookLevel);
+                writer.Flush();
+                // make sure the tool exists before continuing
+                if (!WaitForEmmeResponse(caller, ref returnValue, progressUpdate))
+                {
+                    // if the tool does not exist, we have failed!
+                    return false;
+                }
             }
             catch (IOException e)
             {
-                throw new XTMFRuntimeException(caller, "I/O Connection with EMME ended while waiting for data, with:\r\n" + e.Message);
+                throw new XTMFRuntimeException(caller, "I/O Connection with EMME while sending data, with:\r\n" + e.Message);
             }
+            return WaitForEmmeResponse(caller, ref returnValue, progressUpdate);
         }
+    }
 
-        /// <summary>
-        /// Throws an exception if the bridge has been disposed
-        /// </summary>
-        private void EnsureWriteAvailable(IModule caller)
+    /// <summary>
+    /// Check that all unconsolidated tools have their file paths pointing to python
+    /// script files that exist.
+    /// </summary>
+    /// <param name="caller">The module that is running the check.</param>
+    /// <exception cref="EmmeToolRuntimeException">This gets thrown if there is a tool with source code that was not found.</exception>
+    public void CheckAllToolsExist(IModule caller)
+    {
+        lock (this)
         {
-            if (_emmePipe == null)
+            string returnValue = null;
+            try
             {
-                throw new XTMFRuntimeException(caller, "EMME Bridge was invoked even though it has already been disposed.");
+                EnsureWriteAvailable(caller);
+                // clear out all of the old input before starting
+                using var writer = new BinaryWriter(_emmePipe, Encoding.Unicode, true);
+                writer.Write(SignalCheckForMissingTools);
+                writer.Flush();
             }
-        }
-
-        public bool Run(IModule caller, string macroName, string jsonParameters, LogbookLevel level)
-        {
-            string unused = null;
-            return Run(caller, macroName, jsonParameters, level, null, ref unused);
-        }
-
-        public bool Run(IModule caller, string macroName, string jsonParameters, LogbookLevel level, ref string returnValue)
-        {
-            return Run(caller, macroName, jsonParameters, level, null, ref returnValue);
-        }
-
-        public bool Run(IModule caller, string macroName, string jsonParameters, LogbookLevel level, Action<float> progressUpdate, ref string returnValue)
-        {
-            lock (this)
+            catch (IOException e)
             {
+                throw new XTMFRuntimeException(caller, "I/O Connection with EMME while sending data, with:\r\n" + e.Message);
+            }
+            WaitForEmmeResponse(caller, ref returnValue, null);
+        }
+    }
+
+    private string AddQuotes(string fileName)
+    {
+        return String.Concat("\"", fileName, "\"");
+    }
+
+    private void Dispose(bool managed)
+    {
+        lock (this)
+        {
+            if (_emmePipe != null)
+            {
+                // Send our termination message first
                 try
                 {
-                    EnsureWriteAvailable(caller);
-                    // clear out all of the old input before starting
-                    using var writer = new BinaryWriter(_emmePipe, Encoding.Unicode, true);
-                    writer.Write(SignalStartModuleBinaryParameters);
-                    writer.Write(macroName.Length);
-                    writer.Write(macroName.ToCharArray());
-                    if (jsonParameters == null)
-                    {
-                        writer.Write((int)0);
-                    }
-                    else
-                    {
-                        writer.Write(jsonParameters.Length);
-                        writer.Write(jsonParameters.ToCharArray());
-                    }
-                    var logbookLevel = level switch
-                    {
-                        LogbookLevel.Standard => LogbookStandard,
-                        LogbookLevel.Debug => LogbookDebug,
-                        LogbookLevel.None => LogbookNone,
-                        _ => LogbookStandard
-                    };
-                    writer.Write(logbookLevel.Length);
-                    writer.Write(logbookLevel);
+                    using var writer = new BinaryWriter(_emmePipe, Encoding.UTF8, true);
+                    writer.Write(SignalTermination);
                     writer.Flush();
-                    // make sure the tool exists before continuing
-                    if (!WaitForEmmeResponse(caller, ref returnValue, progressUpdate))
-                    {
-                        // if the tool does not exist, we have failed!
-                        return false;
-                    }
+                    _emmePipe.Flush();
+                    // after our message has been sent then we can go and kill the stream
+                    _emmePipe.Dispose();
+                    _emmePipe = null;
                 }
-                catch (IOException e)
+                catch (IOException)
                 {
-                    throw new XTMFRuntimeException(caller, "I/O Connection with EMME while sending data, with:\r\n" + e.Message);
                 }
-                return WaitForEmmeResponse(caller, ref returnValue, progressUpdate);
             }
-        }
-
-        /// <summary>
-        /// Check that all unconsolidated tools have their file paths pointing to python
-        /// script files that exist.
-        /// </summary>
-        /// <param name="caller">The module that is running the check.</param>
-        /// <exception cref="EmmeToolRuntimeException">This gets thrown if there is a tool with source code that was not found.</exception>
-        public void CheckAllToolsExist(IModule caller)
-        {
-            lock (this)
+            if (managed)
             {
-                string returnValue = null;
-                try
-                {
-                    EnsureWriteAvailable(caller);
-                    // clear out all of the old input before starting
-                    using var writer = new BinaryWriter(_emmePipe, Encoding.Unicode, true);
-                    writer.Write(SignalCheckForMissingTools);
-                    writer.Flush();
-                }
-                catch (IOException e)
-                {
-                    throw new XTMFRuntimeException(caller, "I/O Connection with EMME while sending data, with:\r\n" + e.Message);
-                }
-                WaitForEmmeResponse(caller, ref returnValue, null);
+                GC.SuppressFinalize(this);
             }
         }
+    }
 
-        private string AddQuotes(string fileName)
+    private string FindPython(IModule caller, string emmePath)
+    {
+        if (!Directory.Exists(emmePath))
         {
-            return String.Concat("\"", fileName, "\"");
+            throw new XTMFRuntimeException(caller, "We were unable to find an EMME installation in the directory named '" + emmePath + "'!\r\nIf you have just installed EMME please reboot your system.");
         }
-
-        private void Dispose(bool managed)
+        foreach (var dir in Directory.GetDirectories(emmePath))
         {
-            lock (this)
+            var localName = Path.GetFileName(dir);
+            if (localName != null && localName.StartsWith("Python"))
             {
-                if (_emmePipe != null)
+                var remainder = localName.Substring("Python".Length);
+                if (remainder.Length > 0 && char.IsDigit(remainder[0]))
                 {
-                    // Send our termination message first
-                    try
-                    {
-                        using var writer = new BinaryWriter(_emmePipe, Encoding.UTF8, true);
-                        writer.Write(SignalTermination);
-                        writer.Flush();
-                        _emmePipe.Flush();
-                        // after our message has been sent then we can go and kill the stream
-                        _emmePipe.Dispose();
-                        _emmePipe = null;
-                    }
-                    catch (IOException)
-                    {
-                    }
-                }
-                if (managed)
-                {
-                    GC.SuppressFinalize(this);
+                    return localName;
                 }
             }
         }
+        throw new XTMFRuntimeException(caller, "We were unable to find a version of python inside of EMME!");
+    }
 
-        private string FindPython(IModule caller, string emmePath)
+    /// <summary>
+    /// Process floats to work with emme
+    /// </summary>
+    /// <param name="number">The float you want to send</param>
+    /// <returns>A limited precision non scientific number in a string</returns>
+    public static string ToEmmeFloat(float number)
+    {
+        var builder = new StringBuilder();
+        builder.Append((int)number);
+        number = (float)Math.Round(number, 6);
+        number -= (int)number;
+        if (number > 0)
         {
-            if (!Directory.Exists(emmePath))
+            var integerSize = builder.Length;
+            builder.Append('.');
+            for (int i = integerSize; i < 4; i++)
             {
-                throw new XTMFRuntimeException(caller, "We were unable to find an EMME installation in the directory named '" + emmePath + "'!\r\nIf you have just installed EMME please reboot your system.");
-            }
-            foreach (var dir in Directory.GetDirectories(emmePath))
-            {
-                var localName = Path.GetFileName(dir);
-                if (localName != null && localName.StartsWith("Python"))
+                number *= 10;
+                builder.Append((int)number);
+                number -= (int)number;
+                // ReSharper disable once CompareOfFloatsByEqualityOperator
+                if (number == 0)
                 {
-                    var remainder = localName.Substring("Python".Length);
-                    if (remainder.Length > 0 && char.IsDigit(remainder[0]))
-                    {
-                        return localName;
-                    }
-                }
-            }
-            throw new XTMFRuntimeException(caller, "We were unable to find a version of python inside of EMME!");
-        }
-
-        /// <summary>
-        /// Process floats to work with emme
-        /// </summary>
-        /// <param name="number">The float you want to send</param>
-        /// <returns>A limited precision non scientific number in a string</returns>
-        public static string ToEmmeFloat(float number)
-        {
-            var builder = new StringBuilder();
-            builder.Append((int)number);
-            number = (float)Math.Round(number, 6);
-            number -= (int)number;
-            if (number > 0)
-            {
-                var integerSize = builder.Length;
-                builder.Append('.');
-                for (int i = integerSize; i < 4; i++)
-                {
-                    number *= 10;
-                    builder.Append((int)number);
-                    number -= (int)number;
-                    // ReSharper disable once CompareOfFloatsByEqualityOperator
-                    if (number == 0)
-                    {
-                        break;
-                    }
-                }
-            }
-            return builder.ToString();
-        }
-
-        /// <summary>
-        /// Process floats to work with emme
-        /// </summary>
-        /// <param name="number">The float you want to send</param>
-        /// <param name="builder">A string build to use to make the string</param>
-        /// <returns>A limited precision non scientific number in a string</returns>
-        public static void ToEmmeFloat(float number, StringBuilder builder)
-        {
-            builder.Clear();
-            builder.Append((int)number);
-            number -= (int)number;
-            if (number > 0)
-            {
-                var integerSize = builder.Length;
-                builder.Append('.');
-                for (int i = integerSize; i < 4; i++)
-                {
-                    number *= 10;
-                    builder.Append((int)number);
-                    number -= (int)number;
-                    // ReSharper disable once CompareOfFloatsByEqualityOperator
-                    if (number == 0)
-                    {
-                        break;
-                    }
+                    break;
                 }
             }
         }
+        return builder.ToString();
+    }
 
-        public double FailTimer { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        public string ProjectFile { get; private set; }
-
-        public void Close()
+    /// <summary>
+    /// Process floats to work with emme
+    /// </summary>
+    /// <param name="number">The float you want to send</param>
+    /// <param name="builder">A string build to use to make the string</param>
+    /// <returns>A limited precision non scientific number in a string</returns>
+    public static void ToEmmeFloat(float number, StringBuilder builder)
+    {
+        builder.Clear();
+        builder.Append((int)number);
+        number -= (int)number;
+        if (number > 0)
         {
-            Dispose();
+            var integerSize = builder.Length;
+            builder.Append('.');
+            for (int i = integerSize; i < 4; i++)
+            {
+                number *= 10;
+                builder.Append((int)number);
+                number -= (int)number;
+                // ReSharper disable once CompareOfFloatsByEqualityOperator
+                if (number == 0)
+                {
+                    break;
+                }
+            }
         }
+    }
 
-        public void Dispose()
-        {
-            Dispose(true);
-        }
+    public double FailTimer { get; set; }
+
+    /// <summary>
+    ///
+    /// </summary>
+    public string ProjectFile { get; private set; }
+
+    public void Close()
+    {
+        Dispose();
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
     }
 }

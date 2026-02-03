@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2019 University of Toronto
+    Copyright 2019-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -21,15 +21,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Text;
 
-namespace TMG.Emme.Test
+namespace TMG.Emme.Test;
+
+[TestClass]
+public abstract class TestBase
 {
-    [TestClass]
-    public abstract class TestBase
+    [Microsoft.VisualStudio.TestTools.UnitTesting.TestInitialize]
+    public void InitTest()
     {
-        [Microsoft.VisualStudio.TestTools.UnitTesting.TestInitialize]
-        public void InitTest()
-        {
-            Helper.InitializeEMME();
-        }
+        Helper.InitializeEMME();
     }
 }

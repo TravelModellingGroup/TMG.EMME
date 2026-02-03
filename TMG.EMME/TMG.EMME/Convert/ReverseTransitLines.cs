@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2022 University of Toronto
+    Copyright 2022-2026 University of Toronto
     This file is part of TMG.EMME for XTMF2.
     TMG.EMME for XTMF2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,28 +20,27 @@ using System.Text;
 using TMG.Emme;
 using XTMF2;
 
-namespace TMG.Emme.Convert
+namespace TMG.Emme.Convert;
+
+[Module(Name = "Reverse Transit Lines", Description = "Reverses the itineraries of a subset of transit lines.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class ReverseTransitLines : BaseAction<ModellerController>
 {
-    [Module(Name = "Reverse Transit Lines", Description = "Reverses the itineraries of a subset of transit lines.",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class ReverseTransitLines : BaseAction<ModellerController>
+    [Parameter(Name = "Scenario Number", Description = "Scenario number containing network to rotate",
+        Index = 0)]
+    public IFunction<int> ScenarioNumber;
+
+    [Parameter(Name = "Line Selector Expression", Description = "",
+        Index = 1)]
+    public IFunction<string> LineSelectorExpression;
+
+    public override void Invoke(ModellerController context)
     {
-        [Parameter(Name = "Scenario Number", Description = "Scenario number containing network to rotate",
-            Index = 0)]
-        public IFunction<int> ScenarioNumber;
+        context.Run(this, "tmg2.Convert.reverse_transit_lines", JSONParameterBuilder.BuildParameters(writer =>
 
-        [Parameter(Name = "Line Selector Expression", Description = "",
-            Index = 1)]
-        public IFunction<string> LineSelectorExpression;
-
-        public override void Invoke(ModellerController context)
         {
-            context.Run(this, "tmg2.Convert.reverse_transit_lines", JSONParameterBuilder.BuildParameters(writer =>
-
-            {
-                writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-                writer.WriteString("line_selector_expression", LineSelectorExpression.Invoke());
-            }), LogbookLevel.Standard);
-        }
+            writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
+            writer.WriteString("line_selector_expression", LineSelectorExpression.Invoke());
+        }), LogbookLevel.Standard);
     }
 }

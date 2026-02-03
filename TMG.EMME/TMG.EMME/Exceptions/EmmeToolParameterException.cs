@@ -1,5 +1,5 @@
 /*
-    Copyright 2014 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2014-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of XTMF.
 
@@ -19,14 +19,13 @@
 using XTMF2;
 using System;
 
-namespace TMG.Emme
+namespace TMG.Emme;
+
+[Serializable]    
+public class EmmeToolParameterException : XTMFRuntimeException
 {
-    [Serializable]    
-    public class EmmeToolParameterException : XTMFRuntimeException
+    public EmmeToolParameterException(IModule caller, string description)
+        : base( caller, description )
     {
-        public EmmeToolParameterException(IModule caller, string description)
-            : base( caller, description )
-        {
-        }
     }
 }

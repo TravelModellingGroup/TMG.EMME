@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2019 University of Toronto
+    Copyright 2019-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -20,15 +20,14 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace TMG.Emme
+namespace TMG.Emme;
+
+/// <summary>
+/// The different logbook levels are that supported.
+/// </summary>
+public enum LogbookLevel
 {
-    /// <summary>
-    /// The different logbook levels are that supported.
-    /// </summary>
-    public enum LogbookLevel
-    {
-        Standard,
-        Debug,
-        None
-    }
+    Standard,
+    Debug,
+    None
 }

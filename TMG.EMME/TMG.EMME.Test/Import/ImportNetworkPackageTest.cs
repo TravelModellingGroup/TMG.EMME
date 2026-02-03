@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -22,29 +22,28 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 
-namespace TMG.Emme.Test.Import
-{
-    [TestClass]
-    public class ImportNetworkPackageTest : TestBase
-    {
-        [TestMethod]
-        public void ImportNetworkPackage()
-        {
-            Helper.ImportFrabitztownNetwork(1);
-        }
+namespace TMG.Emme.Test.Import;
 
-        [TestMethod]
-        public void ImportNetworkPackageModule()
+[TestClass]
+public class ImportNetworkPackageTest : TestBase
+{
+    [TestMethod]
+    public void ImportNetworkPackage()
+    {
+        Helper.ImportFrabitztownNetwork(1);
+    }
+
+    [TestMethod]
+    public void ImportNetworkPackageModule()
+    {
+        var importModule = new Emme.Import.ImportNetworkPackage()
         {
-            var importModule = new Emme.Import.ImportNetworkPackage()
-            {
-                Name = "Importer",
-                ScenarioNumber = Helper.CreateParameter(3, "Const Number"),
-                NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/AMTransit.nwp"), "EROWNetwork"),
-                ScenarioDescription = Helper.CreateParameter("From XTMF", "Description"),
-                ConflictOption = Helper.CreateParameter("conflict_option")
-            };
-            importModule.Invoke(Helper.Modeller);
-        }
+            Name = "Importer",
+            ScenarioNumber = Helper.CreateParameter(3, "Const Number"),
+            NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/AMTransit.nwp"), "EROWNetwork"),
+            ScenarioDescription = Helper.CreateParameter("From XTMF", "Description"),
+            ConflictOption = Helper.CreateParameter("conflict_option")
+        };
+        importModule.Invoke(Helper.Modeller);
     }
 }

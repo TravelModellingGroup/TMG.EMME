@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2019 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2019-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of XTMF2.
 
@@ -21,13 +21,12 @@ using System.Collections.Generic;
 using System.Text;
 using XTMF2;
 
-namespace TMG.Emme
+namespace TMG.Emme;
+
+public class EmmeToolIncompatibleError : XTMFRuntimeException
 {
-    public class EmmeToolIncompatibleError : XTMFRuntimeException
+    public EmmeToolIncompatibleError(IModule module, string description)
+        : base(module, description)
     {
-        public EmmeToolIncompatibleError(IModule module, string description)
-            : base(module, description)
-        {
-        }
     }
 }

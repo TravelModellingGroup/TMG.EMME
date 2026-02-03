@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -23,41 +23,40 @@ using System.Text;
 using TMG.Emme;
 using XTMF2;
 
-namespace TMG.Emme.Import
+namespace TMG.Emme.Import;
+
+[Module(Name = "Import Network Package", Description = "Import an EMME scenario from a network package into the databank.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class ImportNetworkPackage : BaseAction<ModellerController>
 {
-    [Module(Name = "Import Network Package", Description = "Import an EMME scenario from a network package into the databank.",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class ImportNetworkPackage : BaseAction<ModellerController>
+    public override void Invoke(ModellerController context)
     {
-        public override void Invoke(ModellerController context)
+        context.Run(this, "tmg2.Import.import_network_package", GetParameters(), LogbookLevel.Standard);
+    }
+
+    [Parameter(DefaultValue = "test.nwp", Index = 0, Name = "Network Package File",
+        Description = "The location of the file to load into the EMME bank.")]
+    public IFunction<string> NetworkPackageFile;
+
+    [Parameter(DefaultValue = "1", Index = 1, Name = "Scenario Number", Description = "The scenario to import into.")]
+    public IFunction<int> ScenarioNumber;
+
+    [Parameter(DefaultValue = "From XTMF", Index = 2, Name = "Scenario Description",
+        Description = "A description for the imported scenario.")]
+    public IFunction<string> ScenarioDescription;
+
+    [Parameter(DefaultValue = "OVERWRITE", Index = 3, Name = "Conflict Option",
+        Description = "")]
+    public IFunction<string> ConflictOption;
+
+    private string GetParameters()
+    {
+        return JSONParameterBuilder.BuildParameters(writer =>
         {
-            context.Run(this, "tmg2.Import.import_network_package", GetParameters(), LogbookLevel.Standard);
-        }
-
-        [Parameter(DefaultValue = "test.nwp", Index = 0, Name = "Network Package File",
-            Description = "The location of the file to load into the EMME bank.")]
-        public IFunction<string> NetworkPackageFile;
-
-        [Parameter(DefaultValue = "1", Index = 1, Name = "Scenario Number", Description = "The scenario to import into.")]
-        public IFunction<int> ScenarioNumber;
-
-        [Parameter(DefaultValue = "From XTMF", Index = 2, Name = "Scenario Description",
-            Description = "A description for the imported scenario.")]
-        public IFunction<string> ScenarioDescription;
-
-        [Parameter(DefaultValue = "OVERWRITE", Index = 3, Name = "Conflict Option",
-            Description = "")]
-        public IFunction<string> ConflictOption;
-
-        private string GetParameters()
-        {
-            return JSONParameterBuilder.BuildParameters(writer =>
-            {
-                writer.WriteString("network_package_file", Path.GetFullPath(NetworkPackageFile.Invoke()));
-                writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-                writer.WriteString("scenario_description", ScenarioDescription.Invoke());
-                writer.WriteString("conflict_option", ConflictOption.Invoke());
-            });
-        }
+            writer.WriteString("network_package_file", Path.GetFullPath(NetworkPackageFile.Invoke()));
+            writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
+            writer.WriteString("scenario_description", ScenarioDescription.Invoke());
+            writer.WriteString("conflict_option", ConflictOption.Invoke());
+        });
     }
 }

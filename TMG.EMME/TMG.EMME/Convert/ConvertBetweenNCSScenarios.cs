@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 University of Toronto
+    Copyright 2022-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -24,57 +24,56 @@ using System.Text;
 using TMG.Emme;
 using XTMF2;
 
-namespace TMG.Emme.Convert
+namespace TMG.Emme.Convert;
+
+[Module(Name = "Convert OldNCS 2 NewNCS Standards", Description = "Converts the old NCS standards to the most recent.",
+    DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
+public class ConvertBetweenNCSScenarios : BaseAction<ModellerController>
 {
-    [Module(Name = "Convert OldNCS 2 NewNCS Standards", Description = "Converts the old NCS standards to the most recent.",
-        DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public class ConvertBetweenNCSScenarios : BaseAction<ModellerController>
+    [Parameter(Name = "Old NCS Scenario", Description = "",
+        Index = 0)]
+    public IFunction<int> OldScenarioNumber;
+    [Parameter(Name = "New NCS Scenario", Description = "",
+        Index = 1)]
+    public IFunction<int> NewScenarioNumber;
+    [Parameter(Name = "Station Centroid File", Description = "",
+        Index = 2)]
+    public IFunction<string> StationCentroidFile;
+    [Parameter(Name = "Zone Centroid File", Description = "",
+        Index = 3)]
+    public IFunction<string> ZoneCentroidFile;
+    [Parameter(Name = "Mode Code Definition File", Description = "",
+        Index = 4)]
+    public IFunction<string> ModeCodeDefinition;
+    [Parameter(Name = "Link Attributes File", Description = "",
+        Index = 5)]
+    public IFunction<string> LinkAttributes;
+    [Parameter(Name = "Transit Vehicle Definition File", Description = "",
+        Index = 6)]
+    public IFunction<string> TransitVehicleFile;
+    [Parameter(Name = "Lane Capacity File", Description = "",
+        Index = 7)]
+    public IFunction<string> LaneCapacityFile;
+    [Parameter(Name = "Transit Line File", Description = "FilePath to the transit line csv file",
+        Index = 8)]
+    public IFunction<string> TransitLineFile;
+    [Parameter(Name = "Skip Missing Transit Lines", Description = "Boolean to skip the transit lines",
+        Index = 9)]
+    public IFunction<bool> SkipMissingTransitLines;
+    public override void Invoke(ModellerController context)
     {
-        [Parameter(Name = "Old NCS Scenario", Description = "",
-            Index = 0)]
-        public IFunction<int> OldScenarioNumber;
-        [Parameter(Name = "New NCS Scenario", Description = "",
-            Index = 1)]
-        public IFunction<int> NewScenarioNumber;
-        [Parameter(Name = "Station Centroid File", Description = "",
-            Index = 2)]
-        public IFunction<string> StationCentroidFile;
-        [Parameter(Name = "Zone Centroid File", Description = "",
-            Index = 3)]
-        public IFunction<string> ZoneCentroidFile;
-        [Parameter(Name = "Mode Code Definition File", Description = "",
-            Index = 4)]
-        public IFunction<string> ModeCodeDefinition;
-        [Parameter(Name = "Link Attributes File", Description = "",
-            Index = 5)]
-        public IFunction<string> LinkAttributes;
-        [Parameter(Name = "Transit Vehicle Definition File", Description = "",
-            Index = 6)]
-        public IFunction<string> TransitVehicleFile;
-        [Parameter(Name = "Lane Capacity File", Description = "",
-            Index = 7)]
-        public IFunction<string> LaneCapacityFile;
-        [Parameter(Name = "Transit Line File", Description = "FilePath to the transit line csv file",
-            Index = 8)]
-        public IFunction<string> TransitLineFile;
-        [Parameter(Name = "Skip Missing Transit Lines", Description = "Boolean to skip the transit lines",
-            Index = 9)]
-        public IFunction<bool> SkipMissingTransitLines;
-        public override void Invoke(ModellerController context)
+        context.Run(this, "tmg2.Convert.convert_between_ncs_scenarios", JSONParameterBuilder.BuildParameters(writer =>
         {
-            context.Run(this, "tmg2.Convert.convert_between_ncs_scenarios", JSONParameterBuilder.BuildParameters(writer =>
-            {
-                writer.WriteNumber("old_ncs_scenario", OldScenarioNumber.Invoke());
-                writer.WriteNumber("new_ncs_scenario", NewScenarioNumber.Invoke());
-                writer.WriteString("station_centroid_file", Path.GetFullPath(StationCentroidFile.Invoke()));
-                writer.WriteString("zone_centroid_file", Path.GetFullPath(ZoneCentroidFile.Invoke()));
-                writer.WriteString("mode_code_definitions", Path.GetFullPath(ModeCodeDefinition.Invoke()));
-                writer.WriteString("link_attributes", Path.GetFullPath(LinkAttributes.Invoke()));
-                writer.WriteString("transit_vehicle_definitions", Path.GetFullPath(TransitVehicleFile.Invoke()));
-                writer.WriteString("lane_capacities", Path.GetFullPath(LaneCapacityFile.Invoke()));
-                writer.WriteString("transit_line_codes", Path.GetFullPath(TransitLineFile.Invoke()));
-                writer.WriteBoolean("skip_missing_transit_lines", SkipMissingTransitLines.Invoke());
-            }), LogbookLevel.Standard);
-        }
+            writer.WriteNumber("old_ncs_scenario", OldScenarioNumber.Invoke());
+            writer.WriteNumber("new_ncs_scenario", NewScenarioNumber.Invoke());
+            writer.WriteString("station_centroid_file", Path.GetFullPath(StationCentroidFile.Invoke()));
+            writer.WriteString("zone_centroid_file", Path.GetFullPath(ZoneCentroidFile.Invoke()));
+            writer.WriteString("mode_code_definitions", Path.GetFullPath(ModeCodeDefinition.Invoke()));
+            writer.WriteString("link_attributes", Path.GetFullPath(LinkAttributes.Invoke()));
+            writer.WriteString("transit_vehicle_definitions", Path.GetFullPath(TransitVehicleFile.Invoke()));
+            writer.WriteString("lane_capacities", Path.GetFullPath(LaneCapacityFile.Invoke()));
+            writer.WriteString("transit_line_codes", Path.GetFullPath(TransitLineFile.Invoke()));
+            writer.WriteBoolean("skip_missing_transit_lines", SkipMissingTransitLines.Invoke());
+        }), LogbookLevel.Standard);
     }
 }

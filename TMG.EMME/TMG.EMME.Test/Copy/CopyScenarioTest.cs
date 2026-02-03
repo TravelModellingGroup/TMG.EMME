@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright 2017 University of Toronto
+    Copyright 2017-2026 University of Toronto
 
     This file is part of TMG.EMME for XTMF2.
 
@@ -20,34 +20,33 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Text.Json;
 
-namespace TMG.Emme.Test.Copy
-{
-    [TestClass]
-    public class CopyScenarioTest : TestBase
-    {
-        [TestMethod]
-        public void CopyScenario()
-        {
-            Assert.IsTrue(
-            Helper.Modeller.Run(null, "tmg2.Copy.copy_scenario", JSONParameterBuilder.BuildParameters(writer =>
-                {
-                    writer.WriteNumber("from_scenario", 1);
-                    writer.WriteNumber("to_scenario", 2);
-                    writer.WriteBoolean("copy_strategy", false);
-                }), LogbookLevel.Standard));
-        }
+namespace TMG.Emme.Test.Copy;
 
-        [TestMethod]
-        public void CopyScenarioModule()
-        {
-            var module = new Emme.Copy.CopyScenario()
+[TestClass]
+public class CopyScenarioTest : TestBase
+{
+    [TestMethod]
+    public void CopyScenario()
+    {
+        Assert.IsTrue(
+        Helper.Modeller.Run(null, "tmg2.Copy.copy_scenario", JSONParameterBuilder.BuildParameters(writer =>
             {
-                Name = "CopyScenario",
-                FromScenario = Helper.CreateParameter(1, "From"),
-                ToScenario = Helper.CreateParameter(2, "To"),
-                CopyStrategy = Helper.CreateParameter(false, "Copy Assignments")
-            };
-            module.Invoke(Helper.Modeller);
-        }
+                writer.WriteNumber("from_scenario", 1);
+                writer.WriteNumber("to_scenario", 2);
+                writer.WriteBoolean("copy_strategy", false);
+            }), LogbookLevel.Standard));
+    }
+
+    [TestMethod]
+    public void CopyScenarioModule()
+    {
+        var module = new Emme.Copy.CopyScenario()
+        {
+            Name = "CopyScenario",
+            FromScenario = Helper.CreateParameter(1, "From"),
+            ToScenario = Helper.CreateParameter(2, "To"),
+            CopyStrategy = Helper.CreateParameter(false, "Copy Assignments")
+        };
+        module.Invoke(Helper.Modeller);
     }
 }
