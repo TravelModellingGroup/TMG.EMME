@@ -49,7 +49,7 @@ of the test project configuration's output directory.
 
 The path to the location of the DebugProject folder is the following:
 ```
-~\TMG.EMME\TMG.EMME\TMG.EMME.Test\bin\Debug\net10.0\DebugProject
+~\TMG.EMME\TMG.EMME\TMG.EMME.Test\bin\Release\net10.0\DebugProject
 ```
 **Note:** The reason the Debug project is in the Debug folder is because it wasn't compiled to a Release build. 
 
