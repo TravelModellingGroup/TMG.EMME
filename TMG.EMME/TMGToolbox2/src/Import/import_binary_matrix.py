@@ -1,6 +1,6 @@
-# ---LICENSE----------------------unicode
+# ---LICENSE----------------------
 """
-    Copyright 2014 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2014-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -24,7 +24,8 @@ Import Binary Matrix
     Authors: pkucirek
 
     Latest revision by: lunaxi
-    
+
+    Latest revision by: Amit
     
     [Description]
         
@@ -38,7 +39,6 @@ Import Binary Matrix
 """
 
 
-#from inspect import Parameter
 from sqlite3 import paramstyle
 import inro.modeller as _m
 import traceback as _traceback
@@ -46,6 +46,7 @@ from inro.emme.matrix import MatrixData as _matrix_data
 import shutil
 import os
 import gzip
+from typing import TypedDict
 
 _m.InstanceType = object
 _m.TupleType = object
@@ -60,12 +61,14 @@ _bank = _MODELLER.emmebank
 
 
 class ImportBinaryMatrix(_m.Tool()):
+    """
+    Class to import a binary matrix.
+    """
+    version: str = "0.0.2"
+    tool_run_msg: str = ""
+    number_of_tasks: int = 1  # For progress reporting, enter the integer number of tasks here
 
-    version = "0.0.2"
-    tool_run_msg = ""
-    number_of_tasks = 1  # For progress reporting, enter the integer number of tasks here
-
-    MATRIX_TYPES = {1: "ms", 2: "mo", 3: "md", 4: "mf"}
+    MATRIX_TYPES: dict = {1: "ms", 2: "mo", 3: "md", 4: "mf"}
 
     # ---PARAMETERS
     import_file = _m.Attribute(str)
@@ -79,16 +82,16 @@ class ImportBinaryMatrix(_m.Tool()):
     new_matrix_description = _m.Attribute(str)
     new_matrix_type = _m.Attribute(str)
 
-    def __init__(self):
+    def __init__(self) -> None:
         # ---Init internal variables
         self._tracker = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
         # ---Set the defaults of parameters used by Modeller
         self.scenario = _MODELLER.scenario
-        self.new_matrix_name = ""
-        self.new_matrix_description = ""
+        self.new_matrix_name: str = ""
+        self.new_matrix_description: str = ""
 
-    def page(self):
+    def page(self) -> None:
         pb = _tmgTPB.TmgToolPageBuilder(
             self,
             title="Import Binary Matrix v%s" % self.version,
@@ -179,8 +182,8 @@ class ImportBinaryMatrix(_m.Tool()):
 
         return pb.render()
 
-    def run(self):
-        self.tool_run_msg = ""
+    def run(self) -> None:
+        self.tool_run_msg: str = ""
         self._tracker.reset()
         parameters = self._build_parameters_page_builder()
         try:
@@ -190,7 +193,7 @@ class ImportBinaryMatrix(_m.Tool()):
             raise
         self.tool_run_msg = _m.PageBuilder.format_info("Done. Matrix is imported.")
 
-    def __call__(self, parameters):
+    def __call__(self, parameters) -> None:
         scenario = _util.load_scenario(parameters["scenario_number"])
         matrix_id = self._check_matrix(parameters["matrix_type"], parameters["matrix_number"])
         try:
@@ -199,7 +202,7 @@ class ImportBinaryMatrix(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def run_xtmf(self, parameters):
+    def run_xtmf(self, parameters) -> None:
         scenario = _util.load_scenario(parameters["scenario_number"])
         matrix_id = self._check_matrix(parameters["matrix_type"], parameters["matrix_number"])
         try:
@@ -208,7 +211,7 @@ class ImportBinaryMatrix(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def _execute(self, scenario, parameters, matrix_id):
+    def _execute(self, scenario, parameters, matrix_id) -> None:
         self._check_import_file(parameters["binary_matrix_file"])
         with _m.logbook_trace(
             name="%s v%s" % (self.__class__.__name__, self.version),
@@ -280,7 +283,7 @@ class ImportBinaryMatrix(_m.Tool()):
                 matrix.set_data(data)
             self._tracker.complete_task()
 
-    def _get_atts(self, scenario):
+    def _get_atts(self, scenario) -> dict[str, str]:
         atts = {
             "scenario": str(scenario.id),
             "Version": self.version,
@@ -292,8 +295,8 @@ class ImportBinaryMatrix(_m.Tool()):
         if import_file is None:
             raise IOError("Import file not specified")
 
-    def _build_parameters_page_builder(self):
-        parameters = {
+    def _build_parameters_page_builder(self) -> dict:
+        parameters: dict = {
             "matrix_type": self.matrix_type,
             "matrix_number": self.matrix_id,
             "binary_matrix_file": self.import_file,
@@ -306,7 +309,7 @@ class ImportBinaryMatrix(_m.Tool()):
         }
         return parameters
 
-    def _check_matrix(self, matrix_type, matrix_number):
+    def _check_matrix(self, matrix_type, matrix_number) -> str:
         if not matrix_type in self.MATRIX_TYPES:
             raise IOError(
                 "Matrix type '%s' is not recognized. Valid types are " % matrix_type
@@ -314,8 +317,6 @@ class ImportBinaryMatrix(_m.Tool()):
                 + "4 for full matrices."
             )
         matrix_id = self.MATRIX_TYPES[matrix_type] + str(matrix_number)
-        if _bank.matrix(matrix_id) == None:
-            raise IOError("Matrix %s does not exist." % matrix_id)
         return matrix_id
 
     @_m.method(return_type=_m.TupleType)
