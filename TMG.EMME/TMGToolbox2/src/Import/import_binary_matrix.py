@@ -317,9 +317,6 @@ class ImportBinaryMatrix(_m.Tool()):
                 + "4 for full matrices."
             )
         matrix_id = self.MATRIX_TYPES[matrix_type] + str(matrix_number)
-        # if _bank.matrix(matrix_id) == None:
-        #     raise IOError("Matrix %s does not exist." % matrix_id)
-        print(matrix_id)
         return matrix_id
 
     @_m.method(return_type=_m.TupleType)
