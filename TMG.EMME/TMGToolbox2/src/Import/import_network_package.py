@@ -25,6 +25,8 @@ import os
 from os import path as _path
 import shutil as _shutil
 import tempfile as _tf
+from typing import TypeAlias
+
 
 _m.InstanceType = object
 _m.TupleType = object
@@ -43,6 +45,9 @@ import_lines = _MODELLER.tool("inro.emme.data.network.transit.transit_line_trans
 import_turns = _MODELLER.tool("inro.emme.data.network.turn.turn_transaction")
 import_attributes = _MODELLER.tool("inro.emme.data.network.import_attribute_values")
 
+# alias for the scenario and zipfile type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+zipfile: TypeAlias = _zipfile.ZipFile
 
 class ComponentContainer(object):
     """A simple data container. It's fully written out so I can get auto-completion"""
@@ -548,12 +553,12 @@ class ImportNetworkPackage(_m.Tool()):
         return self.merge_functions.function_conflicts
 
     @_m.logbook_trace("Reading modes")
-    def _batchin_modes(self, scenario:inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
+    def _batchin_modes(self, scenario:Scenario, temp_folder: str, zf: zipfile) -> None:
         file_name = zf.extract(self._components.mode_file, temp_folder)
         self._tracker.run_tool(import_modes, transaction_file=file_name, scenario=scenario)
 
     @_m.logbook_trace("Reading vehicles")
-    def _batchin_vehicles(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
+    def _batchin_vehicles(self, scenario: Scenario, temp_folder: str, zf: zipfile) -> None:
         zf.extract(self._components.vehicles_file, temp_folder)
         self._tracker.run_tool(
             import_vehicles,
@@ -562,7 +567,7 @@ class ImportNetworkPackage(_m.Tool()):
         )
 
     @_m.logbook_trace("Reading base network")
-    def _batchin_base(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
+    def _batchin_base(self, scenario: Scenario, temp_folder: str, zf: zipfile) -> None:
         zf.extract(self._components.base_file, temp_folder)
         self._tracker.run_tool(
             import_base,
@@ -571,7 +576,7 @@ class ImportNetworkPackage(_m.Tool()):
         )
 
     @_m.logbook_trace("Reading link shapes")
-    def _batchin_link_shapes(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
+    def _batchin_link_shapes(self, scenario: Scenario, temp_folder: str, zf: zipfile) -> None:
         zf.extract(self._components.shape_file, temp_folder)
         self._tracker.run_tool(
             import_link_shape,
@@ -580,7 +585,7 @@ class ImportNetworkPackage(_m.Tool()):
         )
 
     @_m.logbook_trace("Reading transit lines")
-    def _batchin_lines(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
+    def _batchin_lines(self, scenario: Scenario, temp_folder: str, zf: zipfile) -> None:
         zf.extract(self._components.lines_file, temp_folder)
         if self.transit_file_change is True:
             self._transit_line_file_update(temp_folder)
@@ -591,7 +596,7 @@ class ImportNetworkPackage(_m.Tool()):
         )
 
     @_m.logbook_trace("Reading turns")
-    def _batchin_turns(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
+    def _batchin_turns(self, scenario: Scenario, temp_folder: str, zf: zipfile) -> None:
         if self._components.turns_file is not None and (self._components.turns_file in zf.namelist()):
             zf.extract(self._components.turns_file, temp_folder)
             self._tracker.run_tool(
@@ -601,7 +606,7 @@ class ImportNetworkPackage(_m.Tool()):
             )
 
     @_m.logbook_trace("Reading extra attributes")
-    def _batchin_extra_attributes(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
+    def _batchin_extra_attributes(self, scenario: Scenario, temp_folder: str, zf: zipfile) -> None:
         types = self._load_extra_attributes(zf, temp_folder, scenario)
         contents = zf.namelist()
         processed = [self._get_zip_file_name(x) for x in contents]
@@ -628,7 +633,7 @@ class ImportNetworkPackage(_m.Tool()):
                 self._tracker.complete_subtask()
 
     @_m.logbook_trace("Reading functions")
-    def _batchin_functions(self, temp_folder: str, zf: _zipfile.ZipFile) -> None:
+    def _batchin_functions(self, temp_folder: str, zf: zipfile) -> None:
         zf.extract(self._components.functions_file, temp_folder)
         merge_functions.function_file = _path.join(temp_folder, self._components.functions_file)
         merge_functions.conflict_option = self.conflict_option
@@ -681,7 +686,7 @@ class ImportNetworkPackage(_m.Tool()):
             return zip_path
 
     @_m.logbook_trace("Importing traffic results")
-    def _batchin_traffic_results(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
+    def _batchin_traffic_results(self, scenario: Scenario, temp_folder: str, zf: zipfile) -> None:
         scenario.has_traffic_results = True
 
         links_file_name, turns_file_name = self._components.traffic_results_files
@@ -719,7 +724,7 @@ class ImportNetworkPackage(_m.Tool()):
         scenario.set_attribute_values("TURN", attribute_names, [index] + tables)
 
     @_m.logbook_trace("Importing transit results")
-    def _batchin_transit_results(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
+    def _batchin_transit_results(self, scenario: Scenario, temp_folder: str, zf: zipfile) -> None:
         scenario.has_transit_results = True
 
         segments_file_name = self._components.transit_results_files
@@ -784,7 +789,7 @@ class ImportNetworkPackage(_m.Tool()):
         }
         return parameters
 
-    def _check_network_package(self, package: _zipfile.ZipFile) -> int:
+    def _check_network_package(self, package: zipfile) -> int:
         """"""
 
         """
@@ -863,7 +868,7 @@ class ImportNetworkPackage(_m.Tool()):
 
         return atts
 
-    def _load_extra_attributes(self, zf: _zipfile.ZipFile, temp_folder: str, scenario: inro.emme.database.scenario.Scenario) -> set:
+    def _load_extra_attributes(self, zf: zipfile, temp_folder: str, scenario: Scenario) -> set:
         zf.extract(self._components.attribute_header_file, temp_folder)
         types = set()
         with open(_path.join(temp_folder, self._components.attribute_header_file)) as reader:
