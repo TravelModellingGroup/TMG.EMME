@@ -21,16 +21,13 @@ using System.IO;
 
 namespace TMG.Emme.Test.Export;
 
-
 [TestClass]
 public class ExportBinaryMatrixTest : TestBase
 {
-
     [TestMethod]
     public void ExportBinaryMatrix()
 
     {
-
         /*Ensure the scenario has a valid network and at least one matrix to be exported*/
         Assert.IsTrue(
             Helper.Modeller.Run(null, "tmg2.Import.import_network_package",
@@ -52,13 +49,12 @@ public class ExportBinaryMatrixTest : TestBase
                  writer.WriteString("matrix_description", "Test Matrix");
              }), LogbookLevel.Standard));
 
-
         Assert.IsTrue(
             Helper.Modeller.Run(null, "tmg2.Export.export_binary_matrix",
              JSONParameterBuilder.BuildParameters(writer =>
              {
                  writer.WriteNumber("matrix_type", (int)Emme.Export.ExportBinaryMatrix.MatrixTypes.MF);
-                 writer.WriteNumber("matrix_number", 1);
+                 writer.WriteNumber("matrix_number", 10);
                  writer.WriteString("file_location", Path.GetFullPath("OutputTestFiles/exportedEBM.mtx"));
                  writer.WriteNumber("scenario_number", 1);
              }), LogbookLevel.Standard));
@@ -70,27 +66,28 @@ public class ExportBinaryMatrixTest : TestBase
         var importNetworkModule = new Emme.Import.ImportNetworkPackage()
         {
             Name = "Importer",
-            ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
+            ScenarioNumber = Helper.CreateParameter(1, "Scenario Number"),
             NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.nwp"), "NWP File Name"),
-            ScenarioDescription = Helper.CreateParameter("From XTMF", "Description")
+            ScenarioDescription = Helper.CreateParameter("From XTMF", "Description"),
+            ConflictOption = Helper.CreateParameter("OVERWRITE", "conflict option")
         };
         importNetworkModule.Invoke(Helper.Modeller);
         var importMatrixModule = new Emme.Import.ImportBinaryMatrix()
         {
             Name = "Importer",
             ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
-            MatrixNumber = Helper.CreateParameter(1, "Matrix Number"),
+            MatrixNumber = Helper.CreateParameter(10, "Matrix Number"),
             FileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/Test.mtx"), "Matrix File Name"),
-            Description = Helper.CreateParameter("Module Loaded", "Description")
+            Description = Helper.CreateParameter("Module Loaded", "Description"),
+            MatrixType = Helper.CreateParameter(Emme.Import.ImportBinaryMatrix.MatrixTypes.MF, "Matrix Type"),
         };
         importMatrixModule.Invoke(Helper.Modeller);
-
 
         var module = new Emme.Export.ExportBinaryMatrix()
         {
             Name = "Exporter",
             ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
-            MatrixNumber = Helper.CreateParameter(1, "Matrix Number"),
+            MatrixNumber = Helper.CreateParameter(10, "Matrix Number"),
             MatrixType = Helper.CreateParameter(Emme.Export.ExportBinaryMatrix.MatrixTypes.MF, "Matrix Type"),
             SaveTo = Helper.CreateParameter(Path.GetFullPath("OutputTestFiles/testEBM.mtx"), "Matrix File Name")
         };

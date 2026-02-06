@@ -1,6 +1,6 @@
 # ---LICENSE----------------------
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -25,6 +25,8 @@ ExportBinaryMatrix
 
     Latest revision by: pkucirek
 
+    Lastest revision by: Amit
+
     Exports matrix data in the new binary format.
         
 """
@@ -37,6 +39,8 @@ ExportBinaryMatrix
     1.0.1 Tool now checks that the matrix exists.
 
     2.0.0 improved for XTMF2/TMGToolbox2 by WilliamsDiogu
+
+    2.0.0 further code refactoring by Amit
     
 """
 
@@ -51,14 +55,13 @@ _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 
 
 class ExportBinaryMatrix(_m.Tool()):
+    version: str = "2.0.0"
+    tool_run_msg: str = ""
+    number_of_tasks: int = 1
 
-    version = "2.0.0"
-    tool_run_msg = ""
-    number_of_tasks = 1
+    MATRIX_TYPES: dict = {1: "ms", 2: "mo", 3: "md", 4: "mf"}
 
-    MATRIX_TYPES = {1: "ms", 2: "mo", 3: "md", 4: "mf"}
-
-    def __init__(self):
+    def __init__(self) -> None:
         self._tracker = _util.progress_tracker(self.number_of_tasks)
 
     def page(self):
@@ -72,21 +75,21 @@ class ExportBinaryMatrix(_m.Tool()):
         )
         return pb.render()
 
-    def __call__(self, parameters):
+    def __call__(self, parameters) -> None:
         scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def run_xtmf(self, parameters):
+    def run_xtmf(self, parameters) -> None:
         scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def _execute(self, scenario, parameters):
+    def _execute(self, scenario, parameters) -> None:
         matrix_id = self._check_matrix(parameters["matrix_type"], parameters["matrix_number"])
         with _m.logbook_trace(
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
@@ -100,7 +103,7 @@ class ExportBinaryMatrix(_m.Tool()):
             data.save(parameters["file_location"])
             self._tracker.complete_task()
 
-    def _get_atts(self, matrix_id, file_location, scenario):
+    def _get_atts(self, matrix_id, file_location, scenario) -> dict[str, str]:
         atts = {
             "Matrix": matrix_id,
             "Export File": file_location,
@@ -111,7 +114,7 @@ class ExportBinaryMatrix(_m.Tool()):
             atts["Scenario"] = scenario
         return atts
 
-    def _check_matrix(self, matrix_type, matrix_number):
+    def _check_matrix(self, matrix_type, matrix_number) -> str:
         if not matrix_type in self.MATRIX_TYPES:
             raise IOError(
                 "Matrix type '%s' is not recognized. Valid types are " % matrix_type
