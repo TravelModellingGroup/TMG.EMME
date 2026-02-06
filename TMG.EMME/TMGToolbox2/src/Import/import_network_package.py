@@ -1,5 +1,5 @@
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -80,9 +80,9 @@ class ComponentContainer(object):
 
 
 class ImportNetworkPackage(_m.Tool()):
-    version = "2.0.0"
-    tool_run_msg = ""
-    number_of_tasks = 9
+    version: str = "2.0.0"
+    tool_run_msg: str = ""
+    number_of_tasks: int = 9
     scenario_number = _m.Attribute(int)
     network_package_file = _m.Attribute(str)
     scenario_description = _m.Attribute(str)
@@ -94,14 +94,14 @@ class ImportNetworkPackage(_m.Tool()):
 
     def __init__(self):
         self._tracker = _util.progress_tracker(self.number_of_tasks)
-        self.scenario_description = ""
-        self.overwrite_scenario_flag = False
-        self.conflict_option = "PRESERVE"
-        self._components = ComponentContainer()
+        self.scenario_description: str = ""
+        self.overwrite_scenario_flag: bool = False
+        self.conflict_option: str = "PRESERVE"
+        self._components: ComponentContainer = ComponentContainer()
         self.event = None
         self.merge_functions = None
-        self.has_exception = False
-        self.skip_merging_functions = False
+        self.has_exception: bool = False
+        self.skip_merging_functions: bool = False
 
     def page(self):
         pb = _tmg_tpb.TmgToolPageBuilder(
@@ -462,7 +462,7 @@ class ImportNetworkPackage(_m.Tool()):
 
         return pb.render()
 
-    def run(self):
+    def run(self) -> None:
         self.tool_run_msg = ""
         self._tracker.reset()
         parameters = self._build_page_builder_parameters()
@@ -477,7 +477,7 @@ class ImportNetworkPackage(_m.Tool()):
             raise
         self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario %s created." % parameters["scenario_number"])
 
-    def __call__(self, parameters):
+    def __call__(self, parameters) -> None:
         self.overwrite_scenario_flag = True
         self.add_function = True
         try:
@@ -486,7 +486,7 @@ class ImportNetworkPackage(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def run_xtmf(self, parameters):
+    def run_xtmf(self, parameters) -> None:
         self.overwrite_scenario_flag = True
         try:
             self._execute(parameters)
@@ -494,7 +494,7 @@ class ImportNetworkPackage(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def _execute(self, parameters):
+    def _execute(self, parameters) -> None:
         with _m.logbook_trace(
             name="{classname} v{version}".format(classname=self.__class__.__name__, version=self.version),
             attributes=self._get_logbook_attributes(),
@@ -877,7 +877,7 @@ class ImportNetworkPackage(_m.Tool()):
                     types.add(att.type)
         return types
 
-    def _transit_line_file_update(self, temp_folder):
+    def _transit_line_file_update(self, temp_folder) -> None:
         lines = []
         with open(_path.join(temp_folder, self._components.lines_file), "r") as in_file, open(
             _path.join(temp_folder, "temp.221"), "w"
