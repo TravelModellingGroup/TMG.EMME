@@ -678,7 +678,7 @@ class ImportNetworkPackage(_m.Tool()):
 
         return functions
 
-    def _get_zip_file_name(self, zip_path: str) -> None:
+    def _get_zip_file_name(self, zip_path: str) -> str:
         try:
             index_of_last_slash = zip_path[::-1].index("/")
             return zip_path[len(zip_path) - index_of_last_slash :]
