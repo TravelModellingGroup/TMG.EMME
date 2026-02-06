@@ -17,10 +17,7 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 using System.IO;
-using System.Text;
-using System.Text.Json;
 
 namespace TMG.Emme.Test.Import;
 
@@ -40,7 +37,7 @@ public class ImportNetworkPackageTest : TestBase
         {
             Name = "Importer",
             ScenarioNumber = Helper.CreateParameter(3, "Const Number"),
-            NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/AMTransit.nwp"), "EROWNetwork"),
+            NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/Test.nwp"), "Test Network"),
             ScenarioDescription = Helper.CreateParameter("From XTMF", "Description"),
             ConflictOption = Helper.CreateParameter("conflict_option")
         };
