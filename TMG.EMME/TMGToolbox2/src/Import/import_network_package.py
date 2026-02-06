@@ -16,7 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+import inro
 import inro.modeller as _m
 import traceback as _traceback
 from contextlib import contextmanager
@@ -477,7 +477,7 @@ class ImportNetworkPackage(_m.Tool()):
             raise
         self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario %s created." % parameters["scenario_number"])
 
-    def __call__(self, parameters) -> None:
+    def __call__(self, parameters:dict) -> None:
         self.overwrite_scenario_flag = True
         self.add_function = True
         try:
@@ -486,7 +486,7 @@ class ImportNetworkPackage(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def run_xtmf(self, parameters) -> None:
+    def run_xtmf(self, parameters:dict) -> None:
         self.overwrite_scenario_flag = True
         try:
             self._execute(parameters)
@@ -494,7 +494,7 @@ class ImportNetworkPackage(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def _execute(self, parameters) -> None:
+    def _execute(self, parameters:dict) -> None:
         with _m.logbook_trace(
             name="{classname} v{version}".format(classname=self.__class__.__name__, version=self.version),
             attributes=self._get_logbook_attributes(),
@@ -548,12 +548,12 @@ class ImportNetworkPackage(_m.Tool()):
         return self.merge_functions.function_conflicts
 
     @_m.logbook_trace("Reading modes")
-    def _batchin_modes(self, scenario, temp_folder, zf):
+    def _batchin_modes(self, scenario:inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
         file_name = zf.extract(self._components.mode_file, temp_folder)
         self._tracker.run_tool(import_modes, transaction_file=file_name, scenario=scenario)
 
     @_m.logbook_trace("Reading vehicles")
-    def _batchin_vehicles(self, scenario, temp_folder, zf):
+    def _batchin_vehicles(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
         zf.extract(self._components.vehicles_file, temp_folder)
         self._tracker.run_tool(
             import_vehicles,
@@ -562,7 +562,7 @@ class ImportNetworkPackage(_m.Tool()):
         )
 
     @_m.logbook_trace("Reading base network")
-    def _batchin_base(self, scenario, temp_folder, zf):
+    def _batchin_base(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
         zf.extract(self._components.base_file, temp_folder)
         self._tracker.run_tool(
             import_base,
@@ -571,7 +571,7 @@ class ImportNetworkPackage(_m.Tool()):
         )
 
     @_m.logbook_trace("Reading link shapes")
-    def _batchin_link_shapes(self, scenario, temp_folder, zf):
+    def _batchin_link_shapes(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
         zf.extract(self._components.shape_file, temp_folder)
         self._tracker.run_tool(
             import_link_shape,
@@ -580,7 +580,7 @@ class ImportNetworkPackage(_m.Tool()):
         )
 
     @_m.logbook_trace("Reading transit lines")
-    def _batchin_lines(self, scenario, temp_folder, zf):
+    def _batchin_lines(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
         zf.extract(self._components.lines_file, temp_folder)
         if self.transit_file_change is True:
             self._transit_line_file_update(temp_folder)
@@ -591,7 +591,7 @@ class ImportNetworkPackage(_m.Tool()):
         )
 
     @_m.logbook_trace("Reading turns")
-    def _batchin_turns(self, scenario, temp_folder, zf):
+    def _batchin_turns(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
         if self._components.turns_file is not None and (self._components.turns_file in zf.namelist()):
             zf.extract(self._components.turns_file, temp_folder)
             self._tracker.run_tool(
@@ -601,7 +601,7 @@ class ImportNetworkPackage(_m.Tool()):
             )
 
     @_m.logbook_trace("Reading extra attributes")
-    def _batchin_extra_attributes(self, scenario, temp_folder, zf):
+    def _batchin_extra_attributes(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
         types = self._load_extra_attributes(zf, temp_folder, scenario)
         contents = zf.namelist()
         processed = [self._get_zip_file_name(x) for x in contents]
@@ -628,13 +628,13 @@ class ImportNetworkPackage(_m.Tool()):
                 self._tracker.complete_subtask()
 
     @_m.logbook_trace("Reading functions")
-    def _batchin_functions(self, temp_folder, zf):
+    def _batchin_functions(self, temp_folder: str, zf: _zipfile.ZipFile) -> None:
         zf.extract(self._components.functions_file, temp_folder)
         merge_functions.function_file = _path.join(temp_folder, self._components.functions_file)
         merge_functions.conflict_option = self.conflict_option
         merge_functions.run()
 
-    def _LoadFunctionFile(self, file_name):
+    def _LoadFunctionFile(self, file_name: str) -> dict:
         functions = {}
         with open(file_name) as reader:
             expression_buffer = ""
@@ -673,7 +673,7 @@ class ImportNetworkPackage(_m.Tool()):
 
         return functions
 
-    def _get_zip_file_name(self, zip_path):
+    def _get_zip_file_name(self, zip_path: str) -> None:
         try:
             index_of_last_slash = zip_path[::-1].index("/")
             return zip_path[len(zip_path) - index_of_last_slash :]
@@ -681,7 +681,7 @@ class ImportNetworkPackage(_m.Tool()):
             return zip_path
 
     @_m.logbook_trace("Importing traffic results")
-    def _batchin_traffic_results(self, scenario, temp_folder, zf):
+    def _batchin_traffic_results(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
         scenario.has_traffic_results = True
 
         links_file_name, turns_file_name = self._components.traffic_results_files
@@ -719,7 +719,7 @@ class ImportNetworkPackage(_m.Tool()):
         scenario.set_attribute_values("TURN", attribute_names, [index] + tables)
 
     @_m.logbook_trace("Importing transit results")
-    def _batchin_transit_results(self, scenario, temp_folder, zf):
+    def _batchin_transit_results(self, scenario: inro.emme.database.scenario.Scenario, temp_folder: str, zf: _zipfile.ZipFile) -> None:
         scenario.has_transit_results = True
 
         segments_file_name = self._components.transit_results_files
@@ -760,7 +760,7 @@ class ImportNetworkPackage(_m.Tool()):
             scenario.set_attribute_values("LINK", aux_attribute_names, [index] + tables)
 
     @contextmanager
-    def _temp_file(self):
+    def _temp_file(self) -> None:
         foldername = _tf.mkdtemp()
         _m.logbook_write("Created temporary directory at '%s'" % foldername)
         try:
@@ -769,13 +769,13 @@ class ImportNetworkPackage(_m.Tool()):
             _shutil.rmtree(foldername, True)
             _m.logbook_write("Deleted temporary directory at '%s'" % foldername)
 
-    def _get_zip_original_string(self, processed, contents, objective):
+    def _get_zip_original_string(self, processed: list, contents: list, objective: str) -> None:
         for i in range(len(processed)):
             if processed[i] == objective:
                 return contents[i]
         return None
 
-    def _build_page_builder_parameters(self):
+    def _build_page_builder_parameters(self) -> dict:
         parameters = {
             "network_package_file": self.network_package_file,
             "scenario_description": self.scenario_description,
@@ -784,7 +784,7 @@ class ImportNetworkPackage(_m.Tool()):
         }
         return parameters
 
-    def _check_network_package(self, package):
+    def _check_network_package(self, package: _zipfile.ZipFile) -> int:
         """"""
 
         """
@@ -853,7 +853,7 @@ class ImportNetworkPackage(_m.Tool()):
 
         return 1.0
 
-    def _get_logbook_attributes(self):
+    def _get_logbook_attributes(self) -> dict:
         atts = {
             "Scenario": self.scenario_number,
             "Import File": self.network_package_file,
@@ -863,7 +863,7 @@ class ImportNetworkPackage(_m.Tool()):
 
         return atts
 
-    def _load_extra_attributes(self, zf, temp_folder, scenario):
+    def _load_extra_attributes(self, zf: _zipfile.ZipFile, temp_folder: str, scenario: inro.emme.database.scenario.Scenario) -> set:
         zf.extract(self._components.attribute_header_file, temp_folder)
         types = set()
         with open(_path.join(temp_folder, self._components.attribute_header_file)) as reader:
@@ -877,7 +877,7 @@ class ImportNetworkPackage(_m.Tool()):
                     types.add(att.type)
         return types
 
-    def _transit_line_file_update(self, temp_folder) -> None:
+    def _transit_line_file_update(self, temp_folder: str) -> None:
         lines = []
         with open(_path.join(temp_folder, self._components.lines_file), "r") as in_file, open(
             _path.join(temp_folder, "temp.221"), "w"
