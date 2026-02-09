@@ -17,11 +17,7 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using XTMF2;
 
 
 namespace TMG.Emme.Test.Export;
@@ -64,7 +60,8 @@ public class ExportNetworkPackageTest : TestBase
             Name = "Importer",
             ScenarioNumber = Helper.CreateParameter(1, "Const Number"),
             NetworkPackageFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/test.nwp"), "NWP File Name"),
-            ScenarioDescription = Helper.CreateParameter("From XTMF", "Description")
+            ScenarioDescription = Helper.CreateParameter("From XTMF", "Description"),
+            ConflictOption = Helper.CreateParameter("conflict_option")
         };
         importModule.Invoke(Helper.Modeller);
 
