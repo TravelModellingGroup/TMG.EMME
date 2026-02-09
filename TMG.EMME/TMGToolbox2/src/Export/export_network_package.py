@@ -1,5 +1,5 @@
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -16,7 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+import inro
 from inspect import Parameter
 from sqlite3 import paramstyle
 import inro.modeller as _m
@@ -27,6 +27,7 @@ from datetime import datetime as _datetime
 import shutil as _shutil
 import zipfile as _zipfile
 import tempfile as _tempfile
+from typing import TypeAlias
 
 _m.InstanceType = object
 _m.TupleType = object
@@ -45,11 +46,14 @@ _export_functions = _MODELLER.tool("inro.emme.data.function.export_functions")
 _pdu = _MODELLER.module("tmg2.utilities.pandas_utils")
 _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 
+# alias for the scenario and zipfile type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+zipfile: TypeAlias = _zipfile.ZipFile
 
 class ExportNetworkPackage(_m.Tool()):
-    version = "2.0.0"
-    tool_run_msg = ""
-    number_of_tasks = 11
+    version: str = "2.0.0"
+    tool_run_msg: str = ""
+    number_of_tasks: int = 11
 
     scenario = _m.Attribute(_m.InstanceType)
     export_file = _m.Attribute(str)
@@ -60,14 +64,14 @@ class ExportNetworkPackage(_m.Tool()):
     extra_attributes = _m.Attribute(str)
     scenario_number = _m.Attribute(int)
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._tracker = _util.progress_tracker(self.number_of_tasks)
 
         self.scenario = _MODELLER.scenario
-        self.export_meta_data = ""
-        self.export_to_emme_old_version = False
+        self.export_meta_data: str = ""
+        self.export_to_emme_old_version: bool = False
 
-    def __call__(self, parameters):
+    def __call__(self, parameters: dict) -> None:
         scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
@@ -75,7 +79,7 @@ class ExportNetworkPackage(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def run_xtmf(self, parameters):
+    def run_xtmf(self, parameters: dict) -> None:
         scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
@@ -83,7 +87,7 @@ class ExportNetworkPackage(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def _execute(self, scenario, parameters):
+    def _execute(self, scenario: Scenario, parameters: dict) -> None:
         logbook_attributes = {
             "Scenario": str(scenario.id),
             "Export File": _path.splitext(parameters["export_file"])[0],
@@ -123,7 +127,7 @@ class ExportNetworkPackage(_m.Tool()):
                     self._batchout_transit_results(temp_folder, zf)
                 self._tracker.complete_task()
 
-    def _check_attributes(self, scenario, parameters):
+    def _check_attributes(self, scenario: Scenario, parameters: dict) -> list:
         """
         Due to the dynamic nature of the selection process, it could happen that attributes are
         selected which don't exist in the current scenario. The method checks early to catch
@@ -146,13 +150,13 @@ class ExportNetworkPackage(_m.Tool()):
         return attribute_ids_to_export
 
     @_m.logbook_trace("Exporting modes")
-    def _batchout_modes(self, temp_folder, zf, scenario):
+    def _batchout_modes(self, temp_folder: str, zf: zipfile, scenario: Scenario) -> None:
         export_file = _path.join(temp_folder, "modes.201")
         self._tracker.run_tool(_export_modes, export_file=export_file, scenario=scenario)
         zf.write(export_file, arcname="modes.201")
 
     @_m.logbook_trace("Exporting vehicles")
-    def _batchout_vehicles(self, temp_folder, zf, scenario):
+    def _batchout_vehicles(self, temp_folder: str, zf: zipfile, scenario: Scenario) -> None:
         export_file = _path.join(temp_folder, "vehicles.202")
         if scenario.element_totals["transit_vehicles"] == 0:
             self._export_blank_batch_file(export_file, "vehicles")
@@ -162,7 +166,7 @@ class ExportNetworkPackage(_m.Tool()):
         zf.write(export_file, arcname="vehicles.202")
 
     @_m.logbook_trace("Exporting base network")
-    def _batchout_base(self, temp_folder, zf, scenario):
+    def _batchout_base(self, temp_folder: str, zf: zipfile, scenario: Scenario) -> None:
         export_file = _path.join(temp_folder, "base.211")
         self._tracker.run_tool(
             _export_base_network,
@@ -173,13 +177,13 @@ class ExportNetworkPackage(_m.Tool()):
         zf.write(export_file, arcname="base.211")
 
     @_m.logbook_trace("Exporting link shapes")
-    def _batchout_shapes(self, temp_folder, zf, scenario):
+    def _batchout_shapes(self, temp_folder: str, zf: zipfile, scenario: Scenario) -> None:
         export_file = _path.join(temp_folder, "shapes.251")
         self._tracker.run_tool(_export_link_shapes, export_file=export_file, scenario=scenario)
         zf.write(export_file, arcname="shapes.251")
 
     @_m.logbook_trace("Exporting transit lines")
-    def _batchout_lines(self, temp_folder, zf, scenario):
+    def _batchout_lines(self, temp_folder: str, zf: zipfile, scenario: Scenario) -> None:
         export_file = _path.join(temp_folder, "transit.221")
         if scenario.element_totals["transit_lines"] == 0:
             self._export_blank_batch_file(export_file, "lines")
@@ -205,7 +209,7 @@ class ExportNetworkPackage(_m.Tool()):
         zf.write(export_file, arcname="transit.221")
 
     @_m.logbook_trace("Exporting turns")
-    def _batchout_turns(self, temp_folder, zf, scenario):
+    def _batchout_turns(self, temp_folder: str, zf: zipfile, scenario: Scenario) -> None:
         export_file = _path.join(temp_folder, "turns.231")
         if scenario.element_totals["turns"] == 0:
             self._tracker.complete_task()
@@ -219,13 +223,13 @@ class ExportNetworkPackage(_m.Tool()):
             zf.write(export_file, arcname="turns.231")
 
     @_m.logbook_trace("Exporting Functions")
-    def _batchout_functions(self, temp_folder, zf):
+    def _batchout_functions(self, temp_folder: str, zf: zipfile) -> None:
         export_file = _path.join(temp_folder, "functions.411")
         self._tracker.run_tool(_export_functions, export_file=export_file)
         zf.write(export_file, arcname="functions.411")
 
     @_m.logbook_trace("Exporting extra attributes")
-    def _batchout_extra_attributes(self, temp_folder, zf, attribute_ids_to_export, scenario):
+    def _batchout_extra_attributes(self, temp_folder: str, zf: zipfile, attribute_ids_to_export: list, scenario: Scenario) -> None:
         _m.logbook_write("List of attributes: %s" % attribute_ids_to_export)
 
         extra_attributes = [scenario.extra_attribute(id_) for id_ in attribute_ids_to_export]
@@ -248,7 +252,7 @@ class ExportNetworkPackage(_m.Tool()):
         self._export_attribute_definition_file(summary_file, extra_attributes)
         zf.write(summary_file, arcname="exatts.241")
 
-    def _batchout_traffic_results(self, temp_folder, zf, scenario):
+    def _batchout_traffic_results(self, temp_folder: str, zf: zipfile, scenario: Scenario) -> None:
         link_filepath = _path.join(temp_folder, "link_results.csv")
         turn_filepath = _path.join(temp_folder, "turn_results.csv")
         traffic_result_attributes = ["auto_volume", "additional_volume", "auto_time"]
@@ -263,7 +267,7 @@ class ExportNetworkPackage(_m.Tool()):
             turns.to_csv(turn_filepath)
             zf.write(turn_filepath, arcname=_path.basename(turn_filepath))
 
-    def _batchout_transit_results(self, temp_folder, zf, scenario):
+    def _batchout_transit_results(self, temp_folder: str, zf: zipfile, scenario: Scenario) -> None:
         segment_filepath = _path.join(temp_folder, "segment_results.csv")
         result_attributes = ["transit_boardings", "transit_time", "transit_volume"]
         segments = _pdu.load_transit_segment_dataframe(scenario)[result_attributes]
@@ -277,7 +281,7 @@ class ExportNetworkPackage(_m.Tool()):
         zf.write(aux_transit_filepath, arcname=_path.basename(aux_transit_filepath))
 
     @contextmanager
-    def _temp_file(self):
+    def _temp_file(self) -> str:
         foldername = _tempfile.mkdtemp()
         _m.logbook_write("Created temporary directory at `%s`" % foldername)
         try:
@@ -287,12 +291,12 @@ class ExportNetworkPackage(_m.Tool()):
             _m.logbook_write("Deleted temporary directory at `%s`" % foldername)
 
     @staticmethod
-    def _export_blank_batch_file(filename, t_record):
+    def _export_blank_batch_file(filename: str, t_record: str) -> None:
         with open(filename, "w") as file_:
             file_.write("t %s init" % t_record)
 
     @staticmethod
-    def _export_attribute_definition_file(filename, attribute_list):
+    def _export_attribute_definition_file(filename: str, attribute_list: list) -> None:
         with open(filename, "w") as writer:
             writer.write("name,type, default")
             for att in attribute_list:
@@ -305,7 +309,7 @@ class ExportNetworkPackage(_m.Tool()):
                     )
                 )
 
-    def _write_info_file(self, scenario, fp, export_meta_data):
+    def _write_info_file(self, scenario:Scenario, fp: str, export_meta_data: str) -> None:
         with open(fp, "w") as writer:
             bank = _MODELLER.emmebank
             lines = [
@@ -317,7 +321,7 @@ class ExportNetworkPackage(_m.Tool()):
             ]
             writer.write("\n".join(lines))
 
-    def _get_select_attribute_options_json(self):
+    def _get_select_attribute_options_json(self) -> dict:
         keyval = {}
         for att in self.scenario.extra_attributes():
             label = "{id} ({domain}) - {name}".format(id=att.name, domain=att.type, name=att.description)
@@ -325,7 +329,7 @@ class ExportNetworkPackage(_m.Tool()):
         return keyval
 
     @_m.method(return_type=str)
-    def _get_select_attribute_options_html(self):
+    def _get_select_attribute_options_html(self) -> list:
         list_ = []
         for att in self.scenario.extra_attributes():
             label = "{id} ({domain}) - {name}".format(id=att.name, domain=att.type, name=att.description)
