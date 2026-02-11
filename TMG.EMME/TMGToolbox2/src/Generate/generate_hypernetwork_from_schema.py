@@ -1,6 +1,6 @@
 # ---LICENSE----------------------
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -73,6 +73,7 @@ Generate Hypernetwork From Schema Tool
     2.0.0 Refactored and improved by WilliamsDiogu for XTMF2, compatible  with Emme 4.6 and base on
         Python 3 . 
 """
+import inro
 from copy import copy
 from sqlite3 import paramstyle
 import traceback as _traceback
@@ -85,6 +86,7 @@ import inro.modeller as _m
 from inro.emme.core.exception import ModuleError
 from contextlib import contextmanager
 from os import path
+from typing import Type, TypeAlias
 
 _m.TupleType = object
 _m.ListType = list
@@ -105,6 +107,13 @@ transit_line_proxy = _network_edit.TransitLineProxy
 null_pointer_exception = _util.null_pointer_exception
 EMME_VERSION = _util.get_emme_version(tuple)
 
+# alias for the scenario and zipfile type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+Network: TypeAlias = inro.emme.network.Network
+Node: TypeAlias = inro.emme.network.node.Node
+Mode: TypeAlias = inro.emme.network.mode.Mode
+TransitLine: TypeAlias =  inro.emme.network.transitline.TransitLine
+#Element: TypeAlias = 
 
 class xml_validation_error(Exception):
     pass
@@ -113,25 +122,24 @@ class xml_validation_error(Exception):
 class grid:
     """
     Grid class to support tuple indexing (just for coding convenience).
-
     Upon construction, it copies the default value into each of its cells.
     """
 
-    def __init__(self, x_size, y_size, default=None):
+    def __init__(self, x_size: int, y_size: int, default:dict=None) -> None:
         x_size, y_size = int(x_size), int(y_size)
-        self._data = []
-        self.x = x_size
-        self.y = y_size
-        i = 0
-        total = x_size * y_size
+        self._data: list = []
+        self.x: int = x_size
+        self.y: int = y_size
+        i: int = 0
+        total: int = x_size * y_size
         while i < total:
             self._data.append(copy(default))
             i += 1
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: tuple[int, int]) -> dict:
         x, y = key
         x, y = int(x), int(y)
-        index = x * self.y + y
+        index: int = x * self.y + y
         return self._data[index]
 
     def __setitem__(self, key, val):
@@ -149,18 +157,18 @@ class node_spatial_proxy:
         self.zone = 0
         self.geometry = _geometry.Point(x, y)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.id)
 
 
 class GenerateHypernetworkFromSchema(_m.Tool()):
-    version = "2.0.0"
-    tool_run_msg = ""
-    number_of_tasks = 5
-    __ZONE_TYPES = ["node_selection", "from_shapefile"]
-    __BOOL_PARSER = {"TRUE": True, "T": True, "FALSE": False, "F": False}
+    version: str = "2.0.0"
+    tool_run_msg: str = ""
+    number_of_tasks: int = 5
+    __ZONE_TYPES: list = ["node_selection", "from_shapefile"]
+    __BOOL_PARSER:dict[str, bool] = {"TRUE": True, "T": True, "FALSE": False, "F": False}
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._tracker = _util.progress_tracker(self.number_of_tasks)
         self.number_of_processors = multiprocessing.cpu_count()
 
@@ -191,15 +199,15 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def run_xtmf(self, parameters):
-        base_scenario = _util.load_scenario(parameters["base_scenario"])
+    def run_xtmf(self, parameters: dict) -> None:
+        base_scenario: Scenario = _util.load_scenario(parameters["base_scenario"])
         try:
             self._execute(parameters, base_scenario)
         except Exception as e:
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def _execute(self, parameters, base_scenario):
+    def _execute(self, parameters: dict, base_scenario: Scenario) -> None:
         with _trace(
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._get_att(parameters),
@@ -208,15 +216,15 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             n_groups, n_zones, n_station_groups, valid_group_ids, valid_zone_ids = self._validate_base_schema_file(
                 parameters, root_base
             )
-            n_rules = []
-            root_fare = []
+            n_rules: list = []
+            root_fare: list = []
             for i, fare_class in enumerate(parameters["fare_classes"]):
                 root_fare.append(_ET.parse(fare_class["schema_file"]).getroot())
                 n_rules.append(self._validate_fare_schema_file(root_fare[i], valid_group_ids, valid_zone_ids))
-            n_rules = sum(n_rules)
+            n_rules: int = sum(n_rules)
             self._tracker.complete_task()
             # Load the line groups and zones
-            version = root_base.find("version").attrib["number"]
+            version: str = root_base.find("version").attrib["number"]
             _write("Loading Base Schema File version %s" % version)
             print("Loading Base Schema File version %s" % version)
             self._tracker.start_process(n_groups + n_zones)
@@ -277,9 +285,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                                 fare_class["segment_fare_attribute"],
                                 fare_class["link_fare_attribute"],
                             )
-                            self._check_for_negative_fares(
-                                network, fare_class["segment_fare_attribute"], fare_class["link_fare_attribute"]
-                            )
+                            self._check_for_negative_fares(network, fare_class["segment_fare_attribute"], fare_class["link_fare_attribute"])
                             self._tracker.complete_task()
                     print("Applied fare rules to network.")
                     # publish the network
@@ -292,7 +298,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     new_scenario.publish_network(network, resolve_attributes=True)
                     _MODELLER.desktop.refresh_needed(True)
 
-    def _get_att(self, parameters):
+    def _get_att(self, parameters: dict) -> dict:
         atts = {
             "Scenario": str(parameters["base_scenario"]),
             "Version": self.version,
@@ -300,7 +306,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         }
         return atts
 
-    def _validate_base_schema_file(self, parameters, root):
+    def _validate_base_schema_file(self, parameters: dict, root) -> tuple[int, int, int, dict, dict]:
         # check the top-level of the file
         version_element = root.find("version")
         if version_element is None:
@@ -405,7 +411,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 n_station_groups += 1
         return len(group_elements), len(zone_elements), n_station_groups, valid_group_ids, valid_zone_ids
 
-    def _get_absolute_filepath(self, parameters, other_path):
+    def _get_absolute_filepath(self, parameters: dict, other_path):
         """
         For the shapefile path, this function checks if it is a relative path or not.
         If it is a relative path, it returns a valid absolute path based on the
@@ -415,7 +421,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             return other_path
         return path.join(path.dirname(parameters["base_schema_file"]), other_path)
 
-    def _validate_fare_schema_file(self, root, valid_group_ids, valid_zone_ids):
+    def _validate_fare_schema_file(self, root: _ET.Element, valid_group_ids: dict, valid_zone_ids: dict) -> int:
         fare_rules_element = root.find("fare_rules")
         if fare_rules_element is None:
             raise xml_validation_error("Fare schema must specify a 'fare_rules' element.")
@@ -475,12 +481,12 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 check_func(text, name)
         return len(fare_elements)
 
-    def _load_groups(self, base_scenario, groups_element, line_group_att_id):
-        group_ids_2_int = {}
-        int_2_group_ids = {}
+    def _load_groups(self, base_scenario: Scenario, groups_element, line_group_att_id: str) -> tuple[dict, dict]:
+        group_ids_2_int: dict = {}
+        int_2_group_ids: dict = {}
         tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 
-        def get_spec(number, selection):
+        def get_spec(number: int, selection: str) -> dict:
             return {
                 "result": line_group_att_id,
                 "expression": str(number),
@@ -641,7 +647,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     proxy.zone = number
 
     # ---HYPER NETWORK GENERATION--------------------------------------------------------------------------
-    def _prepare_network(self, network, node_proxies, line_group_att_id):
+    def _prepare_network(self, network: Network, node_proxies: dict, line_group_att_id: str) -> None:
         """
         Prepares network attributes for transformation
         """
@@ -701,7 +707,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             elif i.role == 2 and j.role == 2 and permits_walk:
                 link.role = 2  # Station transfer
 
-    def apply_node_role(self, node):
+    def apply_node_role(self, node: Node) -> Node:
         if not node.stopping_groups and not node.passing_groups:
             if node.is_centroid == False:
                 #  Surface node without transit
@@ -727,21 +733,21 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         # Station node is a transit stop, but does NOT connect to any auto links
         node.role = 2
 
-    def _transform_network(self, parameters, network, number_of_groups, number_of_zones):
-        total_nodes_0 = network.element_totals["regular_nodes"]
-        total_links_0 = network.element_totals["links"]
-        base_surface_nodes = []
-        base_station_nodes = []
+    def _transform_network(self, parameters: dict, network: Network, number_of_groups: int, number_of_zones: int) -> tuple:
+        total_nodes_0: int  = network.element_totals["regular_nodes"]
+        total_links_0: int = network.element_totals["links"]
+        base_surface_nodes: list = []
+        base_station_nodes: list = []
         for node in network.regular_nodes():
             if node.role == 1:
                 base_surface_nodes.append(node)
             elif node.role == 2:
                 base_station_nodes.append(node)
         transfer_grid = grid(number_of_groups + 1, number_of_groups + 1, set())
-        zone_crossing_grid = grid(number_of_zones + 1, number_of_zones + 1, set())
-        transfer_mode = network.mode(parameters["transfer_mode"])
-        line_ids = [line.id for line in network.transit_lines()]
-        n_tasks = 2 * (len(base_surface_nodes) + len(base_station_nodes)) + len(line_ids)
+        zone_crossing_grid: grid = grid(number_of_zones + 1, number_of_zones + 1, set())
+        transfer_mode: Mode = network.mode(parameters["transfer_mode"])
+        line_ids: list = [line.id for line in network.transit_lines()]
+        n_tasks: int = 2 * (len(base_surface_nodes) + len(base_station_nodes)) + len(line_ids)
         self._tracker.start_process(n_tasks)
         for i, node in enumerate(base_surface_nodes):
             self._transform_surface_node(parameters, node, transfer_grid, transfer_mode)
@@ -781,10 +787,10 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         self._tracker.complete_task()
         return transfer_grid, zone_crossing_grid
 
-    def _transform_surface_node(self, parameters, base_node, transfer_grid, transfer_mode):
-        network = base_node.network
-        created_nodes = []
-        links_created = 0
+    def _transform_surface_node(self, parameters: dict, base_node: Node, transfer_grid: grid, transfer_mode: Mode) -> None:
+        network: Network = base_node.network
+        created_nodes: list = []
+        links_created: int = 0
         # Create the virtual nodes for stops
         for group_number in base_node.stopping_groups:
             new_node = network.create_regular_node(self._get_new_node_number(parameters, network))
@@ -824,14 +830,14 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             base_node.to_hyper_node[group_number] = new_node
             # Don't need to connect the new node to anything right now
 
-    def _transform_station_node(self, parameters, base_node, transfer_grid, transfer_mode):
-        network = base_node.network
-        virtual_nodes = []
+    def _transform_station_node(self, parameters:dict, base_node: Node, transfer_grid: grid, transfer_mode: Mode) -> None:
+        network: Network = base_node.network
+        virtual_nodes: list = []
         # Catalog and classify inbound and outbound links for copying
-        outgoing_links = []
-        incoming_links = []
-        outgoing_connectors = []
-        incoming_connectors = []
+        outgoing_links: list = []
+        incoming_links: list = []
+        outgoing_connectors: list = []
+        incoming_connectors: list = []
         for link in base_node.outgoing_links():
             if link.role == 1:
                 outgoing_links.append(link)
@@ -909,7 +915,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
             new_node.label = base_node.label
             base_node.to_hyper_node[group] = new_node
 
-    def _connect_surface_or_station_node(self, base_node_1, transfer_grid):
+    def _connect_surface_or_station_node(self, base_node_1: Node, transfer_grid: grid) -> None:
         network = base_node_1.network
         # Theoretically, we should only need to look at outgoing links,
         # since one node's outgoing link is another node's incoming link.
@@ -938,12 +944,12 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     if group_number_1 != group_number_2:
                         transfer_grid[group_number_1, group_number_2].add(new_link)
 
-    def _process_transit_line(self, line_id, network, zone_transfer_grid, save_function):
-        line = network.transit_line(line_id)
-        group = line.group
+    def _process_transit_line(self, line_id: str, network: Network, zone_transfer_grid: grid, save_function:_transform_network) -> None:
+        line: TransitLine = network.transit_line(line_id)
+        group: int = line.group
         line_mode = set([line.mode])
-        base_links = [segment.link for segment in line.segments(False)]
-        new_itinerary = [base_links[0].i_node.to_hyper_node[group].number]
+        base_links: list = [segment.link for segment in line.segments(False)]
+        new_itinerary: list = [base_links[0].i_node.to_hyper_node[group].number]
         for base_link in base_links:
             iv = base_link.i_node.to_hyper_node[group].number
             jv = base_link.j_node.to_hyper_node[group].number
@@ -974,14 +980,14 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
         network.delete_transit_line(line_id)
         _network_edit.change_transit_line_id(new_line, line_id)
 
-    def _get_new_node_number(self, parameters, network):
+    def _get_new_node_number(self, parameters: dict, network: Network) -> int:
         test_node = network.node(parameters["virtual_node_domain"])
         while test_node is not None:
             parameters["virtual_node_domain"] += 1
             test_node = network.node(parameters["virtual_node_domain"])
         return parameters["virtual_node_domain"]
 
-    def _index_station_connectors(self, network, transfer_grid, station_groups, group_ids_2_int):
+    def _index_station_connectors(self, network: Network, transfer_grid: grid, station_groups, group_ids_2_int: dict):
         print("Indexing station connectors")
         for line_group_id, station_centroids in station_groups.items():
             idx = group_ids_2_int[line_group_id]
@@ -1000,18 +1006,9 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
 
     # ---LOAD FARE RULES-----------------------------------------------------------------------------------
 
-    def _apply_fare_rules(
-        self,
-        network,
-        fare_rules_element,
-        group_transfer_grid,
-        zone_crossing_grid,
-        group_ids_2_int,
-        zone_ids_2_int,
-        segment_fare_attribute,
-        link_fare_attribute,
-    ):
-        lines_id_exed_by_group = {}
+    def _apply_fare_rules(self, network: Network, fare_rules_element: _ET.Element, group_transfer_grid: grid, zone_crossing_grid: grid,  group_ids_2_int: dict, zone_ids_2_int: dict, 
+                          segment_fare_attribute: str, link_fare_attribute: str) -> None:
+        lines_id_exed_by_group: dict = {}
         for line in network.transit_lines():
             group = line.group
             if group in lines_id_exed_by_group:
@@ -1038,9 +1035,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                 )
             self._tracker.complete_subtask()
 
-    def _apply_initial_boarding_fare(
-        self, fare_element, group_ids_2_int, zone_ids_2_int, transfer_grid, link_fare_attribute
-    ):
+    def _apply_initial_boarding_fare(self, fare_element: _ET.Element, group_ids_2_int: dict, zone_ids_2_int: dict, transfer_grid, link_fare_attribute: str) -> None:
         cost = float(fare_element.attrib["cost"])
         with _trace("Initial Boarding Fare of %s" % cost):
             group_id = fare_element.find("group").text
@@ -1074,10 +1069,8 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                         count += 1
             _write("Applied to %s links." % count)
 
-    def _apply_transfer_boarding_fare(
-        self, fare_element, group_ids_2_int, transfer_grid, link_fare_attribute, zone_ids_2_int
-    ):
-        cost = float(fare_element.attrib["cost"])
+    def _apply_transfer_boarding_fare(self, fare_element: _ET.Element, group_ids_2_int: dict, transfer_grid: grid, link_fare_attribute: str, zone_ids_2_int: dict) -> None:
+        cost: float = float(fare_element.attrib["cost"])
 
         with _trace("Transfer Boarding Fare of %s" % cost):
             from_group_id = fare_element.find("from_group").text
@@ -1114,7 +1107,7 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                         count += 1
             _write("Applied to %s links." % count)
 
-    def _apply_fare_by_distance(self, fare_element, group_ids_2_int, lines_id_exed_by_group, segment_fare_attribute):
+    def _apply_fare_by_distance(self, fare_element: _ET.Element, group_ids_2_int: dict, lines_id_exed_by_group: dict, segment_fare_attribute: str):
         cost = float(fare_element.attrib["cost"])
         with _trace("Fare by Distance of %s" % cost):
             group_id = fare_element.find("group").text
@@ -1127,9 +1120,8 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     count += 1
             _write("Applied to %s segments." % count)
 
-    def _apply_zone_crossing_fare(
-        self, fare_element, group_ids_2_int, zone_ids_2_int, crossing_grid, network, segment_fare_attribute
-    ):
+    def _apply_zone_crossing_fare(self, fare_element: _ET.Element, group_ids_2_int: dict, zone_ids_2_int: dict, crossing_grid: grid, 
+                                  network: Network, segment_fare_attribute: str) -> None:
         cost = float(fare_element.attrib["cost"])
         with _trace("Zone Crossing Fare of %s" % cost):
             group_id = fare_element.find("group").text
@@ -1163,9 +1155,9 @@ class GenerateHypernetworkFromSchema(_m.Tool()):
                     count += 1
             _write("Applied to %s segments." % count)
 
-    def _check_for_negative_fares(self, network, segment_fare_attribute, link_fare_attribute):
-        negative_links = []
-        negative_segments = []
+    def _check_for_negative_fares(self, network: Network, segment_fare_attribute: str, link_fare_attribute: str) -> None:
+        negative_links: list = []
+        negative_segments: list = []
         for link in network.links():
             cost = link[link_fare_attribute]
             if cost < 0.0:
