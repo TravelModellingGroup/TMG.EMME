@@ -18,11 +18,7 @@
 */
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.IO;
-using XTMF2;
 
 namespace TMG.Emme.Test.Generate;
 
@@ -33,7 +29,7 @@ public class GenerateHypernetworkFromSchemaTest : TestBase
     public void GenerateHypernetworkFromSchema()
     {
         const int baseScenario = 1;
-        Helper.ImportNetwork(baseScenario, "TestFiles/base_network.nwp");
+        Helper.ImportNetwork(baseScenario, "TestFiles/test.nwp");
         Assert.IsTrue(
             Helper.Modeller.Run(null, "tmg2.Generate.generate_hypernetwork_from_schema",
             JSONParameterBuilder.BuildParameters(writer =>
@@ -59,7 +55,7 @@ public class GenerateHypernetworkFromSchemaTest : TestBase
     public void GenerateHypernetworkFromSchemaModule()
     {
         const int baseScenario = 1;
-        Helper.ImportNetwork(baseScenario, "TestFiles/base_network.nwp");
+        Helper.ImportNetwork(baseScenario, "TestFiles/test.nwp");
         var fareClass = new[]
         {
             new Emme.Generate.GenerateHypernetworkFromSchema.FareClass()
@@ -70,6 +66,7 @@ public class GenerateHypernetworkFromSchemaTest : TestBase
                 SchemaFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/fares.xml"))
             }
         };
+
         var generateModule = new Emme.Generate.GenerateHypernetworkFromSchema()
         {
             Name = "Generator",
@@ -80,6 +77,7 @@ public class GenerateHypernetworkFromSchemaTest : TestBase
             TransferMode = Helper.CreateParameter("t"),
             VirtualNodeDomain = Helper.CreateParameter(100000),
             BaseSchemaFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/base_fares.xml")),
+            FareClasses = Helper.CreateParameters(fareClass),
         };
         generateModule.Invoke(Helper.Modeller);
     }
