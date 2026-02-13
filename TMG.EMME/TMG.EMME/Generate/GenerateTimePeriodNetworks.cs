@@ -17,11 +17,7 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using TMG.Emme;
 using XTMF2;
 
 namespace TMG.Emme.Generate;
@@ -172,7 +168,6 @@ public class GenerateTimePeriodNetworks : BaseAction<ModellerController>
     {
         context.Run(this, "tmg2.Generate.generate_time_period_networks", JSONParameterBuilder.BuildParameters(writer =>
         {
-            writer.WriteStartObject();
             writer.WriteNumber("base_scenario_number", BaseScenarioNumber.Invoke());
             writer.WriteString("transit_service_table_file", Path.GetFullPath(TransitServiceTableFile.Invoke()));
             writer.WriteString("attribute_aggregator", AttributeAggregator.Invoke());
@@ -198,7 +193,6 @@ public class GenerateTimePeriodNetworks : BaseAction<ModellerController>
                 additionalTransitAlternativeTable.Invoke().WriteParameters(writer);
             }
             writer.WriteEndArray();
-            writer.WriteEndObject();
 
         }), LogbookLevel.Standard);
     }

@@ -113,7 +113,6 @@ Network: TypeAlias = inro.emme.network.Network
 Node: TypeAlias = inro.emme.network.node.Node
 Mode: TypeAlias = inro.emme.network.mode.Mode
 TransitLine: TypeAlias =  inro.emme.network.transitline.TransitLine
-#Element: TypeAlias = 
 
 class xml_validation_error(Exception):
     pass

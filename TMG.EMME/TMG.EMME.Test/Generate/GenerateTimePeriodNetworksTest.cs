@@ -18,11 +18,7 @@
 */
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.IO;
-using XTMF2;
 
 namespace TMG.Emme.Test.Generate;
 
@@ -33,7 +29,7 @@ public class GenerateTimePeriodNetworksTest : TestBase
     public void GenerateTimePeriodNetworks()
     {
         const int baseScenarioNumber = 1;
-        Helper.ImportNetwork(baseScenarioNumber, "TestFiles/base_network.nwp", "service_tables");
+        Helper.ImportNetwork(baseScenarioNumber, "TestFiles/test.nwp", "service_tables");
 
         Assert.IsTrue(
             Helper.Modeller.Run(null, "tmg2.Generate.generate_time_period_networks",
@@ -44,7 +40,7 @@ public class GenerateTimePeriodNetworksTest : TestBase
                 writer.WriteString("batch_edit_file", Path.GetFullPath("TestFiles/NewTestNetwork/Batch Line Edit.csv"));
                 writer.WriteString("transit_aggregation_selection_table_file", Path.GetFullPath("TestFiles/NewTestNetwork/Aggregation.csv"));
                 writer.WriteString("transit_alternative_table_file", Path.GetFullPath("Alt File.csv"));
-                writer.WriteString("attribute_aggregator", "vdf: force,length: sum,type: first,lanes: force,ul1: avg,ul2: force,ul3: force,dwt: sum,dwfac: force,ttf: force,us1: avg_by_length,us2: avg,us3: avg,ui1: avg,ui2: avg,ui3: avg,@stop: avg,@lkcap: avg,@lkspd: avg,@stn1: force,@stn2: force,@z407: avg");
+                writer.WriteString("attribute_aggregator", "vdf: force,length: sum,type: first,lanes: force,ul1: avg,ul2: force,ul3: force,dwt: sum,dwfac: force,ttf: force,us1: avg_by_length,us2: avg,us3: avg,ui1: avg,ui2: avg,ui3: avg,@stop: avg,@lkcap: avg,@lkspd: avg,@stn1: force,@stn2: force");
                 writer.WriteString("connector_filter_attribute", "None");
                 writer.WriteNumber("default_aggregation", (int)Emme.Generate.GenerateTimePeriodNetworks.DefaultAggregations.Naive);
                 writer.WriteString("line_filter_expression", "line=______ xor line=TS____ xor line=GT____ xor line=T9____ xor line=T601__");
@@ -87,7 +83,7 @@ public class GenerateTimePeriodNetworksTest : TestBase
     public void GenerateTimePeriodNetworksModule()
     {
         const int baseScenarioNumber = 1;
-        Helper.ImportNetwork(baseScenarioNumber, "TestFiles/base_network.nwp");
+        Helper.ImportNetwork(baseScenarioNumber, "TestFiles/test.nwp");
 
         var timePeriods = new[]
         {
@@ -115,35 +111,34 @@ public class GenerateTimePeriodNetworksTest : TestBase
                 EndTime = Helper.CreateParameter(1900),
                 ScenarioNetworkUpdateFile = Helper.CreateParameter(""),
             },
-
         };
 
         var addAltFiles = new[]
         {
             new Emme.Generate.GenerateTimePeriodNetworks.AdditionalTransitAlternativeTable()
             {
-                Name = "altFile_1",
-                AlternativeTableFile = Helper.CreateParameter(""),
+                Name = "Alt File",  //"altFile_1",
+                AlternativeTableFile = Helper.CreateParameter("TestFiles/NewTestNetwork/Alt File.csv"),
             }
         };
 
         var module = new Emme.Generate.GenerateTimePeriodNetworks()
         {
             BaseScenarioNumber = Helper.CreateParameter(baseScenarioNumber),
-            TransitServiceTableFile = Helper.CreateParameter(Path.GetFullPath("Service Table.csv")),
-            BatchEditFile = Helper.CreateParameter(Path.GetFullPath("Batch Line Edit.csv")),
-            TransitAggreggationSelectionTableFile = Helper.CreateParameter(Path.GetFullPath("Aggregation.csv")),
-            TransitAlternativeTableFile = Helper.CreateParameter(Path.GetFullPath("Alt File.csv")),
-            AttributeAggregator = Helper.CreateParameter(Path.GetFullPath("vdf: force,length: sum,type: first,lanes: force,ul1: avg,ul2: force,ul3: force,dwt: sum,dwfac: force,ttf: force,us1: avg_by_length,us2: avg,us3: avg,ui1: avg,ui2: avg,ui3: avg,@stop: avg,@lkcap: avg,@lkspd: avg,@stn1: force,@stn2: force,@z407: avg")),
-            ConnectorFilterAttribute = Helper.CreateParameter(Path.GetFullPath("None")),
+            TransitServiceTableFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/NewTestNetwork/Service Table.csv")),
+            AttributeAggregator = Helper.CreateParameter("vdf: force,length: sum,type: first,lanes: force,ul1: avg,ul2: force,ul3: force,dwt: sum,dwfac: force,ttf: force,us1: avg_by_length,us2: avg,us3: avg,ui1: avg,ui2: avg,ui3: avg,@stop: avg,@lkcap: avg,@lkspd: avg,@stn1: force,@stn2: force"),
+            ConnectorFilterAttribute = Helper.CreateParameter("None"),
             DefaultAggregation = Helper.CreateParameter(Emme.Generate.GenerateTimePeriodNetworks.DefaultAggregations.Naive),
-            LineFilterExpression = Helper.CreateParameter(Path.GetFullPath("line=______ xor line=TS____ xor line=GT____ xor line=T9____ xor line=T601__")),
-            NodeFilterAttribute = Helper.CreateParameter(Path.GetFullPath("None")),
-            StopFilterAttribute = Helper.CreateParameter(Path.GetFullPath("@stop")),
-            TransferModeString = Helper.CreateParameter(Path.GetFullPath("tuy")),
-            TimePeriods = Helper.CreateParameters(timePeriods),
-            AdditionalTransitAlternativeTables = Helper.CreateParameters(addAltFiles),
+            LineFilterExpression = Helper.CreateParameter("line=______ xor line=TS____ xor line=GT____ xor line=T9____ xor line=T601__"),
+            NodeFilterAttribute = Helper.CreateParameter("None"),
+            StopFilterAttribute = Helper.CreateParameter("@stop"),
+            TransferModeString = Helper.CreateParameter("tuy"),
+            BatchEditFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/NewTestNetwork/Batch Line Edit.csv")),
+            TransitAggreggationSelectionTableFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/NewTestNetwork/Aggregation.csv")),
+            TransitAlternativeTableFile = Helper.CreateParameter(Path.GetFullPath("TestFiles/NewTestNetwork/Alt File.csv")),
             UnpostedSpeedLimit = Helper.CreateParameter(50),
+            TimePeriods = Helper.CreateParameters(timePeriods),
+            AdditionalTransitAlternativeTables = Helper.CreateParameters(addAltFiles)
         };
         module.Invoke(Helper.Modeller);
     }
