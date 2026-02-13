@@ -1,5 +1,5 @@
 """
-    Copyright 2016 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2016-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -43,7 +43,7 @@ _bank = _MODELLER.emmebank
 
 
 class DeleteScenario(_m.Tool()):
-    version = "0.0.1"
+    version: str = "0.0.1"
     Scenario = _m.Attribute(int)
 
     def page(self):

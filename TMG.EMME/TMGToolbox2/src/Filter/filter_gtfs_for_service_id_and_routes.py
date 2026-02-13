@@ -1,5 +1,5 @@
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -34,11 +34,11 @@ _util = _MODELLER.module("tmg2.utilities.general_utilities")
 
 
 class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
-    version = "0.0.1"
-    tool_run_msg = ""
-    number_of_tasks = 4
+    version: str = "0.0.1"
+    tool_run_msg: str = ""
+    number_of_tasks: int = 4
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._tracker = _util.progress_tracker(self.number_of_tasks)
         self._warning = ""
 
@@ -52,22 +52,22 @@ class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
         )
         return pb.render()
 
-    def __call__(self, parameters):
+    def __call__(self, parameters: dict) -> None:
         try:
             self._execute(parameters)
         except Exception as e:
             raise Exception(_traceback.format_exc())
 
-    def run_xtmf(self, parameters):
+    def run_xtmf(self, parameters: dict) -> None:
         try:
             self._execute(parameters)
         except Exception as e:
             raise Exception(_traceback.format_exc())
 
-    def _execute(self, parameters):
-        cells = parameters["service_id"].split(",")
+    def _execute(self, parameters: dict) -> None:
+        cells: list[str] = parameters["service_id"].split(",")
         service_id_set = set(cells)
-        routes_file = ""
+        routes_file: str = ""
         if not parameters["routes_file"]:
             routes_file = parameters["gtfs_folder"] + "/routes.txt"
         else:
@@ -86,7 +86,7 @@ class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
         self._filter_stops_file(serviced_stops_set, parameters["gtfs_folder"])
         self._tracker.complete_task()
 
-    def _get_route_id_set(self, routes_file):
+    def _get_route_id_set(self, routes_file: str) -> set[str]:
         id_set = set()
         with open(routes_file) as reader:
             header = reader.readline().split(",")
@@ -96,10 +96,10 @@ class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
                 id_set.add(cells[id_col])
         return id_set
 
-    def _filter_trips_file(self, route_id_set, service_id_set, gtfs_folder_name):
-        exists = os.path.isfile(gtfs_folder_name + "/shapes.txt")
-        shape_id_set = set()
-        trip_id_set = set()
+    def _filter_trips_file(self, route_id_set: set[str], service_id_set: set[str], gtfs_folder_name: str) -> set:
+        exists: bool = os.path.isfile(gtfs_folder_name + "/shapes.txt")
+        shape_id_set: set = set()
+        trip_id_set: set = set()
         with open(gtfs_folder_name + "/trips.txt") as reader:
             with open(gtfs_folder_name + "/trips.updated.csv", "w") as writer:
                 header = reader.readline().strip()
@@ -125,7 +125,7 @@ class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
             cleaned_shapes = self._filter_shape_file(shape_id_set, gtfs_folder_name)
         return trip_id_set
 
-    def _filter_shape_file(self, shape_id_set, gtfs_folder_name):
+    def _filter_shape_file(self, shape_id_set: set, gtfs_folder_name: str) -> None:
         with open(gtfs_folder_name + "/shapes.txt") as reader:
             with open(gtfs_folder_name + "/shapes.updated.csv", "w") as writer:
                 header = reader.readline().strip()
@@ -139,8 +139,8 @@ class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
                         continue
                     writer.write("\n %s" % line)
 
-    def _filter_stop_times_file(self, trip_id_set, gtfs_folder_name):
-        serviced_stops_set = set()
+    def _filter_stop_times_file(self, trip_id_set: set, gtfs_folder_name: str) -> set:
+        serviced_stops_set: set = set()
         with open(gtfs_folder_name + "/stop_times.txt") as reader:
             with open(gtfs_folder_name + "/stop_times.updated.csv", "w") as writer:
                 header = reader.readline().strip()
@@ -157,13 +157,13 @@ class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
                     writer.write("\n%s" % line)
         return serviced_stops_set
 
-    def _filter_stops_file(self, serviced_stops_set, gtfs_folder_name):
+    def _filter_stops_file(self, serviced_stops_set: set, gtfs_folder_name: str) -> None:
         with open(gtfs_folder_name + "/stops.txt") as reader:
             with open(gtfs_folder_name + "/stops.updated.csv", "w") as writer:
-                header = reader.readline().strip()
+                header: str = reader.readline().strip()
                 writer.write(header)
-                cells = header.split(",")
-                stop_id_col = cells.index("stop_id")
+                cells: list[str] = header.split(",")
+                stop_id_col: int = cells.index("stop_id")
                 for line in reader.readlines():
                     line = line.strip()
                     cells = line.split(",")
