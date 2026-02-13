@@ -59,22 +59,22 @@ class DeleteScenario(_m.Tool()):
     def run(self):
         pass
 
-    def __call__(self, parameters):
+    def __call__(self, parameters: dict) -> None:
         scenario = parameters["scenario"]
         try:
             self._execute(scenario)
         except Exception as e:
             raise Exception(_traceback.format_exc())
 
-    def run_xtmf(self, parameters):
-        scenario = parameters["scenario"]
+    def run_xtmf(self, parameters: dict) -> None:
+        scenario: int = parameters["scenario"]
         try:
             self._execute(scenario)
         except Exception as e:
             raise Exception(_traceback.format_exc())
 
-    def _execute(self, scenario):
-        scenario = _bank.scenario(str(scenario))
+    def _execute(self, scenario: int | None) -> None:
+        scenario: int | None = _bank.scenario(str(scenario))
         if scenario is None:
             print("A delete was requested for scenario " + str(scenario) + " but the scenario does not exist.")
             return

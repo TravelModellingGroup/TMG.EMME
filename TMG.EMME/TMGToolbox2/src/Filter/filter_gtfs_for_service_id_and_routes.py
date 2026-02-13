@@ -98,8 +98,8 @@ class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
 
     def _filter_trips_file(self, route_id_set: set[str], service_id_set: set[str], gtfs_folder_name: str) -> set:
         exists: bool = os.path.isfile(gtfs_folder_name + "/shapes.txt")
-        shape_id_set: set = set()
-        trip_id_set: set = set()
+        shape_id_set: set[str] = set()
+        trip_id_set: set[str] = set()
         with open(gtfs_folder_name + "/trips.txt") as reader:
             with open(gtfs_folder_name + "/trips.updated.csv", "w") as writer:
                 header = reader.readline().strip()
@@ -125,7 +125,7 @@ class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
             cleaned_shapes = self._filter_shape_file(shape_id_set, gtfs_folder_name)
         return trip_id_set
 
-    def _filter_shape_file(self, shape_id_set: set, gtfs_folder_name: str) -> None:
+    def _filter_shape_file(self, shape_id_set: set[str], gtfs_folder_name: str) -> None:
         with open(gtfs_folder_name + "/shapes.txt") as reader:
             with open(gtfs_folder_name + "/shapes.updated.csv", "w") as writer:
                 header = reader.readline().strip()
