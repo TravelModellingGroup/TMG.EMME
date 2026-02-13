@@ -139,8 +139,8 @@ class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
                         continue
                     writer.write("\n %s" % line)
 
-    def _filter_stop_times_file(self, trip_id_set: set, gtfs_folder_name: str) -> set:
-        serviced_stops_set: set = set()
+    def _filter_stop_times_file(self, trip_id_set: set[int], gtfs_folder_name: str) -> set:
+        serviced_stops_set: set[int] = set()
         with open(gtfs_folder_name + "/stop_times.txt") as reader:
             with open(gtfs_folder_name + "/stop_times.updated.csv", "w") as writer:
                 header = reader.readline().strip()
@@ -157,7 +157,7 @@ class FilterGTFSForServiceIdAndRoutes(_m.Tool()):
                     writer.write("\n%s" % line)
         return serviced_stops_set
 
-    def _filter_stops_file(self, serviced_stops_set: set, gtfs_folder_name: str) -> None:
+    def _filter_stops_file(self, serviced_stops_set: set[int], gtfs_folder_name: str) -> None:
         with open(gtfs_folder_name + "/stops.txt") as reader:
             with open(gtfs_folder_name + "/stops.updated.csv", "w") as writer:
                 header: str = reader.readline().strip()
