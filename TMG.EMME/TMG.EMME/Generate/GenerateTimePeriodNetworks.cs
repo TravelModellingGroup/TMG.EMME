@@ -193,7 +193,6 @@ public class GenerateTimePeriodNetworks : BaseAction<ModellerController>
                 additionalTransitAlternativeTable.Invoke().WriteParameters(writer);
             }
             writer.WriteEndArray();
-            //writer.WriteEndObject();
 
         }), LogbookLevel.Standard);
     }
