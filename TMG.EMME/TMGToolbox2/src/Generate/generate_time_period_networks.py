@@ -1,6 +1,6 @@
 # ---LICENSE----------------------
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -32,11 +32,13 @@ TMG Generate Full Network Set Tool
 
     V 2.0.0 Refactored to work with XTMF2/TMGToolbox2 on 2022-07-20 by williamsDiogu   
 """
+import inro
 from re import split as _regex_split
 import inro.modeller as _m
 import traceback as _traceback
 import multiprocessing
 from contextlib import contextmanager
+from typing import Type, TypeAlias
 
 _MODELLER = _m.Modeller()
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
@@ -52,16 +54,22 @@ _m.TupleType = object
 _m.ListType = list
 _m.InstanceType = object
 
+# alias for the scenario and zipfile type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+Network: TypeAlias = inro.emme.network.Network
+Node: TypeAlias = inro.emme.network.node.Node
 
-def naive_aggregation(departures, start, end):
+
+
+def naive_aggregation(departures, start: int, end: int) -> float:
     deltaTime = end - start
     numDep = len(departures)
     return deltaTime / numDep
 
 
-def average_aggregation(departures, start, end):
-    sum = 0
-    counter = 0
+def average_aggregation(departures, start: int, end: int) -> float:
+    sum: int = 0
+    counter: int = 0
     if len(departures) == 1:
         return end - start
     iter = departures.__iter__()
@@ -76,9 +84,9 @@ def average_aggregation(departures, start, end):
 
 
 class GenerateTimePeriodNetworks(_m.Tool()):
-    version = "2.0.0"
-    tool_run_msg = ""
-    number_of_task = 10
+    version: str = "2.0.0"
+    tool_run_msg: str = ""
+    number_of_task: int = 10
 
     NAMED_AGGREGATORS = _edit.NAMED_AGGREGATORS
 
@@ -118,38 +126,32 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         )
         return pb.render()
 
-    def __call__(self, parameters):
+    def __call__(self, parameters: dict) -> None:
         scenario = _util.load_scenario(parameters["base_scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def run_xtmf(self, parameters):
-        base_scenario = _util.load_scenario(parameters["base_scenario_number"])
+    def run_xtmf(self, parameters: dict) -> None:
+        base_scenario: Scenario = _util.load_scenario(parameters["base_scenario_number"])
         try:
             self._execute(base_scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def _execute(self, base_scenario, parameters):
+    def _execute(self, base_scenario: Scenario, parameters: dict) -> None:
         with _m.logbook_trace(
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._get_atts(base_scenario),
         ):
-            network = base_scenario.get_network()
+            network: Network = base_scenario.get_network()
             self._check_transfer_mode_in_network(network, parameters["transfer_mode_string"])
             self._tracker.complete_task()
             print("Loaded network")
-            node_filter_attribute = self._check_filter_attributes(
-                base_scenario, parameters["node_filter_attribute"], description="Node"
-            )
-            stop_filter_attribute = self._check_filter_attributes(
-                base_scenario, parameters["stop_filter_attribute"], description="Stop"
-            )
-            connector_filter_attribute = self._check_filter_attributes(
-                base_scenario, parameters["connector_filter_attribute"], description="Connector"
-            )
+            node_filter_attribute = self._check_filter_attributes(base_scenario, parameters["node_filter_attribute"], description="Node")
+            stop_filter_attribute = self._check_filter_attributes(base_scenario, parameters["stop_filter_attribute"], description="Stop")
+            connector_filter_attribute = self._check_filter_attributes(base_scenario, parameters["connector_filter_attribute"], description="Connector")
             for periods in parameters["time_periods"]:
                 self._delete_old_scenario(periods["uncleaned_scenario_number"])
                 self._delete_old_scenario(periods["cleaned_scenario_number"])
@@ -181,17 +183,14 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                         self._process_transit_lines(network, periods["start_time"], periods["end_time"], None)
                     else:
                         if parameters["transit_alternative_table_file"] != "":
-                            alt_data = self._load_alt_file(parameters["transit_alternative_table_file"])
+                            alt_data = self._load_alt_file(parameters["transit_alternative_table_file"], periods["start_time"])
                             self._process_transit_lines(network, periods["start_time"], periods["end_time"], alt_data)
                         else:
                             alt_data = None
                             self._process_transit_lines(network, periods["start_time"], periods["end_time"], alt_data)
                         if alt_data:
                             self._process_alt_lines(network, alt_data)
-                print(
-                    "Done processing transit lines for time period %s to %s"
-                    % (periods["start_time"], periods["end_time"])
-                )
+                print("Done processing transit lines for time period %s to %s" % (periods["start_time"], periods["end_time"]))
                 uncleaned_scenario = _bank.copy_scenario(base_scenario.id, periods["uncleaned_scenario_number"])
                 uncleaned_scenario.title = periods["uncleaned_description"]
                 print("Publishing network")
@@ -232,15 +231,15 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             )
             print("Cleaned networks")
 
-    def _delete_old_scenario(self, scenario_number):
+    def _delete_old_scenario(self, scenario_number: int) -> None:
         if _bank.scenario(scenario_number) is not None:
             _bank.delete_scenario(scenario_number)
 
-    def _get_atts(self, scenario):
+    def _get_atts(self, scenario: Scenario) -> dict[str, str]:
         atts = {"Scenario": str(scenario.id), "Version": self.version, "self": self.__MODELLER_NAMESPACE__}
         return atts
 
-    def _check_filter_attributes(self, base_scenario, filer_attribute_id, description=""):
+    def _check_filter_attributes(self, base_scenario: Scenario, filer_attribute_id: str, description: str="") -> str | None:
         if filer_attribute_id.lower() == "none":
             filer_attribute_id = None
         else:
@@ -248,7 +247,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 raise Exception("%s filter attribute %s does not exist" % (filer_attribute_id, description))
         return filer_attribute_id
 
-    def _load_service_table(self, network, start_time, end_time, transit_service_table_file):
+    def _load_service_table(self, network: Network, start_time: int, end_time: int, transit_service_table_file: str) -> set:
         bounds = _util.float_range(start_time, end_time)
         bad_ids = set()
         if transit_service_table_file != "" or transit_service_table_file != "none":
@@ -262,8 +261,8 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                         bad_ids.add(emme_id_col)
                         continue
                     try:
-                        departure = self._parse_string_time(departure_col)
-                        arrival = self._parse_string_time(arrival_col)
+                        departure: float = self._parse_string_time(departure_col)
+                        arrival: float = self._parse_string_time(arrival_col)
                     except Exception as e:
                         print("Line " + str(line_number + 1) + " skipped in CSV file: " + str(e))
                         continue
@@ -276,7 +275,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                         transit_line.trips.append(trip)
         return bad_ids
 
-    def _load_agg_type_select(self, network, transit_aggregation_selection_table_file, default_aggregation):
+    def _load_agg_type_select(self, network: Network, transit_aggregation_selection_table_file: str, default_aggregation: int) -> set:
         bad_ids = set()
         if transit_aggregation_selection_table_file != "" or transit_aggregation_selection_table_file != "none":
             with _util.open_csv_reader(transit_aggregation_selection_table_file) as aggregate_file:
@@ -303,7 +302,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                         transit_line.aggtype = aggregation
         return bad_ids
 
-    def _parse_string_time(self, time_string):
+    def _parse_string_time(self, time_string: str) -> float:
         try:
             hms = time_string.split(":")
             if len(hms) != 3:
@@ -315,7 +314,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         except Exception as e:
             raise IOError("Error passing time %s: %s" % (time_string, e))
 
-    def _load_batch_file(self, scenario, batch_edit_file):
+    def _load_batch_file(self, scenario: Scenario, batch_edit_file: str) -> dict:
         if batch_edit_file != "" or batch_edit_file != "none":
             with open(batch_edit_file) as reader:
                 header = reader.readline()
@@ -354,7 +353,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
 
         return instruction_data
 
-    def _apply_line_changes(self, scenario, input_data):
+    def _apply_line_changes(self, scenario: Scenario, input_data) -> None:
         for filter, factors in input_data.items():
             if factors[0] != 1:
                 spec = {
@@ -373,7 +372,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 }
                 network_calc_tool(spec, scenario)
 
-    def _process_transit_lines(self, network, start, end, alt_data):
+    def _process_transit_lines(self, network: Network, start: int, end: int, alt_data: tuple | None) -> None:
         bounds = _util.float_range(0.01, 1000.0)
         to_delete = set()
         if alt_data is not None:
@@ -433,8 +432,8 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             network.delete_transit_line(id)
         self._tracker.complete_task()
 
-    def _load_alt_file(self, alternative_table_file, start_time):
-        alt_data = {}
+    def _load_alt_file(self, alternative_table_file: str, start_time: int) -> dict:
+        alt_data: dict = {}
         with open(alternative_table_file) as reader:
             header = reader.readline()
             cells = header.strip().split(",")
@@ -472,7 +471,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             alt_data[id] = data
         return alt_data
 
-    def _process_alt_lines(self, network, alt_data):
+    def _process_alt_lines(self, network: Network, alt_data: dict) -> None:
         bounds = _util.float_range(0.01, 1000.0)
         for key, data in alt_data.items():
             line = network.transit_line(key)
@@ -517,7 +516,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 speed = unposted_speed_limit
             segment.data1 = speed * factor
 
-    def _get_net_calc_spec(self, flag_attribute_id, line_filter_expression):
+    def _get_net_calc_spec(self, flag_attribute_id, line_filter_expression) -> dict:
         return {
             "result": flag_attribute_id,
             "expression": "1",
@@ -526,7 +525,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    def _apply_batch_edit_file(self, scenario, batch_edit_file):
+    def _apply_batch_edit_file(self, scenario: Scenario, batch_edit_file: str) -> None:
         changes_to_apply = self._load_batch_file(scenario, batch_edit_file)
         print("Instruction file loaded")
         if changes_to_apply:
@@ -535,7 +534,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         else:
             print("No changes available in this scenario")
 
-    def _prorate_transit_speeds(self, scenario, line_filter_expression, unposted_speed_limit):
+    def _prorate_transit_speeds(self, scenario: Scenario, line_filter_expression: str, unposted_speed_limit: int) -> int:
         if int(scenario.element_totals["transit_lines"]) == 0:
             return 0
         with self._line_attribute_manager(scenario) as flag_attribute_id:
@@ -558,7 +557,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             scenario.publish_network(network)
         return len(flagged_lines)
 
-    def _remove_extra_links(self, base_network, transfer_mode_string):
+    def _remove_extra_links(self, base_network:Network, transfer_mode_string: str) -> None:
         self._remove_transit_only_links_with_no_lines(base_network)
         self._remove_dead_end_links(base_network)
         self._create_transfer_mode_id_string(base_network, transfer_mode_string)
@@ -566,7 +565,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         self._remove_stranded_nodes(base_network)
         self._tracker.start_process(2)
 
-    def _remove_transit_only_links_with_no_lines(self, network):
+    def _remove_transit_only_links_with_no_lines(self, network: Network) -> None:
         self._tracker.complete_task()
         for link in network.links():
             has_transit = False
@@ -580,7 +579,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 if transit_only == True:
                     network.delete_link(link.i_node, link.j_node)
 
-    def _remove_dead_end_links(self, network):
+    def _remove_dead_end_links(self, network: Network) -> None:
         for link in network.links():
             has_transit = False
             for segment in link.segments():
@@ -605,7 +604,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 if dead_start or dead_end:
                     network.delete_link(start_node, end_node)
 
-    def _create_transfer_mode_id_string(self, network, transfer_mode_string):
+    def _create_transfer_mode_id_string(self, network: Network, transfer_mode_string: str) -> None:
         transfer_modes = set()
         for m in transfer_mode_string:
             transfer_modes.add(network.mode(m))
@@ -662,12 +661,12 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                     else:
                         link.modes = link.modes.difference(transfer_modes)
 
-    def _check_transfer_mode_in_network(self, network, transfer_mode_string):
+    def _check_transfer_mode_in_network(self, network: Network, transfer_mode_string: str) -> None:
         for mode in transfer_mode_string:
             if network.mode(mode) == None:
                 raise Exception("Transfer mode %s was not found in the network!" % mode)
 
-    def _remove_stranded_nodes(self, network):
+    def _remove_stranded_nodes(self, network: Network) -> None:
         # removes nodes not connected to any links
         for node in network.nodes():
             is_stranded = True
@@ -678,13 +677,8 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             if is_stranded == True:
                 network.delete_node(node.id)
 
-    def _remove_extra_nodes(
-        self, cleaned_network, node_filter_attribute, stop_filter_attribute, connector_filter_attribute
-    ):
-
-        nodes_to_delete = self._get_candidate_nodes(
-            cleaned_network, node_filter_attribute, stop_filter_attribute, connector_filter_attribute
-        )
+    def _remove_extra_nodes(self, cleaned_network: Network, node_filter_attribute: str | None, stop_filter_attribute: str, connector_filter_attribute: str | None) -> None:
+        nodes_to_delete: list[Node] = self._get_candidate_nodes(cleaned_network, node_filter_attribute, stop_filter_attribute, connector_filter_attribute)
         if len(nodes_to_delete) == 0:
             raise Exception("Found zero nodes to delete.")
         if connector_filter_attribute != "none" or connector_filter_attribute != "":
@@ -693,7 +687,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         self._tracker.complete_task()
         self._write_report(log)
 
-    def _get_candidate_nodes(self, network, node_filter_attribute, stop_filter_attribute, connector_filter_attribute):
+    def _get_candidate_nodes(self, network: Network, node_filter_attribute: str | None, stop_filter_attribute: str, connector_filter_attribute: str | None) -> list[Node]:
         network.create_attribute("NODE", "is_stop", False)
         for segment in network.transit_segments():
             if segment.allow_boardings or segment.allow_alightings:
@@ -725,9 +719,9 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         _write("%s nodes were selected for deletion." % len(retval))
         return retval
 
-    def _remove_candidate_centroid_connectors(self, nodes_to_delete, connector_filter_attribute):
-        network = nodes_to_delete[0].network
-        link_ids_to_delete = []
+    def _remove_candidate_centroid_connectors(self, nodes_to_delete: list, connector_filter_attribute: str | None) -> None:
+        network: Network = nodes_to_delete[0].network
+        link_ids_to_delete: list = []
         for node in nodes_to_delete:
             for link in node.incoming_links():
                 if link.i_node.is_centroid and link[connector_filter_attribute]:
@@ -738,10 +732,10 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         for i, j in link_ids_to_delete:
             network.delete_link(i, j, True)
 
-    def _remove_nodes(self, network, nodes_to_delete):
-        log = []
-        deep_errors = []
-        delete_nodes = 0
+    def _remove_nodes(self, network: Network, nodes_to_delete: list[Node]) -> list[str]:
+        log: list = []
+        deep_errors: list = []
+        delete_nodes: int = 0
         self._tracker.start_process(len(nodes_to_delete))
         for node in nodes_to_delete:
             nid = node.number
@@ -767,13 +761,13 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         _write("Removed %s nodes from the network." % delete_nodes)
         return log
 
-    def _write_report(self, log):
+    def _write_report(self, log: list[str]) -> None:
         pb = _m.PageBuilder(title="Error log")
         doc = "<br>".join(log)
         pb.wrap_html(body=doc)
         _write("Error report", value=pb.render())
 
-    def check_node(self, node, check_node_1, check_node_2, check_connector):
+    def check_node(self, node: Node, check_node_1: Node, check_node_2: Node, check_connector: Node) -> bool:
         if check_node_1(node) and check_node_2(node):
             neighbours = set()
             n_links = 0
@@ -805,16 +799,16 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             # For it to be selected for deletion, it must pass the two conditions
             return check_node_1(node) and check_node_2(node)
 
-    def _parse_segment_aggregators(self, scenario, attribute_aggregator):
+    def _parse_segment_aggregators(self, scenario: Scenario, attribute_aggregator: str) -> None:
         # Setup the translation dictionary to get from Emme Desktop attribute names
         # to Modeller Python attribute names. Extra attributes are named the same.
-        translator = self._get_translator_dict()
-        multiple_domain_attributes = ["data1", "data2", "data3"]
-        valid_func_names = ["sum", "avg", "or", "and", "min", "max", "first", "last", "zero", "avg_by_length", "force"]
+        translator: dict = self._get_translator_dict()
+        multiple_domain_attributes: list = ["data1", "data2", "data3"]
+        valid_func_names: list = ["sum", "avg", "or", "and", "min", "max", "first", "last", "zero", "avg_by_length", "force"]
         # Setup default aggregator function names
-        link_extra_attributes = []
-        segment_extra_attributes = []
-        node_extra_attributes = []
+        link_extra_attributes: list = []
+        segment_extra_attributes: list = []
+        node_extra_attributes: list = []
 
         for exatt in scenario.extra_attributes():
             id = exatt.name
@@ -826,12 +820,12 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             elif t == "LINK":
                 link_extra_attributes.append(id)
 
-        link_aggregators = {"length": "sum", "data1_l": "zero", "data2_l": "avg_by_length", "data3_l": "avg"}
+        link_aggregators: dict = {"length": "sum", "data1_l": "zero", "data2_l": "avg_by_length", "data3_l": "avg"}
         for att in link_extra_attributes:
             link_aggregators[att] = "avg"
             translator[att] = att
 
-        segment_aggregators = {
+        segment_aggregators: dict = {
             "dwell_time": "sum",
             "factor_dwell_time_by_length": "and",
             "transit_time_func": "force",
@@ -844,14 +838,14 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             # Save extra attribute names into the translator for recognition
             translator[att] = att
 
-        node_aggregators = {}
+        node_aggregators: dict = {}
         for att in node_extra_attributes:
             node_aggregators[att] = "avg"
             translator[att] = att
         # Parse the argument string
-        trimmed_string = attribute_aggregator.replace(" ", "")
+        trimmed_string: str = attribute_aggregator.replace(" ", "")
         # Supports newline and/or commas
-        components = _regex_split("\n|,", trimmed_string)
+        components: list[str] = _regex_split("\n|,", trimmed_string)
 
         for component in components:
             if component.isspace():
@@ -885,7 +879,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 segment_aggregators[att_name] = func_name
                 node_aggregators[att_name] = func_name
 
-        for key in link_aggregators.keys():
+        for key in list(link_aggregators.keys()):
             if key.endswith("_l"):
                 new_key = key.replace("_l", "")
                 val = link_aggregators.pop(key)
@@ -916,7 +910,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         for att, func_name in node_aggregators.items():
             node_aggregators[att] = _edit.NAMED_AGGREGATORS[func_name]
 
-    def _get_translator_dict(self):
+    def _get_translator_dict(self) -> dict:
         translator_dict = {
             "length": "length",
             "type": "type",
