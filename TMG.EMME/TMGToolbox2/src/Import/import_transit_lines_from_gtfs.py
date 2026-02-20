@@ -1,5 +1,5 @@
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -61,11 +61,12 @@ Generate Transit Lines from GTFS
     
     0.0.6 Upgraded to using a better, turn-restricted shortest-path algorithm. 
 """
-
+import inro
 import inro.modeller as _m
 import traceback as _traceback
 import csv
 from os import path as _path
+from typing import TypeAlias, TypedDict, TextIO
 
 _m.InstanceType = object
 _m.TupleType = object
@@ -77,9 +78,30 @@ _editing = _MODELLER.module("tmg2.utilities.network_editing")
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmg_tpb = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 
+
+# alias for the Scenario and Network type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+Network: TypeAlias = inro.emme.network.Network
+
 ##########################################################################################################
 
-gtfs_mode_map = {"s": "0", "l": "0", "m": "1", "r": "2", "b": "3", "q": "3", "g": "3"}
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    scenario_id: int
+    max_non_stop_nodes: int 
+    link_priority_attribute: str
+    gtfs_folder: str 
+    stop_to_node_file: str
+    new_scenario_id: int
+    new_scenario_title: str
+    service_table_file: str
+    mapping_file: str
+    publish_flag: bool
+
+
+gtfs_mode_map: dict = {"s": "0", "l": "0", "m": "1", "r": "2", "b": "3", "q": "3", "g": "3"}
 
 
 def last(list):
@@ -89,10 +111,9 @@ def last(list):
 
 
 class ImportTransitLinesFromGTFS(_m.Tool()):
-
-    version = "2.0.0"
-    tool_run_msg = ""
-    number_of_tasks = 8
+    version: str = "2.0.0"
+    tool_run_msg: str = ""
+    number_of_tasks: int = 8
     # Tool Input Parameters
     #    Only those parameters neccessary for Modeller and/or XTMF to dock with
     #    need to be placed here. Internal parameters (such as lists and dicts)
@@ -113,10 +134,10 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         # ---Init internal variables
         self._tracker = _util.progress_tracker(self.number_of_tasks)
         # ---Set the defaults of parameters used by Modeller
-        self.scenario = _MODELLER.scenario
-        self.max_non_stop_nodes = 15
-        self.publish_flag = True
-        self.new_scenario_title = self.scenario.title
+        self.scenario: Scenario = _MODELLER.scenario
+        self.max_non_stop_nodes: int = 15
+        self.publish_flag: bool = True
+        self.new_scenario_title: str = self.scenario.title
 
     def page(self):
         pb = _tmg_tpb.TmgToolPageBuilder(
@@ -231,7 +252,7 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
 
     ##########################################################################################################
 
-    def run(self):
+    def run(self) -> None:
         self.tool_run_msg = ""
         self._tracker.reset()
         parameters = self._build_page_builder_parameters()
@@ -244,13 +265,13 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
 
     ##########################################################################################################
 
-    def run_xtmf(self, parameters):
+    def run_xtmf(self, parameters: ParametersParams) -> None:
         try:
             self._execute(parameters)
         except Exception as e:
             raise Exception(_traceback.format_exc())
 
-    def _execute(self, parameters):
+    def _execute(self, parameters: ParametersParams) -> None:
         with _m.logbook_trace(
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._get_atts(parameters["scenario_id"], self.version),
@@ -277,7 +298,7 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
 
     # ----SUB FUNCTIONS---------------------------------------------------------------------------------
 
-    def _get_atts(self, scenario, version):
+    def _get_atts(self, scenario, version) -> dict:
         atts = {
             "Scenario": scenario,
             "Version": version,
@@ -285,8 +306,8 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         }
         return atts
 
-    def _load_check_gtfs_routes_file(self, gtfs_folder):
-        routes_path = gtfs_folder + "/routes.csv"
+    def _load_check_gtfs_routes_file(self, gtfs_folder: str) -> dict:
+        routes_path: str = gtfs_folder + "/routes.csv"
         if not _path.exists(routes_path):
             routes_path = gtfs_folder + "/routes.txt"
             if not _path.exists(routes_path):
@@ -300,7 +321,7 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
                 use_line_names = True
 
             emme_id_set = set()
-            routes = {}
+            routes: dict = {}
             for record in reader.readlines():
                 emme_id = record["emme_id"][:5]
                 print(emme_id)
@@ -319,8 +340,8 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         _m.logbook_write(msg)
         return routes
 
-    def _load_stop_node_map_file(self, network, stop_to_node_file):
-        stops_to_nodes = {}
+    def _load_stop_node_map_file(self, network: Network, stop_to_node_file: str) -> dict[str, str]:
+        stops_to_nodes: dict = {}
         with open(stop_to_node_file) as reader:
             reader.readline()
             for line in reader.readlines():
@@ -338,8 +359,8 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         _m.logbook_write(msg)
         return stops_to_nodes
 
-    def _load_trips(self, routes, gtfs_folder):
-        trips = {}
+    def _load_trips(self, routes: dict, gtfs_folder: str) -> dict:
+        trips: dict = {}
         with _util.CSVReader(gtfs_folder + "/trips.txt") as reader:
             self._tracker.start_process(len(reader))
             direction_given = "direction_id" in reader.header
@@ -359,8 +380,8 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         _m.logbook_write(msg)
         return trips
 
-    def _load_print_stop_times(self, trips, stops_to_nodes, gtfs_folder):
-        count = 0
+    def _load_print_stop_times(self, trips: dict, stops_to_nodes: dict[str, str], gtfs_folder: str) -> None:
+        count: int = 0
         with _util.CSVReader(gtfs_folder + "/stop_times.txt") as reader:
             with open(gtfs_folder + "/stop_times_emme_nodes.txt", "w") as writer:
                 s = reader.header[0]
@@ -394,7 +415,8 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         pb.add_link(gtfs_folder + "/stop_times_emme_nodes.txt")
         _m.logbook_write("Link to updated stop times file", value=pb.render())
 
-    def _generate_lines(self, routes, stops_to_nodes, network, writer, mapping_file_name, max_non_stop_nodes, link_priority_attribute_id, publish_flag):
+    def _generate_lines(self, routes: dict, stops_to_nodes: dict[str, str], network: Network, writer: TextIO, mapping_file_name: str, max_non_stop_nodes: int, 
+                        link_priority_attribute_id: str, publish_flag: bool):
         # This is the main method
         with open(mapping_file_name, "w") as csv_file:
             csv_writer = csv.writer(csv_file)
@@ -561,8 +583,8 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
             )
             print("%s lines were logged for review." % len(lines_to_check))
 
-    def _get_organized_trips(self, route):
-        trip_set = {}
+    def _get_organized_trips(self, route) -> dict:
+        trip_set: dict = {}
         for trip in route.trips.values():
             trip.stop_times.sort()
             seq = [st[1].stop_id for st in trip.stop_times]
@@ -576,7 +598,7 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         return trip_set
 
     def _get_mode_filter_map(self, network, link_priority_attribute_id):
-        map = {}
+        map: dict = {}
         modes = [mode for mode in network.modes() if mode.type == "TRANSIT"]
         for mode in modes:
             if link_priority_attribute_id == "":
@@ -588,7 +610,7 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         return map
 
     def _get_node_itinerary(self, stop_itin, stops_to_nodes, network, skipped_stop_ids):
-        node_itin = []
+        node_itin: list = []
         for stop_id in stop_itin:
             if not stop_id in stops_to_nodes:
                 if stop_id in skipped_stop_ids:
@@ -610,10 +632,10 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
             node_itin.append(node)
         return node_itin
 
-    def _write_skipped_stops_report(self, skipped_stop_ids):
+    def _write_skipped_stops_report(self, skipped_stop_ids: dict):
         pb = _m.PageBuilder()
-        stop_data = []
-        count_data = []
+        stop_data: list = []
+        count_data: list = []
         for x, item in enumerate(skipped_stop_ids.items()):
             stop, count = item
             stop_data.append((x, stop))
@@ -631,12 +653,12 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         )
         return pb.render()
 
-    def _write_failed_sequences_report(self, failed_sequences):
+    def _write_failed_sequences_report(self, failed_sequences: list):
         pb = _m.PageBuilder()
-        id_data = []
-        branch_data = []
-        error_data = []
-        seq_data = []
+        id_data: list = []
+        branch_data: list = []
+        error_data: list = []
+        seq_data: list = []
         for x, item in enumerate(failed_sequences):  # Not a map
             routeId, branchNum, error, seq = item
             id_data.append((x, routeId))
@@ -660,8 +682,8 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
 
     def _write_lines_to_check_report(self, lines_to_check):
         pb = _m.PageBuilder()
-        id_data = []
-        check_data = []
+        id_data: list = []
+        check_data: list = []
         for x, item in enumerate(lines_to_check):
             id, reason = item
             id_data.append((x, id))
@@ -674,7 +696,7 @@ class ImportTransitLinesFromGTFS(_m.Tool()):
         pb.add_chart_widget(cds, options=opt, title="Emme Lines to Check")
         return pb.render()
 
-    def _build_page_builder_parameters(self):
+    def _build_page_builder_parameters(self) -> dict:
         parameters = {
             "scenario": self.scenario,
             "new_scenario_id": self.new_scenario_id,
@@ -719,14 +741,14 @@ class Trip:
         self.route = route
         self.direction = direction_id
 
-        self.stop_times = []
+        self.stop_times: list = []
 
     def last_stop_time(self):
         return self.stop_times[len(self.stop_times) - 1]
 
 
 class Route:
-    def __init__(self, record, description=""):
+    def __init__(self, record, description: str=""):
         self.route_id = record["route_id"]
         self.emme_id = record["emme_id"]
         self.emme_vehicle = record["emme_vehicle"]
@@ -734,13 +756,11 @@ class Route:
         self.trips = {}
         self.description = description
 
-
 class StopTime:
     def __init__(self, stop, depart, arrive):
         self.stop_id = stop
         self.departure_time = depart
         self.arrival_time = arrive
-
 
 class ModeOnlyFilter:
     def __init__(self, mode):

@@ -1,5 +1,5 @@
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -18,6 +18,7 @@
 """
 
 # from posix import EX_TEMPFAIL
+import inro
 import inro.modeller as _m
 import csv
 import traceback as _traceback
@@ -26,6 +27,7 @@ from contextlib import contextmanager
 # from contextlib import nested
 from os import path as _path
 from pyproj import Proj
+from typing import  TypeAlias, TypedDict
 
 _m.InstanceType = object
 _m.TupleType = object
@@ -38,11 +40,24 @@ _geo = _MODELLER.module("tmg2.utilities.geometry")
 _spindex = _MODELLER.module("tmg2.utilities.spatial_index")
 EMME_VERSION = _util.get_emme_version(tuple)
 
+# alias for the Scenario type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+Network: TypeAlias = inro.emme.network.Network
+
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool. 
+    Attributes: 
+        input_stop_file: Path to the input stop file. 
+        output_mapping_file: Path where the generated mapping file will be written.
+    """
+    input_stop_file: str 
+    output_mapping_file: str
 
 class GTFStoEmmeMap(_m.Tool()):
-    version = "2.0.0"
-    tool_run_msg = ""
-    number_of_tasks = 1
+    version: str = "2.0.0"
+    tool_run_msg: str = ""
+    number_of_tasks: int = 1
 
     # Tool Parameters
     file_name = _m.Attribute(str)
@@ -81,8 +96,7 @@ class GTFStoEmmeMap(_m.Tool()):
 
         return pb.render()
 
-    def __call__(self, parameters):
-
+    def __call__(self, parameters: ParametersParams) -> None:
         try:
             self._execute(parameters)
         except Exception as e:
@@ -91,8 +105,8 @@ class GTFStoEmmeMap(_m.Tool()):
 
         self.tool_run_msg = _m.PageBuilder.format_info("Done.")
 
-    def run(self):
-        self.tool_run_msg = ""
+    def run(self) -> None:
+        self.tool_run_msg: str = ""
         self._tracker.reset()
         parameters = self._build_page_builder_parameters()
         try:
@@ -103,13 +117,13 @@ class GTFStoEmmeMap(_m.Tool()):
 
         self.tool_run_msg = _m.PageBuilder.format_info("Done")
 
-    def run_xtmf(self, parameters):
+    def run_xtmf(self, parameters: ParametersParams) -> None:
         try:
             self._execute(parameters)
         except Exception as e:
             raise Exception(_traceback.format_exc())
 
-    def _execute(self, parameters):
+    def _execute(self, parameters: ParametersParams) -> None:
         with _m.logbook_trace(name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version), attributes=self._get_atts()):
             # def file type
             if parameters["input_stop_file"][-3:].lower() == "txt":
@@ -132,13 +146,12 @@ class GTFStoEmmeMap(_m.Tool()):
             mapping = self._find_nearest(extents, converted_stops, nodes)
             self._store_nearest(mapping, parameters["output_mapping_file"])
 
-    def _get_atts(self):
+    def _get_atts(self) -> dict:
         atts = {"Version": self.version, "self": self.__MODELLER_NAMESPACE__}
-
         return atts
 
-    def _load_stops_txt(self, file_name):
-        stops = {}
+    def _load_stops_txt(self, file_name: str) -> dict[str, list[float]]:
+        stops: dict = {}
         with open(file_name) as reader:
             # stop_lat,zone_id,stop_lon,stop_id,stop_desc,stop_name,location_type
             header = reader.readline().strip().split(",")
@@ -165,10 +178,10 @@ class GTFStoEmmeMap(_m.Tool()):
                 stops[id] = [lon, lat]
         return stops
 
-    def _convert_stops(self, stops):
-        converted_stops = {}
+    def _convert_stops(self, stops: dict[str, list[float]]) -> dict[str, tuple[float, float]]:
+        converted_stops: dict = {}
         # find what zone system the file is using
-        full_zone_string = _m.Modeller().desktop.project.spatial_reference_file
+        full_zone_string: str = _m.Modeller().desktop.project.spatial_reference_file
         if EMME_VERSION >= (4, 3, 0):
             with open(full_zone_string, "r") as zone_file:
                 zone_string = zone_file.read()
@@ -193,12 +206,13 @@ class GTFStoEmmeMap(_m.Tool()):
             )
         return converted_stops
 
-    def _find_extents(self, converted_stops, nodes):
+    def _find_extents(self, converted_stops: dict[str, tuple[float, float]], 
+                      nodes: dict[str, tuple[float, float]]) -> tuple[float, float, float, float]:
         # find extents
         max_extent_x = float("-inf")
-        min_extent_x = float("inf")
-        max_extent_y = float("-inf")
-        min_extent_y = float("inf")
+        min_extent_x: float = float("inf")
+        max_extent_y: float  = float("-inf")
+        min_extent_y: float  = float("inf")
         for key in converted_stops:
             if converted_stops[key][0] < min_extent_x:
                 min_extent_x = float(converted_stops[key][0])
@@ -220,10 +234,11 @@ class GTFStoEmmeMap(_m.Tool()):
         extents = (min_extent_x - 1, min_extent_y - 1, max_extent_x + 1, max_extent_y + 1)
         return extents
 
-    def _find_nearest(self, extents, converted_stops, nodes):
-        map = []
+    def _find_nearest(self, extents: tuple[float, float, float, float], converted_stops: dict[str, tuple[float, float]], 
+                      nodes: dict[str, tuple[float, float]]) -> list[list]:
+        map: list = []
         spatial_index = _spindex.GridIndex(extents, 1000, 1000)
-        network = _MODELLER.scenario.get_network()
+        network: Network = _MODELLER.scenario.get_network()
         for node in network.regular_nodes():
             spatial_index.insertPoint(node)
         for stop in converted_stops:
@@ -264,16 +279,16 @@ class GTFStoEmmeMap(_m.Tool()):
                 )
         return map
 
-    def _store_nearest(self, map, mapping_output_file):
+    def _store_nearest(self, map: list[list], mapping_output_file: str) -> None:
         with open(mapping_output_file, "w", newline="") as csv_file:
             map_file = csv.writer(csv_file, delimiter=",")
-            header = ["stopID", "emmeID", "stop x", "stop y", "node x", "node y"]
+            header: list[str] = ["stopID", "emmeID", "stop x", "stop y", "node x", "node y"]
             map_file.writerow(header)
             for row in map:
                 map_file.writerow([row[0], row[1], row[2], row[3], row[4], row[5]])
 
-    def _build_page_builder_parameters(self):
-        parameters = {
+    def _build_page_builder_parameters(self) -> dict:
+        parameters: dict = {
             "file_name": self.file_name,
             "mapping_output_file": self.mapping_output_file,
         }
@@ -289,10 +304,10 @@ class GTFStoEmmeMap(_m.Tool()):
 
 
 class gtfs_stop:
-    def __init__(self, id, lon, lat, name, description):
-        self.id = id
-        self.lat = float(lat)
-        self.lon = float(lon)
-        self.name = name
-        self.description = description
-        self.modes = set()
+    def __init__(self, id: str, lon: str, lat: str, name: str, description: str):
+        self.id: str = id
+        self.lat: float = float(lat)
+        self.lon: float = float(lon)
+        self.name: str = name
+        self.description: str = description
+        self.modes: set = set()
