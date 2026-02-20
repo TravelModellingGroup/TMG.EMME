@@ -1,5 +1,5 @@
 """
-    Copyright 2016 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2016-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -32,17 +32,28 @@ Copy Scenario
 # ---VERSION HISTORY
 """
     0.0.1 Created on 2016-03-23 by JamesVaughan
-    
-    
 """
+import inro
 import inro.modeller as _m
 import traceback as _traceback
+from typing import  TypeAlias, TypedDict
 
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 
+# alias for the Scenario type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+
+
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    from_scenario: int 
+    to_scenario: int 
+    copy_strategy: bool
 
 class CopyScenario(_m.Tool()):
-    version = "0.0.1"
+    version: str = "0.0.1"
 
     def page(self):
         pb = _m.ToolPageBuilder(
@@ -58,16 +69,16 @@ class CopyScenario(_m.Tool()):
     def run(self):
         pass
 
-    def run_xtmf(self, parameters):
-        from_scenario = parameters["from_scenario"]
-        to_scenario = parameters["to_scenario"]
-        copy_strategy = parameters["copy_strategy"]
+    def run_xtmf(self, parameters: ParametersParams) -> None:
+        from_scenario: int = parameters["from_scenario"]
+        to_scenario: int = parameters["to_scenario"]
+        copy_strategy: bool = parameters["copy_strategy"]
         try:
             self._execute(from_scenario, to_scenario, copy_strategy)
         except Exception as e:
             raise Exception(_traceback.format_exc())
 
-    def _execute(self, from_scenario, to_scenario, copy_strategy):
+    def _execute(self, from_scenario: int, to_scenario: int, copy_strategy: bool) -> None:
         if from_scenario == to_scenario:
             print(
                 "A copy was requested to from scenario "
@@ -78,7 +89,7 @@ class CopyScenario(_m.Tool()):
             )
             return
         project = _MODELLER.emmebank
-        original = project.scenario(str(from_scenario))
+        original: Scenario = project.scenario(str(from_scenario))
         if original == None:
             raise Exception(
                 "The base scenario '"
@@ -87,7 +98,7 @@ class CopyScenario(_m.Tool()):
                 + str(to_scenario)
                 + "'!"
             )
-        dest = project.scenario(str(to_scenario))
+        dest: Scenario = project.scenario(str(to_scenario))
         if dest != None:
             project.delete_scenario(dest.id)
         if copy_strategy == True:
