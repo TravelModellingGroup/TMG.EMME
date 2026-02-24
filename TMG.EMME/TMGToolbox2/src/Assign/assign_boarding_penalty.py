@@ -1,6 +1,6 @@
 # ---LICENSE----------------------
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -53,9 +53,11 @@ Assign V4 Boarding Penalties
 
 """
 
+import inro
 import inro.modeller as _m
 import traceback as _traceback
 from re import split as _regex_split
+from typing import  TypeAlias, TypedDict
 
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
@@ -66,14 +68,34 @@ _m.TupleType = object
 _m.ListType = list
 _m.InstanceType = object
 
+# alias for the Scenario type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+
 ##################################################################################
+
+class PenaltyFilterStringParams(TypedDict):
+    """
+    Paramters for the penalty filter string input paramter
+    """
+    label: str 
+    filter: str 
+    initial: int 
+    transfer: int 
+    ivttPerception: int
+    
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    scenario_numbers: list[int, int]
+    penalty_filter_string:list[PenaltyFilterStringParams]
 
 
 class AssignBoardingPenalties(_m.Tool()):
 
-    version = "1.2.0"
-    tool_run_msg = ""
-    number_of_tasks = 15  # For progress reporting, enter the integer number of tasks here
+    version: str = "1.2.0"
+    tool_run_msg: str = ""
+    number_of_tasks: int = 15  # For progress reporting, enter the integer number of tasks here
 
     # Tool Input Parameters
     #    Only those parameters necessary for Modeller and/or XTMF to dock with
@@ -98,7 +120,7 @@ class AssignBoardingPenalties(_m.Tool()):
             'label': 'GO Train',
             'transfer': 1}]
         """
-        self.penalty_filter_string = ""
+        self.penalty_filter_string: str = ""
 
     def page(self):
 
@@ -179,7 +201,7 @@ class AssignBoardingPenalties(_m.Tool()):
             raise Exception(msg)
 
     ##########################################################################################################
-    def run_xtmf(self, parameters):
+    def run_xtmf(self, parameters: ParametersParams) -> None:
         self.scenario_numbers = parameters["scenario_numbers"]
         self.penalty_filter_string = parameters["penalty_filter_string"]
         self.Scenarios = [_MODELLER.emmebank.scenario(x) for x in self.scenario_numbers]
@@ -213,16 +235,15 @@ class AssignBoardingPenalties(_m.Tool()):
 
     # ----SUB FUNCTIONS---------------------------------------------------------------------------------
 
-    def _get_atts(self):
+    def _get_atts(self) -> dict:
         atts = {
             "Scenarios": str(self.Scenarios),
             "Version": self.version,
             "self": self.__MODELLER_NAMESPACE__,
         }
-
         return atts
 
-    def _ProcessScenario(self, scenario, penaltyFilterList):
+    def _ProcessScenario(self, scenario: Scenario, penaltyFilterList: list[PenaltyFilterStringParams]) -> None:
         tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
 
         self.TRACKER.start_process(2 * len(penaltyFilterList) + 2)
@@ -247,7 +268,7 @@ class AssignBoardingPenalties(_m.Tool()):
                 tool(specification=self._IVTT_perception_spec(group), scenario=scenario)
                 self.TRACKER.complete_subtask()
 
-    def _get_clear_line_spec(self, variable, expression):
+    def _get_clear_line_spec(self, variable: str, expression: str) -> dict:
         return {
             "result": variable,
             "expression": expression,
@@ -256,7 +277,7 @@ class AssignBoardingPenalties(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    def _get_clear_segment_spec(self, variable, expression):
+    def _get_clear_segment_spec(self, variable: str, expression: str) -> dict:
         return {
             "result": variable,
             "expression": expression,
@@ -265,7 +286,7 @@ class AssignBoardingPenalties(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    def _get_group_spec_transfer(self, group):
+    def _get_group_spec_transfer(self, group: dict[PenaltyFilterStringParams]) -> dict:
         return {
             "result": "ut2",
             "expression": str(group["transfer"]),
@@ -274,7 +295,7 @@ class AssignBoardingPenalties(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    def _get_group_spec_initial(self, group):
+    def _get_group_spec_initial(self, group:dict[PenaltyFilterStringParams]) -> dict:
         return {
             "result": "ut3",
             "expression": str(group["initial"]),
@@ -283,7 +304,7 @@ class AssignBoardingPenalties(_m.Tool()):
             "type": "NETWORK_CALCULATION",
         }
 
-    def _IVTT_perception_spec(self, group):
+    def _IVTT_perception_spec(self, group: dict[PenaltyFilterStringParams]) -> dict:
         return {
             "result": "us2",
             "expression": str(group["ivttPerception"]),

@@ -1,6 +1,6 @@
 # ---LICENSE----------------------
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -41,8 +41,10 @@ Toll-Based Road Assignment
     V 2.0.2 Updated to receive JSON file parameters from Python API call
 
 """
+import inro
 import inro.modeller as _m
 import multiprocessing
+from typing import  TypeAlias, TypedDict
 
 _m.InstanceType = object
 _m.ListType = list
@@ -59,12 +61,66 @@ traffic_assignment_tool = _MODELLER.tool("inro.emme.traffic_assignment.sola_traf
 extra_parameter_tool = _MODELLER.tool("inro.emme.traffic_assignment.set_extra_function_parameters")
 delete_matrix = _MODELLER.tool("inro.emme.data.matrix.delete_matrix")
 
+# alias for the Scenario type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+
+
+class PathAnalysisParams(TypedDict):
+    """
+    Paramters for the path analysis string input parameter
+    """
+    attribute_id: str 
+    aggregation_matrix: str 
+    aggregation_operator: str 
+    lower_bound: str 
+    upper_bound: str 
+    path_selection: str 
+    multiply_path_prop_by_demand: str 
+    multiply_path_prop_by_value: str
+    analysis_attributes: str 
+    analysis_attributes_matrix: str
+
+
+class TrafficClassesParams(TypedDict):
+    """
+    Parameters for the traffic classes string input paramter
+    """
+    name: str 
+    mode: str 
+    demand_matrix: str 
+    time_matrix: str
+    cost_matrix: str 
+    toll_matrix: str 
+    peak_hour_factor: int 
+    volume_attribute: str 
+    link_toll_attribute: str
+    toll_weight: int 
+    link_cost: int
+    path_analyses: list[PathAnalysisParams]
+
+    
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    background_transit: bool
+    br_gap: int
+    iterations: int
+    norm_gap: int
+    performance_flag: bool
+    r_gap: int
+    run_title: str
+    scenario_number: int
+    sola_flag: bool
+    mixed_use_ttf_ranges: list[dict[str, int]]
+    traffic_classes: list[TrafficClassesParams] 
+    
 
 class AssignTraffic(_m.Tool()):
-    version = "2.0.2"
-    tool_run_msg = ""
+    version: str = "2.0.2"
+    tool_run_msg: str = ""
     # For progress reporting, enter the integer number of tasks here
-    number_of_tasks = 4
+    number_of_tasks: int = 4
     # Tool Input Parameters
     #    Only those parameters necessary for Modeller and/or XTMF to dock with
     #    need to be placed here. Internal parameters (such as lists and dicts)
@@ -89,22 +145,22 @@ class AssignTraffic(_m.Tool()):
         )
         return pb.render()
 
-    def __call__(self, parameters):
-        scenario = _util.load_scenario(parameters["scenario_number"])
+    def __call__(self, parameters: ParametersParams) -> None:
+        scenario: Scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def run_xtmf(self, parameters):
-        scenario = _util.load_scenario(parameters["scenario_number"])
+    def run_xtmf(self, parameters: ParametersParams) -> None:
+        scenario: Scenario = _util.load_scenario(parameters["scenario_number"])
 
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def _execute(self, scenario, parameters):
+    def _execute(self, scenario: Scenario, parameters: ParametersParams) -> None:
         """
         Definition of common names:
             - matrix_name (type(str)): e.g. cost_matrix, demand_matrix etc.
@@ -227,9 +283,9 @@ class AssignTraffic(_m.Tool()):
                         print("Primary assignment complete at %s iterations." % number)
                         print("Stopping criterion was %s with a value of %s." % (stopping_criterion, value))
 
-    def _load_stopping_criteria(self, report):
-        stopping_criterion = report["stopping_criterion"]
-        iterations = report["iterations"]
+    def _load_stopping_criteria(self, report: dict) -> tuple[int, str, int| str]:
+        stopping_criterion: str = report["stopping_criterion"]
+        iterations: list[dict] = report["iterations"]
         if len(iterations) > 0:
             final_iteration = iterations[-1]
         else:
