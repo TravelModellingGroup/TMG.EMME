@@ -14,11 +14,6 @@
 */
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.IO;
-using System.Text;
-using System.Text.Json;
-using XTMF2;
 
 namespace TMG.Emme.Test.Convert;
 
@@ -28,7 +23,7 @@ public class RotateNetworkTest : TestBase
     [TestMethod]
     public void RotateNetwork()
     {
-        Helper.ImportNetwork(3, "TestFiles/test00.nwp", "reverse_network");
+        Helper.ImportNetwork(3, "TestFiles/test.nwp", "reverse_network");
         Assert.IsTrue(
             Helper.Modeller.Run(null, "tmg2.Convert.rotate_network",
             JSONParameterBuilder.BuildParameters(writer =>

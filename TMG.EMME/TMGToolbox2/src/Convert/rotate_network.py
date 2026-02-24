@@ -1,5 +1,5 @@
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -17,10 +17,11 @@
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
+import inro
 import inro.modeller as _m
 import traceback as _traceback
 import math
+from typing import  TypeAlias, TypedDict
 
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
@@ -31,29 +32,48 @@ _m.InstanceType = object
 _m.TupleType = object
 _m.ListType = list
 
+# alias for the Scenario type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+Network: TypeAlias = inro.emme.network.Network
+Attribute: TypeAlias = inro.modeller.Attribute
+Link: TypeAlias = inro.emme.network.link
+Node: TypeAlias = inro.emme.network.node
+
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    scenario_number: int
+    reference_link_i_node: int
+    reference_link_j_node: int
+    corresponding_x_0: int
+    corresponding_y_0: int
+    corresponding_x_1: int
+    corresponding_y_1: int
+
 
 class RotateNetwork(_m.Tool()):
-    version = "0.1.0"
-    tool_run_msg = ""
-    number_of_tasks = 6  # For progress reporting, enter the integer number of tasks here
+    version: str = "0.1.0"
+    tool_run_msg: str = ""
+    number_of_tasks: int = 6  # For progress reporting, enter the integer number of tasks here
     # Tool Input Parameters
     #    Only those parameters neccessary for Modeller and/or XTMF to dock with
     #    need to be placed here. Internal parameters (such as lists and dicts)
     #    get intitialized during construction (__init__)
-    scenario = _m.Attribute(_m.InstanceType)  # common varialbe or parameter
-    ReferenceLinkINode = _m.Attribute(int)
-    ReferenceLinkJNode = _m.Attribute(int)
-    CorrespondingX0 = _m.Attribute(float)
-    CorrespondingX1 = _m.Attribute(float)
-    CorrespondingY0 = _m.Attribute(float)
-    CorrespondingY1 = _m.Attribute(float)
+    scenario: Scenario = _m.Attribute(_m.InstanceType)  # common varialbe or parameter
+    ReferenceLinkINode: Attribute = _m.Attribute(int)
+    ReferenceLinkJNode: Attribute = _m.Attribute(int)
+    CorrespondingX0: Attribute = _m.Attribute(float)
+    CorrespondingX1: Attribute = _m.Attribute(float)
+    CorrespondingY0: Attribute = _m.Attribute(float)
+    CorrespondingY1: Attribute = _m.Attribute(float)
 
     def __init__(self):
         # -- Init internal varaiables
         self.TRACKER = _util.progress_tracker(self.number_of_tasks)  # init the progress_tracker
 
         # --Set the defaults of parameters used by Modeller
-        self.scenario = _MODELLER.scenario  # Default is primary scenario
+        self.scenario: Scenario = _MODELLER.scenario  # Default is primary scenario
 
     def page(self):
         pb = _tmgTPB.TmgToolPageBuilder(
@@ -121,7 +141,7 @@ class RotateNetwork(_m.Tool()):
         return pb.render()
 
     def run(self):
-        self.tool_run_msg = ""
+        self.tool_run_msg: str = ""
         self.TRACKER.reset()
 
         try:
@@ -131,16 +151,16 @@ class RotateNetwork(_m.Tool()):
             raise
         self.tool_run_msg = _m.PageBuilder.format_info("Done.")
 
-    def run_xtmf(self, parameters):
-        self.scenario_number = parameters["scenario_number"]
-        self.ReferenceLinkINode = parameters["reference_link_i_node"]
-        self.ReferenceLinkJNode = parameters["reference_link_j_node"]
-        self.CorrespondingX0 = parameters["corresponding_x_0"]
-        self.CorrespondingY0 = parameters["corresponding_y_0"]
-        self.CorrespondingX1 = parameters["corresponding_x_1"]
-        self.CorrespondingY1 = parameters["corresponding_y_1"]
+    def run_xtmf(self, parameters: ParametersParams) -> None:
+        self.scenario_number: int = parameters["scenario_number"]
+        self.ReferenceLinkINode: int = parameters["reference_link_i_node"]
+        self.ReferenceLinkJNode: int = parameters["reference_link_j_node"]
+        self.CorrespondingX0: int = parameters["corresponding_x_0"]
+        self.CorrespondingY0: int = parameters["corresponding_y_0"]
+        self.CorrespondingX1: int = parameters["corresponding_x_1"]
+        self.CorrespondingY1: int = parameters["corresponding_y_1"]
 
-        self.scenario = _m.Modeller().emmebank.scenario(self.scenario_number)
+        self.scenario: Scenario = _m.Modeller().emmebank.scenario(self.scenario_number)
         try:
             self._execute()
         except Exception as e:
@@ -153,22 +173,22 @@ class RotateNetwork(_m.Tool()):
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._GetAtts(),
         ):
-            network = self.scenario.get_network()
+            network: Network = self.scenario.get_network()
             self.TRACKER.complete_task()
 
-            anchorVector = (
+            anchorVector: tuple[tuple[float, float], tuple[float, float]]  = (
                 (self.CorrespondingX0, self.CorrespondingY0),
                 (self.CorrespondingX1, self.CorrespondingY1),
             )
 
-            refLink = self._GetRefLink(network)
-            referenceVector = self._GetLinkVector(refLink)
+            refLink: Link = self._GetRefLink(network)
+            referenceVector: tuple[tuple[float, float], tuple[float, float]]  = self._GetLinkVector(refLink)
             _m.logbook_write("Found reference link '%s-%s'" % (self.ReferenceLinkINode, self.ReferenceLinkJNode))
 
-            angle = self._GetRotationAngle(anchorVector, referenceVector)  # + math.pi / 2
+            angle: float = self._GetRotationAngle(anchorVector, referenceVector)  # + math.pi / 2
             _m.logbook_write("Rotation: %s degrees" % math.degrees(angle))
-            cosTheta = math.cos(angle)
-            sinTheta = math.sin(angle)
+            cosTheta: float = math.cos(angle)
+            sinTheta: float = math.sin(angle)
 
             self.TRACKER.start_process(network.element_totals["centroids"] + network.element_totals["regular_nodes"])
             for node in network.nodes():
@@ -178,7 +198,7 @@ class RotateNetwork(_m.Tool()):
             _m.logbook_write("Finished rotating nodes.")
 
             self.TRACKER.start_process(network.element_totals["links"])
-            count = 0
+            count: int = 0
             for link in network.links():
                 if len(link.vertices) > 0:
                     self._RotateLinkVertices(link, cosTheta, sinTheta)
@@ -188,7 +208,7 @@ class RotateNetwork(_m.Tool()):
             _m.logbook_write("Rotated %s links with vertices." % count)
 
             referenceVector = self._GetLinkVector(refLink)  # Reset the reference vector
-            delta = self._GetTranslation(referenceVector, anchorVector)
+            delta: tuple[float, float] = self._GetTranslation(referenceVector, anchorVector)
             _m.logbook_write("Translation: %s" % str(delta))
 
             self.TRACKER.start_process(network.element_totals["centroids"] + network.element_totals["regular_nodes"])
@@ -199,7 +219,7 @@ class RotateNetwork(_m.Tool()):
             _m.logbook_write("Finished translating nodes.")
 
             self.TRACKER.start_process(network.element_totals["links"])
-            count = 0
+            count: int = 0
             for link in network.links():
                 if len(link.vertices) > 0:
                     self._TranslateLink(link, delta)
@@ -212,7 +232,7 @@ class RotateNetwork(_m.Tool()):
 
     # ---SUB FUNCTION------------------------------------------------
 
-    def _GetAtts(self):
+    def _GetAtts(self) -> dict:
         atts = {
             "Scenario": str(self.scenario.id),
             "Version": self.version,
@@ -221,8 +241,8 @@ class RotateNetwork(_m.Tool()):
 
         return atts
 
-    def _GetRefLink(self, network):
-        link = network.link(self.ReferenceLinkINode, self.ReferenceLinkJNode)
+    def _GetRefLink(self, network: Network) -> Link:
+        link: Link = network.link(self.ReferenceLinkINode, self.ReferenceLinkJNode)
 
         if link is None:
             raise Exception(
@@ -231,23 +251,22 @@ class RotateNetwork(_m.Tool()):
             )
         return link
 
-    def _GetLinkVector(self, link):
+    def _GetLinkVector(self, link: Link) -> tuple[tuple[float, float], tuple[float, float]]:
         return ((link.i_node.x, link.i_node.y), (link.j_node.x, link.j_node.y))
 
     def _GetVectorBearing(self, vector):
         return math.atan2(vector[1][0] - vector[0][0], vector[1][1] - vector[0][1])
 
-    def _GetRotationAngle(self, vector1, vector2):
-
+    def _GetRotationAngle(self, vector1: tuple[tuple[float, float], tuple[float, float]] , vector2: tuple[tuple[float, float], tuple[float, float]] ) -> float:
         bearing1 = self._GetVectorBearing(vector1)
         bearing2 = self._GetVectorBearing(vector2)
 
         return bearing2 - bearing1
 
-    def _GetTranslation(self, vector1, vector2):
+    def _GetTranslation(self, vector1: tuple[tuple[float, float], tuple[float, float]], vector2: tuple[tuple[float, float], tuple[float, float]]) -> tuple[float, float]:
         return (vector2[0][0] - vector2[0][0], vector2[0][1] - vector2[0][1])
 
-    def _RotateNode(self, node, cosTheta, sinTheta):
+    def _RotateNode(self, node: Node, cosTheta: float, sinTheta: float) -> None:
         # Make copies of the coordinates
         x = node.x
         y = node.y
@@ -255,12 +274,12 @@ class RotateNetwork(_m.Tool()):
         node.x = (cosTheta * x) + (-sinTheta * y)
         node.y = (sinTheta * y) + (cosTheta * y)
 
-    def _TranslateNode(self, node, delta):
+    def _TranslateNode(self, node: Node, delta: tuple[float, float]) -> None:
         node.x += delta[0]
         node.y += delta[1]
 
-    def _RotateLinkVertices(self, link, cosTheta, sinTheta):
-        vertices = [link.vertices.pop() for i in range(0, len(link.vertices))]
+    def _RotateLinkVertices(self, link: Link, cosTheta: float, sinTheta: float) -> None:
+        vertices: list = [link.vertices.pop() for i in range(0, len(link.vertices))]
         vertices.reverse()
 
         # Link's vertices have been removed and copied in-order to
@@ -273,7 +292,7 @@ class RotateNetwork(_m.Tool()):
             )
             link.vertices.append(tup)
 
-    def _TranslateLink(self, link, delta):
+    def _TranslateLink(self, link: Link, delta: tuple[float, float]) -> None:
         vertices = [link.vertices.pop() for i in range(0, len(link.vertices))]
         vertices.reverse()
 
