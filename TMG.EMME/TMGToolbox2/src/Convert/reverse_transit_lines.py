@@ -1,5 +1,5 @@
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -37,8 +37,10 @@
     2.0.0 Refactored & updated for XTMF2/TMGToolbox2 on 2021-10-20 by Williams Diogu
     
 """
+import inro
 import traceback as _traceback
 import inro.modeller as _m
+from typing import  TypeAlias, TypedDict
 
 _m.InstanceType = object
 _m.TupleType = object
@@ -49,11 +51,22 @@ _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 
 ##########################################################################################################
 
+# alias for the Scenario type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+Network: TypeAlias = inro.emme.network.Network
+TransitLine: TypeAlias = inro.emme.network.transitline.TransitLine
+
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    scenario_number: int
+    line_selector_expression: str
 
 class ReverseTransitLines(_m.Tool()):
-    version = "2.0.0"
-    tool_run_msg = ""
-    number_of_tasks = 1
+    version: str = "2.0.0"
+    tool_run_msg: str = ""
+    number_of_tasks: int = 1
 
     def __init__(self):
         self._tracker = _util.progress_tracker(self.number_of_tasks)
@@ -71,7 +84,7 @@ class ReverseTransitLines(_m.Tool()):
         )
         return pb.render()
 
-    def __call__(self, parameters):
+    def __call__(self, parameters: ParametersParams) -> None:
         scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
@@ -79,15 +92,15 @@ class ReverseTransitLines(_m.Tool()):
             self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
-    def run_xtmf(self, parameters):
-        scenario = _util.load_scenario(parameters["scenario_number"])
+    def run_xtmf(self, parameters: ParametersParams) -> None:
+        scenario: Scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             self.tool_run_msg = _m.PageBuilder.format_exception(e, _traceback.format_exc())
             raise
 
-    def _execute(self, scenario, parameters):
+    def _execute(self, scenario: Scenario, parameters: ParametersParams) -> None:
         with _m.logbook_trace(
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._get_atts(scenario, parameters["line_selector_expression"]),
@@ -96,10 +109,10 @@ class ReverseTransitLines(_m.Tool()):
             with _util.temp_extra_attribute_manager(scenario, "TRANSIT_LINE") as line_flag_attribute:
                 self._flag_lines(scenario, line_flag_attribute.id, parameters["line_selector_expression"])
 
-                network = scenario.get_network()
+                network: Network = scenario.get_network()
                 print("Loaded network")
 
-                lines_to_reverse = [line for line in network.transit_lines() if line[line_flag_attribute.id]]
+                lines_to_reverse: list[TransitLine] = [line for line in network.transit_lines() if line[line_flag_attribute.id]]
                 if len(lines_to_reverse) == 0:
                     _m.logbook_write("Found no lines to reverse")
                     return
@@ -109,7 +122,7 @@ class ReverseTransitLines(_m.Tool()):
 
                 scenario.publish_network(network)
 
-    def _get_atts(self, scenario, line_selector_expression):
+    def _get_atts(self, scenario: Scenario, line_selector_expression: str) -> dict:
         atts = {
             "Scenario": str(scenario.id),
             "Line Selector Expression": line_selector_expression,
@@ -118,8 +131,8 @@ class ReverseTransitLines(_m.Tool()):
         }
         return atts
 
-    def _flag_lines(self, scenario, flag_attribute_id, line_selector_expression):
-        spec = {
+    def _flag_lines(self, scenario: Scenario, flag_attribute_id: str, line_selector_expression: str) -> None:
+        spec: dict = {
             "result": flag_attribute_id,
             "expression": "1",
             "aggregation": None,
@@ -129,15 +142,15 @@ class ReverseTransitLines(_m.Tool()):
         tool = _MODELLER.tool("inro.emme.network_calculation.network_calculator")
         tool(spec, scenario=scenario)
 
-    def _reverse_lines(self, lines_to_reverse):
-        network = lines_to_reverse[0].network
-        att_names = network.attributes("TRANSIT_SEGMENT")
-        error_lines = []
-        reversed_lines = []
+    def _reverse_lines(self, lines_to_reverse: list[TransitLine]) -> None:
+        network: Network = lines_to_reverse[0].network
+        att_names: list[str] = network.attributes("TRANSIT_SEGMENT")
+        error_lines: list = []
+        reversed_lines: list = []
         self._tracker.start_process(len(lines_to_reverse))
         for line in lines_to_reverse:
             try:
-                new_id = self._reverse_line(line, network, att_names)
+                new_id: str = self._reverse_line(line, network, att_names)
                 reversed_lines.append((line.id, new_id))
             except Exception as e:
                 t = line.id, e.__class__.__name__, str(e)
@@ -149,24 +162,24 @@ class ReverseTransitLines(_m.Tool()):
         if error_lines:
             self._WriteErrorReport(error_lines)
 
-    def _reverse_line(self, line, network, att_names):
-        new_id = self._get_new_id(line.id, network)
-        segment_attributes = []
+    def _reverse_line(self, line: TransitLine, network: Network, att_names: list[str]) -> str:
+        new_id: str = self._get_new_id(line.id, network)
+        segment_attributes: list = []
         for segment in line.segments(False):
-            d = {}
+            d: dict = {}
             for att_name in att_names:
                 d[att_name] = segment[att_name]
             segment_attributes.append(d)
-        new_itinerary = [node.number for node in line.itinerary()]
+        new_itinerary: list[int] = [node.number for node in line.itinerary()]
         new_itinerary.reverse()
-        copy = network.create_transit_line(new_id, line.vehicle.id, new_itinerary)
+        copy: TransitLine = network.create_transit_line(new_id, line.vehicle.id, new_itinerary)
         for segment in copy.segments(False):
             d = segment_attributes.pop()
             for att_name, value in d.items():
                 segment[att_name] = value
         return new_id
 
-    def _get_new_id(self, original_id, network):
+    def _get_new_id(self, original_id: str, network: Network) -> None:
         if len(original_id) < 6:
             for i in range(ord("a"), ord("z") + 1):
                 new_id = original_id + chr(i)
@@ -180,8 +193,8 @@ class ReverseTransitLines(_m.Tool()):
                 return new_id
         raise Exception("Could not create a valid ID for the reverse line")
 
-    def _write_main_report(self, reversed_lines):
-        acc = ""
+    def _write_main_report(self, reversed_lines: list[tuple[str, str]]) -> None:
+        acc: str = ""
         for original_id, new_id in reversed_lines:
             acc += "<tr><td>" + self.escape(original_id) + "</td><td>" + self.escape(new_id) + "</td></tr>"
         body = (
@@ -202,7 +215,7 @@ class ReverseTransitLines(_m.Tool()):
         _m.logbook_write("Reversed lines report", value=pb.render())
 
     def _WriteErrorReport(self, error_lines):
-        acc = ""
+        acc: str = ""
         for line_id, error_type, error_msg in error_lines:
             acc += (
                 "<tr><td>"
@@ -232,7 +245,7 @@ class ReverseTransitLines(_m.Tool()):
         pb.wrap_html(body=str(body))
         _m.logbook_write("Error report", value=pb.render())
 
-    def escape(self, html_string):
+    def escape(self, html_string: str) -> str:
         escapes = {'"': "&quot;", "'": "&#39;", "<": "&lt;", ">": "&gt;"}
         html_string = html_string.replace("&", "&amp;")
         for seq, esc in escapes.items():
