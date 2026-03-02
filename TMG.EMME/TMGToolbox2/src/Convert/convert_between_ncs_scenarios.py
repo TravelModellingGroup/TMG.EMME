@@ -18,10 +18,13 @@
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import inro
 import inro.modeller as _m
+import os
 import csv
 import traceback as _traceback
 from contextlib import contextmanager
+from typing import  TypeAlias, TypedDict
 
 _m.TupleType = object
 _m.ListType = list
@@ -31,11 +34,31 @@ _bank = _MODELLER.emmebank
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 
+# alias for the Scenario type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+Network: TypeAlias = inro.emme.network.Network
+
+
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    old_ncs_scenario: int
+    new_ncs_scenario: int
+    station_centroid_file: str
+    zone_centroid_file: str
+    mode_code_definitions: str
+    link_attributes: str
+    transit_vehicle_definitions: str
+    lane_capacities: str
+    transit_line_codes: str
+    skip_missing_transit_lines: bool
+
 
 class ConvertBetweenNCSScenarios(_m.Tool()):
-    version = "0.0.1"
-    number_of_tasks = 1
-    tool_run_msg = ""
+    version: str = "0.0.1"
+    number_of_tasks: int = 1
+    tool_run_msg: str = ""
 
     # Emme modeller gui input parameters
     OldNcsScenario = _m.Attribute(_m.InstanceType)
@@ -115,12 +138,12 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         """
         method to run the tool using the Emme modeller GUI
         """
-        self.tool_run_msg = ""
+        self.tool_run_msg: str = ""
         self.TRACKER.reset()
 
         # build the data as a python dictionary
         scenario = _MODELLER.emmebank.scenario(self.OldNcsScenario)
-        parameters = {
+        parameters: dict = {
             "old_ncs_scenario": _MODELLER.emmebank.scenario(self.OldNcsScenario),
             "new_ncs_scenario": _MODELLER.emmebank.scenario(self.NewNcsScenario),
             "station_centroid_file": self.StationCentroidFile,
@@ -141,11 +164,11 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
 
         self.tool_run_msg = _m.PageBuilder.format_info("Tool is completed.")
 
-    def __call__(self, parameters):
+    def __call__(self, parameters: ParametersParams):
         """
         Method to run the tool using the Python API call
         """
-        scenario = _util.load_scenario(parameters["old_ncs_scenario"])
+        scenario: Scenario = _util.load_scenario(parameters["old_ncs_scenario"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
@@ -153,19 +176,19 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
 
         self.tool_run_msg = _m.PageBuilder.format_info("Tool is completed.")
 
-    def run_xtmf(self, parameters):
+    def run_xtmf(self, parameters: ParametersParams) -> None:
         """
         Method to run the tool using the XTMF2
         """
-        old_ncs_scenario = _util.load_scenario(parameters["old_ncs_scenario"])
+        old_ncs_scenario: Scenario = _util.load_scenario(parameters["old_ncs_scenario"])
         try:
             self._execute(old_ncs_scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def _execute(self, old_ncs_scenario, parameters):
-        centroid_dict = self.create_mapped_centroid_dict(parameters)
-        network = old_ncs_scenario.get_network()
+    def _execute(self, old_ncs_scenario: Scenario, parameters: ParametersParams) -> None:
+        centroid_dict: dict[int, int] = self.create_mapped_centroid_dict(parameters)
+        network: Network = old_ncs_scenario.get_network()
         # Conversion Steps
         print("Updating zone and station centroids")
         self.update_zone_centroid_numbers(network, centroid_dict)
@@ -180,15 +203,13 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         # Copy scenario and write a new updated network
         print("Started copying %s into %s" % (parameters["old_ncs_scenario"], parameters["new_ncs_scenario"]))
         self.copy_ncs_scenario(parameters, network, title="GTAModel - NCS22")
-        print(
-            "Done! Scenario %s has an updated network with the most recent network coding standard." % old_ncs_scenario
-        )
+        print("Done! Scenario %s has an updated network with the most recent network coding standard." % old_ncs_scenario)
 
-    def update_zone_centroid_numbers(self, network, centroid_dict):
+    def update_zone_centroid_numbers(self, network: Network, centroid_dict:dict[int, int]) -> None:
         """
         Updates zone centroid numbers on the network, Using dictionary created in create_mapped_centroid_dict()
         """
-        nodes_list = []
+        nodes_list: list = []
         for item in network.nodes():
             nodes_list.append(int(item))
         max_node_number = max(nodes_list) + 1
@@ -201,11 +222,11 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
             if centroid_to_update is not None:
                 centroid_to_update.number = centroid_dict[old_centroid_node]
 
-    def copy_ncs_scenario(self, parameters, network, title="New_NCS_Scenario"):
+    def copy_ncs_scenario(self, parameters: ParametersParams, network: Network, title="New_NCS_Scenario") -> Scenario:
         """
         Copies one scenario to another.
         """
-        new_ncs_scenario = _bank.scenario(parameters["new_ncs_scenario"])
+        new_ncs_scenario: Scenario = _bank.scenario(parameters["new_ncs_scenario"])
         if new_ncs_scenario != None:
             _bank.delete_scenario(new_ncs_scenario)
         new_ncs_scenario = _bank.copy_scenario(parameters["old_ncs_scenario"], parameters["new_ncs_scenario"])
@@ -213,7 +234,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         new_ncs_scenario.title = str(title)
         return new_ncs_scenario
 
-    def update_centroid_lists_with_zone_centroids(self, parameters, old_centroid_list, new_centroid_list):
+    def update_centroid_lists_with_zone_centroids(self, parameters: ParametersParams, old_centroid_list: list, new_centroid_list: list) -> None:
         """
         Creates a list of all zone centroids. Used by create mapped centroid dict to create a complete
         dictionary of all old and new centroids of interest
@@ -231,7 +252,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 for centroid in new_centroid_range:
                     new_centroid_list.append(centroid)
 
-    def update_centroid_lists_with_station_centroids(self, parameters, old_centroid_list, new_centroid_list):
+    def update_centroid_lists_with_station_centroids(self, parameters: ParametersParams, old_centroid_list: list[int], new_centroid_list: list[int]) -> None:
         """
         Creates a list of all station centroids. Used by create mapped centroid dict to create a complete
         dictionary of all old and new centroids of interest
@@ -245,13 +266,13 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 old_centroid_list.append(old_station_centroid)
                 new_centroid_list.append(new_station_centroid)
 
-    def create_mapped_centroid_dict(self, parameters):
+    def create_mapped_centroid_dict(self, parameters: ParametersParams) -> dict[int, int]:
         """
         Creates a dictionary of all station and zone centroids provided in CSV file containing old and new centroid list
         """
-        centroid_dict = {}
-        old_centroid_list = []
-        new_centroid_list = []
+        centroid_dict: dict = {}
+        old_centroid_list: list = []
+        new_centroid_list: list = []
         self.update_centroid_lists_with_zone_centroids(parameters, old_centroid_list, new_centroid_list)
         self.update_centroid_lists_with_station_centroids(parameters, old_centroid_list, new_centroid_list)
         for old_centroid in old_centroid_list:
@@ -259,7 +280,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
             centroid_dict[old_centroid] = new_centroid_list[old_centroids]
         return centroid_dict
 
-    def update_mode_code_definitions(self, parameters, network):
+    def update_mode_code_definitions(self, parameters: ParametersParams, network: Network) -> None:
         """
         Reads CSV of old and new mode definitions, and updates them on the network.
         NOTE: Emme allows description of the mode, up to 10 characters.
@@ -279,12 +300,12 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                             raise Exception('There is an issue with mode type "%s"' % mode_list)
                         mode.description = description[:10]
 
-    def update_extra_attributes(self, scenario, attribute_type, attributes_file_name, default_value=0):
+    def update_extra_attributes(self, scenario: Scenario, attribute_type: str, attributes_file_name: str, default_value:int=0) -> None:
         """
         Reads CSV of old and new attributes, and updates them on the network.
         NOTE: maximum length of description is 40 characters
         """
-        attribute_type = self.check_attribute_type(attribute_type)
+        attribute_type: str = self.check_attribute_type(attribute_type)
         with self.open_csv_reader(attributes_file_name) as attributes_file:
             for attrib_list in attributes_file:
                 new_attribute_id = str(attrib_list[0])
@@ -300,11 +321,11 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 else:
                     continue
 
-    def check_attribute_type(self, attribute_type):
+    def check_attribute_type(self, attribute_type: str) -> str:
         """
         checks if the attribute type provided is correct
         """
-        ATTRIBUTE_TYPES = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
+        ATTRIBUTE_TYPES: list = ["NODE", "LINK", "TURN", "TRANSIT_LINE", "TRANSIT_SEGMENT"]
         attribute_type = str(attribute_type).upper()
 
         if attribute_type not in ATTRIBUTE_TYPES:
@@ -312,7 +333,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         return attribute_type
 
     # code for transit vehicle changes
-    def filter_mode(self, value, network):
+    def filter_mode(self, value: str, network: Network) -> str | None:
         """
         extract the id of the vehicles from the transit vehicles list
         this is used to filter the transit vehicle to change the data
@@ -322,19 +343,19 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                 return i.id
         return None
 
-    def copy_data(self, id, code, seated_capacity, total_capacity, auto_equivalent, network):
+    def copy_data(self, id, code: str, seated_capacity: str, total_capacity: str, auto_equivalent: str, network: Network) -> None:
         """
         function to change the value and convert the ncs16 standard to ncs22.
         """
         # first extract the transit vehicle object using the id
-        vehicle_object = network.transit_vehicle(int(id))
+        vehicle_object: Network = network.transit_vehicle(int(id))
         # change the values of the vehicle object
-        vehicle_object.description = code
-        vehicle_object.seated_capacity = int(seated_capacity)
-        vehicle_object.total_capacity = int(total_capacity)
-        vehicle_object.auto_equivalent = float(auto_equivalent)
+        vehicle_object.description: str = code
+        vehicle_object.seated_capacity: int = int(seated_capacity)
+        vehicle_object.total_capacity: int = int(total_capacity)
+        vehicle_object.auto_equivalent: float = float(auto_equivalent)
 
-    def update_transit_vehicle_definitions(self, parameters, network):
+    def update_transit_vehicle_definitions(self, parameters: ParametersParams, network: Network) -> None:
         """
         function to read the csv file
         it also runs the copy_data() method to change the traffic vehicle data
@@ -342,18 +363,18 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
         with self.open_csv_reader(parameters["transit_vehicle_definitions"]) as transit_op_file:
             for item in transit_op_file:
                 # get the vehicle id using the ncs16 standard code
-                id = self.filter_mode(item[1], network)
+                id = self.filter_mode(item[0], network)
                 # run the copy_data function to change the data
                 self.copy_data(
                     id=id,
-                    code=item[6],
-                    seated_capacity=item[8],
-                    total_capacity=item[9],
-                    auto_equivalent=item[10],
+                    code=item[1], #[6],
+                    seated_capacity=item[3], #[8],
+                    total_capacity=item[4], # [9],
+                    auto_equivalent=item[6], #[10],
                     network=network,
                 )
 
-    def update_lane_capacity(self, parameters, network):
+    def update_lane_capacity(self, parameters: ParametersParams, network: Network) -> None:
         """
         Updates the lane capacity by referencing the VDF on the line.
         """
@@ -366,7 +387,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                     if vdf == volume_delay_func:
                         link.data3 = new_lane_capacity
 
-    def update_transit_line_codes(self, parameters, network):
+    def update_transit_line_codes(self, parameters: ParametersParams, network: Network) -> None:
         """
         Function to update the transit line codes
         """
@@ -382,12 +403,14 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
                     raise Exception("The transit line object {} doesn't exist".format(item[0]))
 
     @contextmanager
-    def open_csv_reader(self, file_path):
+    def open_csv_reader(self, file_path: str):
         """
         Open, reads and manages a CSV file
         NOTE: Does not return the first line of the CSV file
             Assumption is that the first row is the title of each field
         """
+        print("Trying to open:", repr(file_path))
+        print(os.getcwd())
         csv_file = open(file_path, mode="r")
         file = csv.reader(csv_file)
         next(file)
