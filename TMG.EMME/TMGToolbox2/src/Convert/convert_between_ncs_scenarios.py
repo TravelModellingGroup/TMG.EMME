@@ -143,7 +143,7 @@ class ConvertBetweenNCSScenarios(_m.Tool()):
 
         # build the data as a python dictionary
         scenario = _MODELLER.emmebank.scenario(self.OldNcsScenario)
-        parameters: dict = {
+        parameters: ParametersParams = {
             "old_ncs_scenario": _MODELLER.emmebank.scenario(self.OldNcsScenario),
             "new_ncs_scenario": _MODELLER.emmebank.scenario(self.NewNcsScenario),
             "station_centroid_file": self.StationCentroidFile,
