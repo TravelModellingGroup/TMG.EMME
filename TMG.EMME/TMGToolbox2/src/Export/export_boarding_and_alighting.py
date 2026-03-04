@@ -17,18 +17,34 @@
     You should have received a copy of the GNU General Public License
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 """
+import inro
 import inro.modeller as _m
 import csv
+from typing import TypeAlias, TypedDict, Iterator
 
 _MODELLER = _m.Modeller()  # Instantiate Modeller once.
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
 
+# alias for the Scenario type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+Network: TypeAlias = inro.emme.network.Network
+Node: TypeAlias = inro.emme.network.node.Node
+
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    scenario_number: int
+    input_file: str
+    export_file: str
+    write_to_file: bool
+
 
 class ExportBoardingAndAlighting(_m.Tool()):
-    version = "1.0.0"
-    tool_run_msg = ""
+    version: str = "1.0.0"
+    tool_run_msg: str = ""
     # For progress reporting, enter the integer number of tasks here
-    number_of_tasks = 4
+    number_of_tasks: int = 4
     parameters = _m.Attribute(str)
 
     def __init__(self):
@@ -44,30 +60,30 @@ class ExportBoardingAndAlighting(_m.Tool()):
         )
         return pb.render()
 
-    def __call__(self, parameters):
-        scenario = _util.load_scenario(parameters["scenario_number"])
+    def __call__(self, parameters: ParametersParams) -> None:
+        scenario: Scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def run(self, parameters):
-        scenario = _util.load_scenario(parameters["scenario_number"])
+    def run(self, parameters: ParametersParams):
+        scenario: Scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def run_xtmf(self, parameters):
-        scenario = _util.load_scenario(parameters["scenario_number"])
+    def run_xtmf(self, parameters: ParametersParams):
+        scenario: Scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def _execute(self, scenario, parameters):
+    def _execute(self, scenario: Scenario, parameters: ParametersParams):
         # Get network from scenario
-        network = scenario.get_network()
+        network: Network = scenario.get_network()
         # Load transit segments and regular nodes
         regular_nodes = network.regular_nodes()
         # Check if scenario has transit results
@@ -91,9 +107,9 @@ class ExportBoardingAndAlighting(_m.Tool()):
         else:
             raise Exception("Network in Scenario %s do not have transit results!" % parameters["scenario_number"])
 
-    def _load_node_from_file(self, csv_file_to_read_from):
+    def _load_node_from_file(self, csv_file_to_read_from: Iterator[list[str]]) -> dict[str, list[str]]:
         # Reads the list of nodes and description (e.g. station names) provided in input file
-        node_dict = {}
+        node_dict: dict = {}
         for lines in csv_file_to_read_from:
             node_id = lines[0]
             if node_id == "id":
@@ -102,9 +118,9 @@ class ExportBoardingAndAlighting(_m.Tool()):
             node_dict[node_id] = [description]
         return node_dict
 
-    def _get_boarding_alighting(self, regular_nodes):
+    def _get_boarding_alighting(self, regular_nodes: Node) -> dict[str, list[float]]:
         # Sums up all boardings and alightngs for each outgoing segments at a node
-        board_alight_dict = {}
+        board_alight_dict: dict = {}
         for node in regular_nodes:
             if node["@stop"] >= 1:
                 out_segments = node.outgoing_segments(include_hidden=True)
@@ -118,9 +134,9 @@ class ExportBoardingAndAlighting(_m.Tool()):
                 board_alight_dict[node.id] = column
         return board_alight_dict
 
-    def _find_boarding_alighting(self, scenario_board_alight_dict, node_frm_file_dict):
+    def _find_boarding_alighting(self, scenario_board_alight_dict: dict[str, list[float]], node_frm_file_dict: dict[str, list[float]]) -> dict[str, list[float]]:
         # Returns only stops specified by the user
-        boarding_alighting_dict = dict(
+        boarding_alighting_dict: dict = dict(
             [
                 (k, scenario_board_alight_dict[k] + node_frm_file_dict[k])
                 for k in set(node_frm_file_dict) & set(scenario_board_alight_dict)
@@ -128,7 +144,7 @@ class ExportBoardingAndAlighting(_m.Tool()):
         )
         return boarding_alighting_dict
 
-    def _write_boarding_and_alighting_to_file(self, ba_dict, csv_file_writer):
+    def _write_boarding_and_alighting_to_file(self, ba_dict: dict[str, list[float]], csv_file_writer) -> None:
         # Writes summed up boardings, alightings, coordinates and id of each stop of interest to file
         for key in ba_dict:
             row = [
@@ -141,7 +157,7 @@ class ExportBoardingAndAlighting(_m.Tool()):
             ]
             csv_file_writer.writerow(row)
 
-    def write_node_id_and_label(self, parameters, network):
+    def write_node_id_and_label(self, parameters: ParametersParams, network: Network) -> None:
         regular_nodes = network.regular_nodes()
         with open(parameters["input_file"], "w") as file:
             file.write("id, stations \n")

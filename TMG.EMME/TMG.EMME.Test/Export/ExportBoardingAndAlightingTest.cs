@@ -14,10 +14,7 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 using System.IO;
-using System.Text;
-using System.Text.Json;
 
 namespace TMG.Emme.Test.Export;
 
@@ -27,8 +24,6 @@ public class ExportBoardingAndAlightingTest : TestBase
     [TestMethod]
     public void ExportBoardingAndAlighting()
     {
-        Helper.RunAssignTraffic(1, "mf9", 11);
-        Helper.RunAssignTransit(1, "mf10");
         Assert.IsTrue(
             Helper.Modeller.Run(null, "tmg2.Export.export_boarding_and_alighting",
              JSONParameterBuilder.BuildParameters(writer =>
@@ -43,8 +38,6 @@ public class ExportBoardingAndAlightingTest : TestBase
     [TestMethod]
     public void ExportBoardingAndAlightingModule()
     {
-        Helper.RunAssignTraffic(1, "mf9", 11);
-        Helper.RunAssignTransit(1, "mf10");
         var module = new Emme.Export.ExportBoardingAndAlighting()
         {
             Name = "ExportBoardingAndAlighting",
