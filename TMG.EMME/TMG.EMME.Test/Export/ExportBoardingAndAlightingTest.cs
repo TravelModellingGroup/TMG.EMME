@@ -14,10 +14,9 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 using System.IO;
-using System.Text;
-using System.Text.Json;
+using System.Runtime.CompilerServices;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace TMG.Emme.Test.Export;
 
@@ -27,8 +26,13 @@ public class ExportBoardingAndAlightingTest : TestBase
     [TestMethod]
     public void ExportBoardingAndAlighting()
     {
-        Helper.RunAssignTraffic(1, "mf9", 11);
-        Helper.RunAssignTransit(1, "mf10");
+        var scenarioNumber = 2;
+        Helper.ImportNetwork(scenarioNumber, "TestFiles/test.nwp", "expport boarding and alighting");
+        Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
+        Helper.RunAssignTraffic(scenarioNumber, "mf10", 11);
+        Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/TestHighDemand.mtx"));
+        Helper.RunAssignBoardingPenalty(new[] { scenarioNumber });
+        Helper.RunAssignTransit(scenarioNumber, "mf10");
         Assert.IsTrue(
             Helper.Modeller.Run(null, "tmg2.Export.export_boarding_and_alighting",
              JSONParameterBuilder.BuildParameters(writer =>
@@ -43,8 +47,14 @@ public class ExportBoardingAndAlightingTest : TestBase
     [TestMethod]
     public void ExportBoardingAndAlightingModule()
     {
-        Helper.RunAssignTraffic(1, "mf9", 11);
-        Helper.RunAssignTransit(1, "mf10");
+        var scenarioNumber = 2;
+        Helper.ImportNetwork(scenarioNumber, "TestFiles/test.nwp", "expport boarding and alighting");
+        Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
+        Helper.RunAssignTraffic(scenarioNumber, "mf10", 11);
+        Helper.ImportBinaryMatrix(scenarioNumber, 10, Path.GetFullPath("TestFiles/TestHighDemand.mtx"));
+        Helper.RunAssignBoardingPenalty(new[] { scenarioNumber });
+        Helper.RunAssignTransit(scenarioNumber, "mf10");
+
         var module = new Emme.Export.ExportBoardingAndAlighting()
         {
             Name = "ExportBoardingAndAlighting",
