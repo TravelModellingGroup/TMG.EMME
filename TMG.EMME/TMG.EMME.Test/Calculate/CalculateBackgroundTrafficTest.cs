@@ -18,10 +18,6 @@
 */
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
-using System.Linq;
-using TMG.Frameworks.Data.Processing.AST;
-using XTMF2;
 
 namespace TMG.Emme.Test.Calculate;
 
