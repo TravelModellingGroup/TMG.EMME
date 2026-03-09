@@ -18,11 +18,6 @@
 */
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
-using XTMF2;
 
 namespace TMG.Emme.Test.Calculate;
 
@@ -56,11 +51,22 @@ public class CalculateBackgroundTrafficTest : TestBase
                 }), LogbookLevel.Standard));
     }
 
+
     [TestMethod]
     public void CalculateBackgroundTrafficModule()
     {
+        var intervalLengths = new float[] { 60.0f, 60.0f, 60.0f };
+        var scenarioNumber = 2;
+        RangeSet.TryParse("2,5-200", out var set);
+
         var module = new Emme.Calculate.CalculateBackgroundTraffic()
-        {};
+        {
+            ScenarioNumber = Helper.CreateParameter(scenarioNumber),
+            IntervalLengths = Helper.CreateParameter(intervalLengths),
+            LinkComponentAttribute = Helper.CreateParameter("@tvph"),
+            StartIndex = Helper.CreateParameter(1),
+            MixedUseTTFRanges = Helper.CreateParameter(set),
+        };
         module.Invoke(Helper.Modeller);
     }
 }

@@ -19,11 +19,6 @@
 */
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
-using XTMF2;
 
 namespace TMG.Emme.Test.Calculate;
 
