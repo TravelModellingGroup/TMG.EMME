@@ -1,6 +1,6 @@
 # ---LICENSE----------------------
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -39,12 +39,30 @@ Extract Transit Origin and Destination Vectors
    
 """
 
+import inro
 import inro.modeller as _m
-
+from typing import TypeAlias, TypedDict
 
 _MODELLER = _m.Modeller()
 _network_calculation = _m.Modeller().tool("inro.emme.network_calculation.network_calculator")
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
+
+# alias for the Scenario type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+Network: TypeAlias = inro.emme.network.Network
+#Node: TypeAlias = inro.emme.network.node.Node
+
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    scenario_number: int
+    domain: int
+    expression: str
+    node_selection: str
+    link_selection: str
+    transit_line_selection: str
+    result: str
 
 
 class CalculateNetworkAttribute(_m.Tool()):
@@ -55,21 +73,21 @@ class CalculateNetworkAttribute(_m.Tool()):
         self.transit_line = 2
         self.transit_segment = 3
 
-    def __call__(self, parameters):
+    def __call__(self, parameters: ParametersParams):
         scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def run_xtmf(self, parameters):
-        scenario = _util.load_scenario(parameters["scenario_number"])
+    def run_xtmf(self, parameters: ParametersParams) -> None:
+        scenario: Scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def _execute(self, scenario, parameters):
+    def _execute(self, scenario: Scenario, parameters: ParametersParams) -> None:
         self._process_domains(parameters)
         spec = self.network_calculator_spec(parameters)
         report = _network_calculation(spec, scenario)
@@ -77,15 +95,15 @@ class CalculateNetworkAttribute(_m.Tool()):
             return report["sum"]
         return ""
 
-    def network_calculator_spec(self, parameters):
+    def network_calculator_spec(self, parameters: ParametersParams) -> dict:
 
-        spec = {
+        spec: dict = {
             "result": parameters["result"],
             "expression": parameters["expression"],
             "aggregation": None,
             "type": "NETWORK_CALCULATION",
         }
-        selections = {}
+        selections: dict = {}
         if parameters["node_selection"] is not None:
             selections["node"] = parameters["node_selection"]
         if parameters["link_selection"] is not None:
@@ -97,7 +115,7 @@ class CalculateNetworkAttribute(_m.Tool()):
         spec["selections"] = selections
         return spec
 
-    def _process_domains(self, parameters):
+    def _process_domains(self, parameters: ParametersParams) -> None:
         if parameters["result"] is None or parameters["result"] == "None":
             parameters["result"] = None
         if parameters["domain"] == self.link:
