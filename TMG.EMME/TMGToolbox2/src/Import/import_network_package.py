@@ -25,8 +25,7 @@ import os
 from os import path as _path
 import shutil as _shutil
 import tempfile as _tf
-from typing import TypeAlias
-
+from typing import TypeAlias, TypedDict
 
 _m.InstanceType = object
 _m.TupleType = object
@@ -48,6 +47,15 @@ import_attributes = _MODELLER.tool("inro.emme.data.network.import_attribute_valu
 # alias for the scenario and zipfile type hints.
 Scenario: TypeAlias = inro.emme.database.scenario.Scenario
 zipfile: TypeAlias = _zipfile.ZipFile
+
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    network_package_file: str
+    scenario_description: str
+    scenario_number: int
+    conflict_option: str
 
 class ComponentContainer(object):
     """A simple data container. It's fully written out so I can get auto-completion"""
@@ -468,7 +476,7 @@ class ImportNetworkPackage(_m.Tool()):
         return pb.render()
 
     def run(self) -> None:
-        self.tool_run_msg = ""
+        self.tool_run_msg: str = ""
         self._tracker.reset()
         parameters = self._build_page_builder_parameters()
         if parameters["scenario_number"] < 1:
@@ -482,7 +490,7 @@ class ImportNetworkPackage(_m.Tool()):
             raise
         self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario %s created." % parameters["scenario_number"])
 
-    def __call__(self, parameters:dict) -> None:
+    def __call__(self, parameters: ParametersParams) -> None:
         self.overwrite_scenario_flag = True
         self.add_function = True
         try:
@@ -491,7 +499,7 @@ class ImportNetworkPackage(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def run_xtmf(self, parameters:dict) -> None:
+    def run_xtmf(self, parameters: ParametersParams) -> None:
         self.overwrite_scenario_flag = True
         try:
             self._execute(parameters)
@@ -499,7 +507,7 @@ class ImportNetworkPackage(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def _execute(self, parameters:dict) -> None:
+    def _execute(self, parameters: ParametersParams) -> None:
         with _m.logbook_trace(
             name="{classname} v{version}".format(classname=self.__class__.__name__, version=self.version),
             attributes=self._get_logbook_attributes(),
@@ -528,6 +536,7 @@ class ImportNetworkPackage(_m.Tool()):
                 self._batchin_link_shapes(scenario, temp_folder, zf)
                 self._batchin_lines(scenario, temp_folder, zf)
                 self._batchin_turns(scenario, temp_folder, zf)
+                self._batchin_network_fields(scenario, temp_folder, zf)
 
                 if self._components.traffic_results_files is not None:
                     self._batchin_traffic_results(scenario, temp_folder, zf)
@@ -605,6 +614,26 @@ class ImportNetworkPackage(_m.Tool()):
                 scenario=scenario,
             )
 
+    @_m.logbook_trace("Reading Network Fields")
+    def _batchin_network_fields(self, scenario: Scenario, temp_folder: str, zf: zipfile) -> None:
+        # We can only load in network fields if the version number is over 4.3
+        tool = _MODELLER.tool("inro.emme.data.network_field.import_network_fields")
+        def read_file_if_exists(zf, folder, file):
+            if not file in zf.namelist():
+                return
+            file_to_read = _path.join(folder, file)
+            zf.extract(file, folder)
+            tool(file_to_read, scenario=scenario, field_separator=",", import_definitions=True, revert_on_error=False)
+            return
+        read_file_if_exists(zf, temp_folder, "netfield_links.csv")
+        read_file_if_exists(zf, temp_folder, "netfield_modes.csv")
+        read_file_if_exists(zf, temp_folder, "netfield_nodes.csv")
+        read_file_if_exists(zf, temp_folder, "netfield_segments.csv")
+        read_file_if_exists(zf, temp_folder, "netfield_transit_lines.csv")
+        read_file_if_exists(zf, temp_folder, "netfield_turns.csv")
+        read_file_if_exists(zf, temp_folder, "netfield_vehicles.csv")
+        return
+
     @_m.logbook_trace("Reading extra attributes")
     def _batchin_extra_attributes(self, scenario: Scenario, temp_folder: str, zf: zipfile) -> None:
         types = self._load_extra_attributes(zf, temp_folder, scenario)
@@ -638,7 +667,7 @@ class ImportNetworkPackage(_m.Tool()):
         merge_functions.function_file = _path.join(temp_folder, self._components.functions_file)
         merge_functions.conflict_option = self.conflict_option
         merge_functions.run()
-
+        
     def _LoadFunctionFile(self, file_name: str) -> dict:
         functions = {}
         with open(file_name) as reader:
@@ -1019,3 +1048,46 @@ class ImportNetworkPackage(_m.Tool()):
     def reset_tool(self):
         self.overwrite_scenario_flag = False
         self.has_exception = False
+
+    # region Snapshot and stateful interfaces
+
+    def to_snapshot(self):
+        snapshot = {
+            "NetworkPackageFile": self.NetworkPackageFile,
+            "ScenarioId": self.ScenarioId,
+            "ScenarioDescription": self.ScenarioDescription,
+            "SkipMergingFunctions": bool(self.SkipMergingFunctions),
+            "ConflictOption": self.ConflictOption,
+            "OverwriteScenarioFlag": bool(self.OverwriteScenarioFlag)
+        }
+        return json.dumps(snapshot)
+
+    def from_snapshot(self, snapshot):
+        snapshot = json.loads(snapshot)
+
+        self.NetworkPackageFile = snapshot["NetworkPackageFile"]
+        self.ScenarioId = snapshot["ScenarioId"]
+        self.ScenarioDescription = snapshot["ScenarioDescription"]
+        self.SkipMergingFunctions = bool(snapshot["SkipMergingFunctions"])
+        self.ConflictOption = snapshot["ConflictOption"]
+        self.OverwriteScenarioFlag = bool(snapshot["OverwriteScenarioFlag"])
+
+    def __getitem__(self, key):
+        value = getattr(self, key)
+        return value
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
+    def get_state(self):
+        state = {
+            "NetworkPackageFile": self.NetworkPackageFile,
+            "ScenarioId": self.ScenarioId,
+            "ScenarioDescription": self.ScenarioDescription,
+            "SkipMergingFunctions": bool(self.SkipMergingFunctions),
+            "ConflictOption": self.ConflictOption,
+            "OverwriteScenarioFlag": bool(self.OverwriteScenarioFlag)
+        }
+        return state
+
+    # endregion
