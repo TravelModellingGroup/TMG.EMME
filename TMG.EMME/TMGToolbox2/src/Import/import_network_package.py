@@ -43,6 +43,7 @@ import_link_shape = _MODELLER.tool("inro.emme.data.network.base.link_shape_trans
 import_lines = _MODELLER.tool("inro.emme.data.network.transit.transit_line_transaction")
 import_turns = _MODELLER.tool("inro.emme.data.network.turn.turn_transaction")
 import_attributes = _MODELLER.tool("inro.emme.data.network.import_attribute_values")
+_export_functions = _MODELLER.tool('inro.emme.data.function.export_functions')
 
 # alias for the scenario and zipfile type hints.
 Scenario: TypeAlias = inro.emme.database.scenario.Scenario
@@ -491,8 +492,8 @@ class ImportNetworkPackage(_m.Tool()):
         self.tool_run_msg = _m.PageBuilder.format_info("Done. Scenario %s created." % parameters["scenario_number"])
 
     def __call__(self, parameters: ParametersParams) -> None:
-        self.overwrite_scenario_flag = True
-        self.add_function = True
+        self.overwrite_scenario_flag: bool = True
+        self.add_function: bool = True
         try:
             self._execute(parameters)
         except Exception as e:
@@ -500,7 +501,7 @@ class ImportNetworkPackage(_m.Tool()):
             raise Exception(msg)
 
     def run_xtmf(self, parameters: ParametersParams) -> None:
-        self.overwrite_scenario_flag = True
+        self.overwrite_scenario_flag: bool = True
         try:
             self._execute(parameters)
         except Exception as e:
@@ -1052,7 +1053,7 @@ class ImportNetworkPackage(_m.Tool()):
     # region Snapshot and stateful interfaces
 
     def to_snapshot(self):
-        snapshot = {
+        snapshot: dict = {
             "NetworkPackageFile": self.NetworkPackageFile,
             "ScenarioId": self.ScenarioId,
             "ScenarioDescription": self.ScenarioDescription,
@@ -1062,7 +1063,7 @@ class ImportNetworkPackage(_m.Tool()):
         }
         return json.dumps(snapshot)
 
-    def from_snapshot(self, snapshot):
+    def from_snapshot(self, snapshot: dict) -> None:
         snapshot = json.loads(snapshot)
 
         self.NetworkPackageFile = snapshot["NetworkPackageFile"]
@@ -1079,8 +1080,8 @@ class ImportNetworkPackage(_m.Tool()):
     def __setitem__(self, key, value):
         setattr(self, key, value)
 
-    def get_state(self):
-        state = {
+    def get_state(self) -> dict:
+        state: dict = {
             "NetworkPackageFile": self.NetworkPackageFile,
             "ScenarioId": self.ScenarioId,
             "ScenarioDescription": self.ScenarioDescription,
