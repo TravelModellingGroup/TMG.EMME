@@ -38,7 +38,7 @@ Import Binary Matrix
     
 """
 
-
+import inro
 from sqlite3 import paramstyle
 import inro.modeller as _m
 import traceback as _traceback
@@ -46,7 +46,7 @@ from inro.emme.matrix import MatrixData as _matrix_data
 import shutil
 import os
 import gzip
-from typing import TypedDict
+from typing import TypeAlias, TypedDict
 
 _m.InstanceType = object
 _m.TupleType = object
@@ -57,8 +57,26 @@ _util = _MODELLER.module("tmg2.utilities.general_utilities")
 _tmgTPB = _MODELLER.module("tmg2.utilities.TMG_tool_page_builder")
 _bank = _MODELLER.emmebank
 
+# alias for the Scenario type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+Network: TypeAlias = inro.emme.network.Network
+Node: TypeAlias = inro.emme.network.node.Node
+
 ##########################################################################################################
 
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    scenario_number: int
+    input_file: str
+    export_file: str
+    write_to_file: bool
+    matrix_type: int
+    matrix_number: int
+    binary_matrix_file: str
+    scenario_number: int
+    matrix_description: str
 
 class ImportBinaryMatrix(_m.Tool()):
     """
@@ -193,7 +211,7 @@ class ImportBinaryMatrix(_m.Tool()):
             raise
         self.tool_run_msg = _m.PageBuilder.format_info("Done. Matrix is imported.")
 
-    def __call__(self, parameters) -> None:
+    def __call__(self, parameters: ParametersParams) -> None:
         scenario = _util.load_scenario(parameters["scenario_number"])
         matrix_id = self._check_matrix(parameters["matrix_type"], parameters["matrix_number"])
         try:
@@ -202,7 +220,7 @@ class ImportBinaryMatrix(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def run_xtmf(self, parameters) -> None:
+    def run_xtmf(self, parameters: ParametersParams) -> None:
         scenario = _util.load_scenario(parameters["scenario_number"])
         matrix_id = self._check_matrix(parameters["matrix_type"], parameters["matrix_number"])
         try:
@@ -211,7 +229,7 @@ class ImportBinaryMatrix(_m.Tool()):
             msg = str(e) + "\n" + _traceback.format_exc()
             raise Exception(msg)
 
-    def _execute(self, scenario, parameters, matrix_id) -> None:
+    def _execute(self, scenario: Scenario, parameters: ParametersParams, matrix_id: str) -> None:
         self._check_import_file(parameters["binary_matrix_file"])
         with _m.logbook_trace(
             name="%s v%s" % (self.__class__.__name__, self.version),
@@ -283,15 +301,15 @@ class ImportBinaryMatrix(_m.Tool()):
                 matrix.set_data(data)
             self._tracker.complete_task()
 
-    def _get_atts(self, scenario) -> dict[str, str]:
-        atts = {
+    def _get_atts(self, scenario: Scenario) -> dict[str, str]:
+        atts: dict = {
             "scenario": str(scenario.id),
             "Version": self.version,
             "self": self.__MODELLER_NAMESPACE__,
         }
         return atts
 
-    def _check_import_file(self, import_file):
+    def _check_import_file(self, import_file: str):
         if import_file is None:
             raise IOError("Import file not specified")
 
@@ -309,14 +327,14 @@ class ImportBinaryMatrix(_m.Tool()):
         }
         return parameters
 
-    def _check_matrix(self, matrix_type, matrix_number) -> str:
+    def _check_matrix(self, matrix_type: int, matrix_number: int) -> str:
         if not matrix_type in self.MATRIX_TYPES:
             raise IOError(
                 "Matrix type '%s' is not recognized. Valid types are " % matrix_type
                 + "1 for scalar, 2 for origin, 3 for destination, and "
                 + "4 for full matrices."
             )
-        matrix_id = self.MATRIX_TYPES[matrix_type] + str(matrix_number)
+        matrix_id: str = self.MATRIX_TYPES[matrix_type] + str(matrix_number)
         return matrix_id
 
     @_m.method(return_type=_m.TupleType)
