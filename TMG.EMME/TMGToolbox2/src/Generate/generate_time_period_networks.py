@@ -400,9 +400,9 @@ class GenerateTimePeriodNetworks(_m.Tool()):
                 if v[0] == 0 or v[1] == 0:
                     # If one is not zero, then we should warn the user
                     if v[0] != 0:
-                        raise Exception("Error: '" + k + "' has a headway set in the Alt File but the speed was set to 0. The service table record will be applied for both speed and headway, if no records are found during the time period it will be deleted.")
+                        raise Exception(f"'{k}' has had its headway set in the alt file however the speed was set to 0, which is invalid. Please fix the alt file by setting a valid speed for the line.")
                     if v[1] != 0:
-                        raise Exception("Error: '" + k + "' has a speed set in the Alt File but the headway was set to 0. The service table record will be applied for both speed and headway, if no records are found during the time period then it will be deleted.")
+                        raise Exception(f"'{k}' has a speed set in the Alt File but the headway was set to 0, which is invalid. Please fix the alt file by setting a valid headway.")
                     del alt_data[k]
             do_not_delete = alt_data.keys()
         else:
