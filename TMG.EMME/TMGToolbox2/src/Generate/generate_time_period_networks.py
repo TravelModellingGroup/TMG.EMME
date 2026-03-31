@@ -38,7 +38,7 @@ import inro.modeller as _m
 import traceback as _traceback
 import multiprocessing
 from contextlib import contextmanager
-from typing import Type, TypeAlias
+from typing import Type, TypeAlias, TypedDict
 
 _MODELLER = _m.Modeller()
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
@@ -59,6 +59,25 @@ Scenario: TypeAlias = inro.emme.database.scenario.Scenario
 Network: TypeAlias = inro.emme.network.Network
 Node: TypeAlias = inro.emme.network.node.Node
 
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    base_scenario_number: int
+    transit_service_table_file: str
+    batch_edit_file: str
+    transit_aggregation_selection_table_file: str
+    transit_alternative_table_file: str
+    attribute_aggregator: str
+    connector_filter_attribute: str
+    default_aggregation: int
+    line_filter_expression: str
+    node_filter_attribute: str
+    stop_filter_attribute: str
+    transfer_mode_string: str
+    unposted_speed_limit: int
+    time_periods: list[dict]
+    additional_transit_alternative_table: list[dict[str, str]]
 
 
 def naive_aggregation(departures, start: int, end: int) -> float:
@@ -126,21 +145,21 @@ class GenerateTimePeriodNetworks(_m.Tool()):
         )
         return pb.render()
 
-    def __call__(self, parameters: dict) -> None:
+    def __call__(self, parameters: ParametersParams) -> None:
         scenario = _util.load_scenario(parameters["base_scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def run_xtmf(self, parameters: dict) -> None:
+    def run_xtmf(self, parameters: ParametersParams) -> None:
         base_scenario: Scenario = _util.load_scenario(parameters["base_scenario_number"])
         try:
             self._execute(base_scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def _execute(self, base_scenario: Scenario, parameters: dict) -> None:
+    def _execute(self, base_scenario: Scenario, parameters: ParametersParams) -> None:
         with _m.logbook_trace(
             name="{classname} v{version}".format(classname=(self.__class__.__name__), version=self.version),
             attributes=self._get_atts(base_scenario),
@@ -379,6 +398,11 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             # check if any headways or speeds are zero. Allow those lines to be deletable
             for k, v in alt_data.items():
                 if v[0] == 0 or v[1] == 0:
+                    # If one is not zero, then we should warn the user
+                    if v[0] != 0:
+                        print("WARNING: '" + k + "' has a headway set in the Alt File but the speed was set to 0. The service table record will be applied for both speed and headway, if no records are found during the time period it will be deleted.")
+                    if v[1] != 0:
+                        print("WARNING: '" + k + "' has a speed set in the Alt File but the headway was set to 0. The service table record will be applied for both speed and headway, if no records are found during the time period then it will be deleted.")
                     del alt_data[k]
             do_not_delete = alt_data.keys()
         else:
@@ -412,11 +436,14 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             # Convert from seconds to minutes
             headway = aggregator(departures, start, end) / 60.0
             if not headway in bounds:
-                print("%s: %s" % (line.id, headway))
+                print("%s: Headway = %s" % (line.id, headway))
             line.headway = headway
             # Calc line speed
             sumTimes = 0
             for dep, arr in line.trips:
+                # Deal with the case where the trip crosses midnight
+                if dep > arr:
+                    arr = arr + 24 * 3600.0
                 sumTimes += arr - dep
             # Convert from seconds to hours
             avgTime = sumTimes / len(line.trips) / 3600.0
@@ -425,7 +452,7 @@ class GenerateTimePeriodNetworks(_m.Tool()):
             # km/hr
             speed = length / avgTime
             if not speed in bounds:
-                print("%s: %s" % (line.id, speed))
+                print("%s: Speed = %s" % (line.id, speed))
             line.speed = speed
             self._tracker.complete_subtask()
         for id in to_delete:
