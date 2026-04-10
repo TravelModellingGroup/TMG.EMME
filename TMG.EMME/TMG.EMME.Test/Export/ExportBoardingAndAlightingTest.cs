@@ -37,7 +37,7 @@ public class ExportBoardingAndAlightingTest : TestBase
             Helper.Modeller.Run(null, "tmg2.Export.export_boarding_and_alighting",
              JSONParameterBuilder.BuildParameters(writer =>
              {
-                 writer.WriteNumber("scenario_number", 1);
+                 writer.WriteNumber("scenario_number", scenarioNumber);
                  writer.WriteString("input_file", Path.GetFullPath("TestFiles/inputs.csv"));
                  writer.WriteString("export_file", Path.GetFullPath("OutputTestFiles/board_alight_at_stops.csv"));
                  writer.WriteBoolean("write_to_file", false);
@@ -58,7 +58,7 @@ public class ExportBoardingAndAlightingTest : TestBase
         var module = new Emme.Export.ExportBoardingAndAlighting()
         {
             Name = "ExportBoardingAndAlighting",
-            ScenarioNumber = Helper.CreateParameter(1),
+            ScenarioNumber = Helper.CreateParameter(scenarioNumber),
             FileLocation = Helper.CreateParameter(Path.GetFullPath("TestFiles/inputs.csv"), "Transit Stop File Name"),
             SaveTo = Helper.CreateParameter("OutputTestFiles/board_alight_at_stops.csv"),
             WriteToFile = Helper.CreateParameter(false)
