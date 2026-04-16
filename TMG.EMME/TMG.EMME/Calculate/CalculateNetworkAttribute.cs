@@ -26,28 +26,32 @@ namespace TMG.Emme.Calculate;
 public class CalculateNetworkAttribute : BaseAction<ModellerController>
 {
     [Parameter(Name = "Scenario Number", Description = "Scenario to run",
-        Index = 0)]
+        Index = 0, DefaultValue ="0")]
     public IFunction<int> ScenarioNumber;
 
     [Parameter(Name = "Domain", Description = "The Emme domain type in the result. Options: Link, Node, Transit_Line, Transit_Segment",
-        Index = 1)]
+        Index = 1, DefaultValue ="Link")]
     public IFunction<Domains> Domain;
 
     [Parameter(Name = "Expression", Description = "The expression to compute. E.g. sqrt((xi - xj) ^ 2 + (yi - yj) ^ 2)",
-        Index = 2)]
+        Index = 2, DefaultValue = "sqrt((xi - xj) ^ 2 + (yi - yj) ^ 2)")]
     public IFunction<string> Expression;
 
-    [Parameter(Name = "Node Selection", Description = "The nodes to include in the calculation. Default: all", Index = 3)]
+    [Parameter(Name = "Node Selection", Description = "The nodes to include in the calculation. Default: all", Index = 3, DefaultValue = "all")]
     public IFunction<string> NodeSelection;
 
-    [Parameter(Name = "Link Selection", Description = "The links to include in the calculation. Default: all", Index = 4)]
+    [Parameter(Name = "Link Selection", Description = "The links to include in the calculation. Default: all", Index = 4, DefaultValue = "all")]
     public IFunction<string> LinkSelection;
 
-    [Parameter(Name = "Transit Line Selection", Description = "The transit lines to include in the calculation. Default: all", Index = 5)]
+    [Parameter(Name = "Transit Line Selection", Description = "The transit lines to include in the calculation. Default: all", Index = 5, DefaultValue = "all")]
     public IFunction<string> TransitLineSelection;
 
     [Parameter(Name = "Result", Description = "The attributes to save the result into, leave blank to not save", Index = 6)]
     public IFunction<string> Result;
+
+    [Parameter(Name = "Aggregation", Description = "The aggregation value", Index = 7, DefaultValue = "0")]
+    public IFunction<Aggregations> Aggregation;
+
     public override void Invoke(ModellerController context)
     {
         context.Run(this, "tmg2.Calculate.calculate_network_attribute", JSONParameterBuilder.BuildParameters(writer =>
@@ -59,12 +63,24 @@ public class CalculateNetworkAttribute : BaseAction<ModellerController>
             writer.WriteString("link_selection", LinkSelection.Invoke());
             writer.WriteString("transit_line_selection", TransitLineSelection.Invoke());
             writer.WriteString("result", Result.Invoke());
+            writer.WriteNumber("aggregation", (int)Aggregation.Invoke());
         }), LogbookLevel.Standard);
 
     }
     public enum Domains
     {
         Link = 0, Node = 1, TransitLine = 2, TransitSegment = 3
+    }
+
+    public enum Aggregations
+    {
+        Default = 0, 
+        Plus = 1, 
+        Average = 2, 
+        Min = 3, 
+        Max = 4, 
+        And = 5, 
+        Or = 6 
     }
 
 }
