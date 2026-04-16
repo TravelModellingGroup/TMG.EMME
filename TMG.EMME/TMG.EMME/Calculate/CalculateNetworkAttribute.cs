@@ -26,15 +26,15 @@ namespace TMG.Emme.Calculate;
 public class CalculateNetworkAttribute : BaseAction<ModellerController>
 {
     [Parameter(Name = "Scenario Number", Description = "Scenario to run",
-        Index = 0)]
+        Index = 0, DefaultValue ="0")]
     public IFunction<int> ScenarioNumber;
 
     [Parameter(Name = "Domain", Description = "The Emme domain type in the result. Options: Link, Node, Transit_Line, Transit_Segment",
-        Index = 1)]
+        Index = 1, DefaultValue ="Link")]
     public IFunction<Domains> Domain;
 
     [Parameter(Name = "Expression", Description = "The expression to compute. E.g. sqrt((xi - xj) ^ 2 + (yi - yj) ^ 2)",
-        Index = 2)]
+        Index = 2, DefaultValue = "sqrt((xi - xj) ^ 2 + (yi - yj) ^ 2)")]
     public IFunction<string> Expression;
 
     [Parameter(Name = "Node Selection", Description = "The nodes to include in the calculation. Default: all", Index = 3, DefaultValue = "all")]
