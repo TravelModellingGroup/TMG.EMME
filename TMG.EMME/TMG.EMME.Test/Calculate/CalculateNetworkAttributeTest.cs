@@ -39,7 +39,7 @@ public class CalculateNetworkAttributeTest : TestBase
                 writer.WriteString("link_selection", "all");
                 writer.WriteString("transit_line_selection", "all");
                 writer.WriteString("result", "None");
-                writer.WriteNumber("aggregation", 0);
+                writer.WriteNumber("aggregation", (int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default);
             }), LogbookLevel.Standard));
     }
     [TestMethod]
@@ -54,7 +54,7 @@ public class CalculateNetworkAttributeTest : TestBase
             LinkSelection = Helper.CreateParameter("all"),
             TransitLineSelection = Helper.CreateParameter("all"),
             Result = Helper.CreateParameter("None"),
-            Aggregation = Helper.CreateParameter(0)
+            Aggregation = Helper.CreateParameter((int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
         };
         module.Invoke(Helper.Modeller);
     }
@@ -72,7 +72,7 @@ public class CalculateNetworkAttributeTest : TestBase
                 writer.WriteString("link_selection", "all");
                 writer.WriteString("transit_line_selection", "all");
                 writer.WriteString("result", "None");
-                writer.WriteNumber("aggregation", 0);
+                writer.WriteNumber("aggregation", (int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default);
             }), LogbookLevel.Standard));
     }
     [TestMethod]
@@ -87,7 +87,7 @@ public class CalculateNetworkAttributeTest : TestBase
             LinkSelection = Helper.CreateParameter("all"),
             TransitLineSelection = Helper.CreateParameter("all"),
             Result = Helper.CreateParameter("None"),
-            Aggregation = Helper.CreateParameter(0)
+            Aggregation = Helper.CreateParameter((int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
         };
         module.Invoke(Helper.Modeller);
     }
@@ -105,7 +105,7 @@ public class CalculateNetworkAttributeTest : TestBase
                 writer.WriteString("link_selection", "None");
                 writer.WriteString("transit_line_selection", "all");
                 writer.WriteString("result", "ut2");
-                writer.WriteNumber("aggregation", 0);
+                writer.WriteNumber("aggregation", (int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default);
             }), LogbookLevel.Standard));
     }
     [TestMethod]
@@ -120,7 +120,7 @@ public class CalculateNetworkAttributeTest : TestBase
             LinkSelection = Helper.CreateParameter("None"),
             TransitLineSelection = Helper.CreateParameter("all"),
             Result = Helper.CreateParameter("ut2"),
-            Aggregation = Helper.CreateParameter(0)
+            Aggregation = Helper.CreateParameter((int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
         };
         module.Invoke(Helper.Modeller);
     }
@@ -138,7 +138,7 @@ public class CalculateNetworkAttributeTest : TestBase
                 writer.WriteString("link_selection", "all");
                 writer.WriteString("transit_line_selection", "all");
                 writer.WriteString("result", "us1");
-                writer.WriteNumber("aggregation", 0);
+                writer.WriteNumber("aggregation", (int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default);
             }), LogbookLevel.Standard));
     }
     [TestMethod]
@@ -153,7 +153,7 @@ public class CalculateNetworkAttributeTest : TestBase
             LinkSelection = Helper.CreateParameter("all"),
             TransitLineSelection = Helper.CreateParameter("all"),
             Result = Helper.CreateParameter("us1"),
-            Aggregation = Helper.CreateParameter(0)
+            Aggregation = Helper.CreateParameter((int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
         };
         module.Invoke(Helper.Modeller);
     }

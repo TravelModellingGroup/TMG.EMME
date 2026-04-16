@@ -72,4 +72,15 @@ public class CalculateNetworkAttribute : BaseAction<ModellerController>
         Link = 0, Node = 1, TransitLine = 2, TransitSegment = 3
     }
 
+    public enum Aggregations
+    {
+        Default = 0, 
+        Plus = 1, 
+        Average = 2, 
+        Min = 3, 
+        Max = 4, 
+        And = 5, 
+        Or = 6 
+    }
+
 }
