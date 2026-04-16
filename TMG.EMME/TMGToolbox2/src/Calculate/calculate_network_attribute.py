@@ -63,6 +63,7 @@ class ParametersParams(TypedDict):
     link_selection: str
     transit_line_selection: str
     result: str
+    aggregation: int
 
 
 class CalculateNetworkAttribute(_m.Tool()):
@@ -96,11 +97,11 @@ class CalculateNetworkAttribute(_m.Tool()):
         return ""
 
     def network_calculator_spec(self, parameters: ParametersParams) -> dict:
-
+        aggregation = self.get_aggregation(parameters)
         spec: dict = {
             "result": parameters["result"],
             "expression": parameters["expression"],
-            "aggregation": None,
+            "aggregation": aggregation,
             "type": "NETWORK_CALCULATION",
         }
         selections: dict = {}
@@ -129,3 +130,28 @@ class CalculateNetworkAttribute(_m.Tool()):
             parameters["link_selection"] = None
         elif parameters["domain"] == self.transit_segment:
             parameters["node_selection"] = None
+
+    def get_aggregation(self, parameters: ParametersParams) -> None: 
+        # None = 0,
+        # Sum = 1,
+        # Average = 2,
+        # Min = 3,
+        # Max = 4,
+        # BitwiseAnd = 5,
+        # BitwiseOr = 6,
+        aggregation = parameters["aggregation"]
+        if aggregation == 0:
+            return None
+        elif aggregation == 1:
+            return '+'
+        elif aggregation == 2:
+            return 'average'
+        elif aggregation == 3:
+            return ".min."
+        elif aggregation == 4:
+            return ".max."
+        elif aggregation == 5:
+            return "&"
+        elif aggregation == 6:
+            return "|"
+        return None

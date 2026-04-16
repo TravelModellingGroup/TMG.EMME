@@ -48,6 +48,10 @@ public class CalculateNetworkAttribute : BaseAction<ModellerController>
 
     [Parameter(Name = "Result", Description = "The attributes to save the result into, leave blank to not save", Index = 6)]
     public IFunction<string> Result;
+
+    [Parameter(Name = "Aggregation", Description = "The aggregation value", Index = 7)]
+    public IFunction<int> Aggregation;
+
     public override void Invoke(ModellerController context)
     {
         context.Run(this, "tmg2.Calculate.calculate_network_attribute", JSONParameterBuilder.BuildParameters(writer =>
@@ -59,6 +63,7 @@ public class CalculateNetworkAttribute : BaseAction<ModellerController>
             writer.WriteString("link_selection", LinkSelection.Invoke());
             writer.WriteString("transit_line_selection", TransitLineSelection.Invoke());
             writer.WriteString("result", Result.Invoke());
+            writer.WriteNumber("aggregation", Aggregation.Invoke());
         }), LogbookLevel.Standard);
 
     }
