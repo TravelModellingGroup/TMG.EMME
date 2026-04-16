@@ -37,20 +37,20 @@ public class CalculateNetworkAttribute : BaseAction<ModellerController>
         Index = 2)]
     public IFunction<string> Expression;
 
-    [Parameter(Name = "Node Selection", Description = "The nodes to include in the calculation. Default: all", Index = 3)]
+    [Parameter(Name = "Node Selection", Description = "The nodes to include in the calculation. Default: all", Index = 3, DefaultValue = "all")]
     public IFunction<string> NodeSelection;
 
-    [Parameter(Name = "Link Selection", Description = "The links to include in the calculation. Default: all", Index = 4)]
+    [Parameter(Name = "Link Selection", Description = "The links to include in the calculation. Default: all", Index = 4, DefaultValue = "all")]
     public IFunction<string> LinkSelection;
 
-    [Parameter(Name = "Transit Line Selection", Description = "The transit lines to include in the calculation. Default: all", Index = 5)]
+    [Parameter(Name = "Transit Line Selection", Description = "The transit lines to include in the calculation. Default: all", Index = 5, DefaultValue = "all")]
     public IFunction<string> TransitLineSelection;
 
     [Parameter(Name = "Result", Description = "The attributes to save the result into, leave blank to not save", Index = 6)]
     public IFunction<string> Result;
 
-    [Parameter(Name = "Aggregation", Description = "The aggregation value", Index = 7)]
-    public IFunction<int> Aggregation;
+    [Parameter(Name = "Aggregation", Description = "The aggregation value", Index = 7, DefaultValue = "0")]
+    public IFunction<Aggregations> Aggregation;
 
     public override void Invoke(ModellerController context)
     {
@@ -63,7 +63,7 @@ public class CalculateNetworkAttribute : BaseAction<ModellerController>
             writer.WriteString("link_selection", LinkSelection.Invoke());
             writer.WriteString("transit_line_selection", TransitLineSelection.Invoke());
             writer.WriteString("result", Result.Invoke());
-            writer.WriteNumber("aggregation", Aggregation.Invoke());
+            writer.WriteNumber("aggregation", (int)Aggregation.Invoke());
         }), LogbookLevel.Standard);
 
     }

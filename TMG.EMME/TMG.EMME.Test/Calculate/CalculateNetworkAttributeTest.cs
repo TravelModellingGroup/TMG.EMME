@@ -54,7 +54,7 @@ public class CalculateNetworkAttributeTest : TestBase
             LinkSelection = Helper.CreateParameter("all"),
             TransitLineSelection = Helper.CreateParameter("all"),
             Result = Helper.CreateParameter("None"),
-            Aggregation = Helper.CreateParameter((int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
+            Aggregation = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
         };
         module.Invoke(Helper.Modeller);
     }
@@ -87,7 +87,7 @@ public class CalculateNetworkAttributeTest : TestBase
             LinkSelection = Helper.CreateParameter("all"),
             TransitLineSelection = Helper.CreateParameter("all"),
             Result = Helper.CreateParameter("None"),
-            Aggregation = Helper.CreateParameter((int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
+            Aggregation = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
         };
         module.Invoke(Helper.Modeller);
     }
@@ -120,7 +120,7 @@ public class CalculateNetworkAttributeTest : TestBase
             LinkSelection = Helper.CreateParameter("None"),
             TransitLineSelection = Helper.CreateParameter("all"),
             Result = Helper.CreateParameter("ut2"),
-            Aggregation = Helper.CreateParameter((int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
+            Aggregation = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
         };
         module.Invoke(Helper.Modeller);
     }
@@ -153,7 +153,7 @@ public class CalculateNetworkAttributeTest : TestBase
             LinkSelection = Helper.CreateParameter("all"),
             TransitLineSelection = Helper.CreateParameter("all"),
             Result = Helper.CreateParameter("us1"),
-            Aggregation = Helper.CreateParameter((int)Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
+            Aggregation = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Aggregations.Default)
         };
         module.Invoke(Helper.Modeller);
     }
