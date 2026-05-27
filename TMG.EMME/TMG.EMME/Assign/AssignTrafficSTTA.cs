@@ -17,11 +17,6 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using TMG.Emme;
 using XTMF2;
 
 namespace TMG.Emme.Assign;
@@ -188,13 +183,12 @@ public class AssignTrafficSTTA : BaseAction<ModellerController>
             writer.WriteNumber("attribute_start_index", AttributeStartIndex.Invoke());
             writer.WriteNumber("link_cost", LinkCost.Invoke());
             writer.WriteString("link_toll_attribute", LinkTollAttribute.Invoke());
-            writer.WriteStartArray("toll_weights");
+            writer.WriteStartArray("toll_weight_list");
             foreach (var toll_weight in TollWeights.Invoke())
             {
                 writer.WriteNumberValue(toll_weight);
             }
             writer.WriteEndArray();
-            writer.WritePropertyName("interval_length_list");
 
             writer.WriteStartArray("path_analyses");
             foreach (var pathAnalysis in PathAnalyses)
@@ -234,7 +228,6 @@ public class AssignTrafficSTTA : BaseAction<ModellerController>
         context.Run(this, "tmg2.Assign.assign_traffic_stta", JSONParameterBuilder.BuildParameters(writer =>
         {
             writer.WriteNumber("scenario_number", ScenarioNumber.Invoke());
-
             writer.WriteString("start_time", StartTime.Invoke());
             writer.WriteNumber("extra_time_interval", ExtraTimeInterval.Invoke());
             writer.WriteNumber("number_of_extra_time_intervals", NumberOfExtraTimeIntervals.Invoke());

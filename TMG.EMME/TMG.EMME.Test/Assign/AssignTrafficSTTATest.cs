@@ -18,12 +18,8 @@
 */
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
-using XTMF2;
-
 namespace TMG.Emme.Test.Assign;
 
 [TestClass]
@@ -74,7 +70,7 @@ public class AssignTrafficSTTATest : TestBase
                 writer.WriteStartObject();
                 writer.WriteString("name", "traffic class 1");
                 writer.WriteString("mode", "c");
-                writer.WriteNumber("demand_matrix_number", 1000);
+                writer.WriteNumber("demand_matrix_number", 10);
                 writer.WriteNumber("time_matrix_number", 10);
                 writer.WriteNumber("cost_matrix_number", 0);
                 writer.WriteNumber("toll_matrix_number", 0);
@@ -97,7 +93,7 @@ public class AssignTrafficSTTATest : TestBase
                 writer.WriteStartObject();
                 writer.WriteString("name", "traffic class 2");
                 writer.WriteString("mode", "c");
-                writer.WriteNumber("demand_matrix_number", 1100);
+                writer.WriteNumber("demand_matrix_number", 11);
                 writer.WriteNumber("time_matrix_number", 40);
                 writer.WriteNumber("cost_matrix_number", 0);
                 writer.WriteNumber("toll_matrix_number", 0);
@@ -125,8 +121,12 @@ public class AssignTrafficSTTATest : TestBase
     [TestMethod]
     public void AssignTrafficSTTAModule()
     {
-        Helper.ImportFrabitztownNetwork(1);
-        Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+        var scenarioNumber = 2;
+        Helper.ImportFrabitztownNetwork(scenarioNumber);
+
+        Helper.ImportBinaryMatrix(scenarioNumber, 1, Path.GetFullPath("TestFiles/Test.mtx"));
+        Helper.ImportBinaryMatrix(scenarioNumber, 2, Path.GetFullPath("TestFiles/Test.mtx"));
+        Helper.ImportBinaryMatrix(scenarioNumber, 3, Path.GetFullPath("TestFiles/Test.mtx"));
 
         var pathAnalyses = new[]
         {
@@ -137,6 +137,8 @@ public class AssignTrafficSTTATest : TestBase
             }
         };
 
+        var tollWeights = new[] {1f, 2f, 3f };
+
         var trafficClasses = new[]
         {
             new Emme.Assign.AssignTrafficSTTA.TrafficClass()
@@ -144,12 +146,42 @@ public class AssignTrafficSTTATest : TestBase
                 Name = "TrafficClass1",
                 Mode = Helper.CreateParameter('c'),
                 DemandMatrixNumber = Helper.CreateParameter(10),
+                TimeMatrixNumber = Helper.CreateParameter(10),
+                CostMatrixNumber = Helper.CreateParameter(0),
+                TollMatrixNumber = Helper.CreateParameter(0),
+                ODFixedCost = Helper.CreateParameter("0"),
+                VolumeAttribute = Helper.CreateParameter("@auto_volume"),
+                AttributeStartIndex = Helper.CreateParameter(4),
+                LinkCost = Helper.CreateParameter(0.0f),
+                LinkTollAttribute = Helper.CreateParameter("@toll"),
+                TollWeight = Helper.CreateParameter(1f),
+                TollWeights = Helper.CreateParameter(tollWeights),
+                PathAnalyses = Helper.CreateParameters(pathAnalyses),
             }
         };
+
+        var IntervalLengths = new[] { 300f, 60f, 60f };
+
         var module = new Emme.Assign.AssignTrafficSTTA()
         {
             Name = "AssignTrafficSTTA",
-            ScenarioNumber = Helper.CreateParameter(1),
+            ScenarioNumber = Helper.CreateParameter(scenarioNumber),
+            StartTime = Helper.CreateParameter("00:00"),
+            ExtraTimeInterval = Helper.CreateParameter(60.0f),
+            NumberOfExtraTimeIntervals = Helper.CreateParameter(2),
+            BackgroundTraffic = Helper.CreateParameter(false),
+            LinkComponentAttribute = Helper.CreateParameter("@tvph"),
+            StartIndex = Helper.CreateParameter(1),
+            VariableTopology = Helper.CreateParameter(false),
+            OuterIterations = Helper.CreateParameter(2),
+            InnerIterations = Helper.CreateParameter(5),
+            rGap = Helper.CreateParameter(0f),
+            brGap = Helper.CreateParameter(0f),
+            normGap = Helper.CreateParameter(0f),
+            PerformanceFlag = Helper.CreateParameter(true),
+            RunTitle = Helper.CreateParameter("run1"),
+            IntervalLengths = Helper.CreateParameter(IntervalLengths),
+            MixedUseTTFRanges =  Helper.CreateParameter(new RangeSet(new List<Range> { new Range(3, 128) })),
             TrafficClasses = Helper.CreateParameters(trafficClasses),
         };
         module.Invoke(Helper.Modeller);
