@@ -1,5 +1,5 @@
 """
-    Copyright 2014 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2014-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -35,10 +35,9 @@ import math
 
 import inro.modeller as _m
 from copy import copy
-
 _MODELLER = _m.Modeller()
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
-
+_geometry = _MODELLER.module('tmg.common.geometry')
 
 class Face(_m.Tool()):
     def page(self):

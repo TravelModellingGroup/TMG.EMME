@@ -18,12 +18,8 @@
 */
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
-using XTMF2;
-
 
 namespace TMG.Emme.Test.Export;
 
@@ -103,6 +99,44 @@ public class ExportSubareaTest : TestBase
     [TestMethod]
     public void ExportSubareaModule()
     {
+        var pathAnalyses = new[]
+        {
+            new Emme.Export.ExportSubarea.PathAnalysis()
+            {
+                Name = "PathAnalysis",
+                AttributeId = Helper.CreateParameter("1"),
+                AggregationMatrix = Helper.CreateParameter(""),
+                AggregationOperator = Helper.CreateParameter("max"),
+                LowerBound = Helper.CreateParameter("7"),
+                UpperBound = Helper.CreateParameter("7"),
+                PathSelection = Helper.CreateParameter("all"),
+                MultiplyPathPropByDemand = Helper.CreateParameter("7"),
+                MultiplyPathPropByValue = Helper.CreateParameter("7"),
+                AnalysisAttributes = Helper.CreateParameter(""),
+                AnalysisAttributesMatrixId = Helper.CreateParameter("mf0"),
+            }
+        };
+
+        var tollWeights = new[] { 1f, 2f, 3f };
+
+        var trafficClasses = new[]
+        {
+            new Emme.Export.ExportSubarea.TrafficClass()
+            {
+                Name = "TrafficClass1",
+                Mode = Helper.CreateParameter('c'),
+                DemandMatrixNumber = Helper.CreateParameter("mf10"),
+                TimeMatrix = Helper.CreateParameter("mf0"),
+                CostMatrix = Helper.CreateParameter("mf4"),
+                TollMatrix = Helper.CreateParameter("mf0"),
+                PeakHourFactor = Helper.CreateParameter(1f),
+                VolumeAttribute = Helper.CreateParameter("@auto_volume"),
+                LinkTollAttribute = Helper.CreateParameter("@toll"),
+                TollWeight = Helper.CreateParameter(1f),
+                LinkCost = Helper.CreateParameter(0.0f),
+                PathAnalyses = Helper.CreateParameters(pathAnalyses),
+            }
+        };
 
         var module = new Emme.Export.ExportSubarea()
         {
@@ -115,6 +149,19 @@ public class ExportSubareaTest : TestBase
             CreateNflagFromShapefile = Helper.CreateParameter(true),
             SubareaNodeAttribute = Helper.CreateParameter("@nflag"),
             SubareaGateAttribute = Helper.CreateParameter("@gate"),
+            ExtractTransit = Helper.CreateParameter(true),
+            CreateGateAttribute = Helper.CreateParameter(true),
+            Iterations = Helper.CreateParameter(4),
+            rGap = Helper.CreateParameter(0f),
+            brGap = Helper.CreateParameter(0f),
+            normGap = Helper.CreateParameter(0f),
+            PerformanceFlag = Helper.CreateParameter(true),
+            SOLAFlag = Helper.CreateParameter(true),
+            BackgroundTransit = Helper.CreateParameter(true),
+            RunTitle = Helper.CreateParameter("road assignment"),
+            MixedUseTTFRanges = Helper.CreateParameter(new RangeSet(new List<Range> { new Range(3, 128) })),
+            TrafficClasses = Helper.CreateParameters(trafficClasses),
+
         };
         module.Invoke(Helper.Modeller);
     }
