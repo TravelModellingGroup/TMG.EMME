@@ -1,5 +1,5 @@
 """
-    Copyright 2022 Travel Modelling Group, Department of Civil Engineering, University of Toronto
+    Copyright 2022-2026 Travel Modelling Group, Department of Civil Engineering, University of Toronto
 
     This file is part of the TMG Toolbox.
 
@@ -17,11 +17,15 @@
     along with the TMG Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from symbol import parameters
+#from symbol import parameters
+import sys
+import inro
 import inro.modeller as _m
 import multiprocessing
 import traceback as _traceback
 from contextlib import contextmanager
+from typing import  TypeAlias, TypedDict
+from typing import Any, ContextManager
 
 _m.TupleType = object
 _m.ListType = list
@@ -47,6 +51,34 @@ network_calculation_tool = _MODELLER.tool("inro.emme.network_calculation.network
 traffic_assignment_tool = _MODELLER.tool("inro.emme.traffic_assignment.sola_traffic_assignment")
 extra_parameter_tool = _MODELLER.tool("inro.emme.traffic_assignment.set_extra_function_parameters")
 
+# alias for the Scenario type hints.
+Scenario: TypeAlias = inro.emme.database.scenario.Scenario
+Network: TypeAlias = inro.emme.network.Network
+Node: TypeAlias = inro.emme.network.node.Node
+
+class ParametersParams(TypedDict):
+    """
+    Configuration parameters for the tool.
+    """
+    create_gate_attribute: bool
+    i_subarea_link_selection: str
+    j_subarea_link_selection: str
+    scenario_number: int
+    shape_file_location: str
+    subarea_output_folder: str
+    create_nflag_from_shapefile: bool
+    subarea_node_attribute: str
+    subarea_gate_attribute: str
+    background_transit: bool
+    br_gap: int
+    iterations: int
+    norm_gap: int
+    performance_flag: bool
+    r_gap: int
+    run_title: str
+    sola_flag: bool
+    mixed_use_ttf_ranges: list[dict[str, int]]
+    traffic_classes: list[dict]
 
 class ExportSubarea(_m.Tool()):
     version = "1.0.0"
@@ -68,23 +100,23 @@ class ExportSubarea(_m.Tool()):
         )
         return pb.render()
 
-    def __call__(self, parameters):
+    def __call__(self, parameters: ParametersParams) -> None:
         scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def run_xtmf(self, parameters):
-        scenario = _util.load_scenario(parameters["scenario_number"])
+    def run_xtmf(self, parameters: ParametersParams) -> None:
+        scenario: Scenario = _util.load_scenario(parameters["scenario_number"])
         try:
             self._execute(scenario, parameters)
         except Exception as e:
             raise Exception(_util.format_reverse_stack())
 
-    def _execute(self, scenario, parameters):
-        load_input_matrix_list = self._traffic_util.load_input_matrices(parameters, "demand_matrix")
-        load_output_matrix_dict = self._traffic_util.load_output_matrices(
+    def _execute(self, scenario: Scenario, parameters: ParametersParams) -> None:
+        load_input_matrix_list: list[fullmatrix] = self._traffic_util.load_input_matrices(parameters, "demand_matrix")
+        load_output_matrix_dict: dict = self._traffic_util.load_output_matrices(
             parameters,
             matrix_name=["cost_matrix", "time_matrix", "toll_matrix"],
         )
@@ -94,26 +126,26 @@ class ExportSubarea(_m.Tool()):
         ):
             self._tracker.reset()
             with _util.temporary_matrix_manager() as temp_matrix_list:
-                demand_matrix_list = self._traffic_util.init_input_matrices(load_input_matrix_list, temp_matrix_list)
-                cost_matrix_list = self._traffic_util.init_output_matrices(
+                demand_matrix_list: list = self._traffic_util.init_input_matrices(load_input_matrix_list, temp_matrix_list)
+                cost_matrix_list: list = self._traffic_util.init_output_matrices(
                     load_output_matrix_dict,
                     temp_matrix_list,
                     matrix_name="cost_matrix",
                     description="",
                 )
-                time_matrix_list = self._traffic_util.init_output_matrices(
+                time_matrix_list: list = self._traffic_util.init_output_matrices(
                     load_output_matrix_dict,
                     temp_matrix_list,
                     matrix_name="time_matrix",
                     description="",
                 )
-                toll_matrix_list = self._traffic_util.init_output_matrices(
+                toll_matrix_list: list = self._traffic_util.init_output_matrices(
                     load_output_matrix_dict,
                     temp_matrix_list,
                     matrix_name="toll_matrix",
                     description="",
                 )
-                peak_hour_matrix_list = self._traffic_util.init_temp_peak_hour_matrix(parameters, temp_matrix_list)
+                peak_hour_matrix_list: list = self._traffic_util.init_temp_peak_hour_matrix(parameters, temp_matrix_list)
                 self._tracker.complete_subtask()
 
                 with _util.temporary_attribute_manager(scenario) as temp_attribute_list:
@@ -179,7 +211,7 @@ class ExportSubarea(_m.Tool()):
                                 self._tag_subarea_centroids(scenario, parameters)
                             if parameters["create_nflag_from_shapefile"]:
                                 self._create_subarea_extra_attribute(scenario, "NODE", parameters["subarea_node_attribute"])
-                                network = scenario.get_network()
+                                network: Network = scenario.get_network()
                                 subarea_nodes = self._load_shape_file(network, parameters["shape_file_location"])
                                 node_attribute = parameters["subarea_node_attribute"]
                                 for node in subarea_nodes:
@@ -196,21 +228,21 @@ class ExportSubarea(_m.Tool()):
                                 scenario=scenario,
                             )
 
-    def _create_subarea_extra_attribute(self, scenario, attrib_type, attrib_id):
+    def _create_subarea_extra_attribute(self, scenario: Scenario, attrib_type: str, attrib_id: str) -> None:
         if scenario.extra_attribute(attrib_id) is None:
             scenario.create_extra_attribute(
                 attrib_type,
                 attrib_id,
             )
 
-    def _tag_subarea_centroids(self, scenario, parameters):
-        i_spec = {
+    def _tag_subarea_centroids(self, scenario: Scenario, parameters: ParametersParams) -> None:
+        i_spec:dict = {
             "type": "NETWORK_CALCULATION",
             "result": "@gate",
             "expression": "i",
             "selections": {"link": parameters["i_subarea_link_selection"]},
         }
-        j_spec = {
+        j_spec: dict = {
             "type": "NETWORK_CALCULATION",
             "result": "@gate",
             "expression": "-j",
@@ -218,9 +250,9 @@ class ExportSubarea(_m.Tool()):
         }
         network_calc_tool([i_spec, j_spec], scenario=scenario)
 
-    def _load_shape_file(self, network, shape_file_location):
+    def _load_shape_file(self, network: Network, shape_file_location: str) -> list[Node]:
         with shapely_to_esri(shape_file_location, mode="read") as reader:
-            if int(reader._size) != 1:
+            if int(reader._size) != 1:    
                 raise Exception("Shapefile has invalid number of features. There should only be one 1 polygon in the shapefile")
             subarea_nodes = []
             for node in network.nodes():

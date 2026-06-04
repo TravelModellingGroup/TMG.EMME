@@ -17,11 +17,6 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using TMG.Emme;
 using XTMF2;
 
 namespace TMG.Emme.Export;
@@ -84,6 +79,7 @@ public class ExportSubarea : BaseAction<ModellerController>
     [Parameter(Name = "r Gap", DefaultValue = "0", Description = "The minimum gap required to terminate the algorithm.",
         Index = 13)]
     public IFunction<float> rGap;
+
 
     [Parameter(Name = "Run Title", DefaultValue = "road assignment", Description = "The name of the run to appear in the logbook.",
         Index = 14)]
