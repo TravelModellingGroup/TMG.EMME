@@ -37,7 +37,6 @@ import inro.modeller as _m
 from copy import copy
 _MODELLER = _m.Modeller()
 _util = _MODELLER.module("tmg2.utilities.general_utilities")
-_geometry = _MODELLER.module('tmg.common.geometry')
 
 class Face(_m.Tool()):
     def page(self):
