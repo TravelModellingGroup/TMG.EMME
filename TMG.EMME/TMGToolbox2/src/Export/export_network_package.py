@@ -280,6 +280,13 @@ class ExportNetworkPackage(_m.Tool()):
         aux_transit.to_csv(aux_transit_filepath)
         zf.write(aux_transit_filepath, arcname=_path.basename(aux_transit_filepath))
 
+        initial_and_final_boardings_path = _path.join(temp_folder, 'initial_and_final_boardings.csv')
+        result_attributes = ['initial_boardings', 'final_alightings']
+        aux_transit = _pdu.load_node_dataframe(self.Scenario)[result_attributes]
+        aux_transit.to_csv(initial_and_final_boardings_path)
+        zf.write(initial_and_final_boardings_path, arcname=path.basename(initial_and_final_boardings_path))
+
+
     @contextmanager
     def _temp_file(self) -> str:
         foldername = _tempfile.mkdtemp()
