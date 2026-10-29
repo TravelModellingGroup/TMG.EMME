@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <version number="1.1" />
+
+  <fare_rules>
+    <!--TTC (Toronto Transit Commission)-->
+    <fare cost="2.50" type="initial_boarding">
+    	<group>Regular Bus</group>
+    </fare>
+    <fare cost="5.00" type="initial_boarding">
+    	<group>Premium Bus</group>
+    </fare>
+    <fare cost="-2.50" type="transfer">
+    	<from_group>Regular Bus</from_group>
+    	<to_group>Premium Bus</to_group>
+    	<bidirectional>True</bidirectional>
+    </fare>
+    
+    <!-- GO Transit Fares -->
+    <fare cost="5.00" type="initial_boarding">
+    	<group>Rail</group>
+    </fare>
+    <fare cost="0.15" type="distance_in_vehicle">
+    	<group>Rail</group>
+    </fare>
+  </fare_rules>
+</root>

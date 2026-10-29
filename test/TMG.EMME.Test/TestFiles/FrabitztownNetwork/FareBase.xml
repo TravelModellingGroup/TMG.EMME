@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <version number="1.1" />
+
+  <groups>
+    <group id="Regular Bus">
+    	<selection>line=B_____</selection>
+    </group>
+    <group id="Premium Bus">
+    	<selection>line=B007_</selection>
+    </group>
+    <group id="Rail">
+    	<selection>line=R_____</selection>
+    </group>
+  </groups>
+
+ 
+  <station_groups>
+  	<station_group for="Rail" selection="i=9000,9100"/>
+  </station_groups>
+  
+</root>
