@@ -12,24 +12,80 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
-    <PackageReference Include="MSTest.TestAdapter" Version="2.2.8" />
-    <PackageReference Include="MSTest.TestFramework" Version="2.2.8" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="4.1.0" />
+    <PackageReference Include="MSTest.TestFramework" Version="4.1.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\TMG-Framework\TMG-Framework\src\TMG-Framework\TMG-Framework.csproj" />
-    <ProjectReference Include="..\..\TMG-Framework\XTMF2\src\XTMF2.Interfaces\XTMF2.Interfaces.csproj" />
-    <ProjectReference Include="..\..\TMG-Framework\XTMF2\src\XTMF2.Run\XTMF2.Run.csproj" />
-    <ProjectReference Include="..\..\TMG-Framework\XTMF2\src\XTMF2\XTMF2.csproj" />
-    <ProjectReference Include="..\TMG.EMME\TMG.Emme.csproj" />
+    <ProjectReference Include="..\..\src\TMG.EMME\TMG.Emme.csproj" />
   </ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="XTMF2">
+			<HintPath>..\..\..\XTMF2-Dev\XTMF2.dll</HintPath>
+		</Reference>
+		<Reference Include="XTMF2.Interfaces">
+			<HintPath>..\..\..\XTMF2-Dev\XTMF2.Interfaces.dll</HintPath>
+		</Reference>
+		<Reference Include="TMG-Framework">
+			<HintPath>..\..\..\XTMF2-Dev\Modules\TMG-Framework.dll</HintPath>
+		</Reference>
+	</ItemGroup>
 
   <ItemGroup>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="TestFiles\FrabitztownNetwork\Aggregation.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownNetwork\Alt File.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownNetwork\Batch Line Edit.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownNetwork\Fare Rules.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownNetwork\FareBase.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownNetwork\FareClass.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownNetwork\Service Table.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownNetwork\stsu.nwp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownNetwork\test.nwp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownShapefiles\frab_border.cpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownShapefiles\frab_border.dbf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownShapefiles\frab_border.prj">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownShapefiles\frab_border.sbn">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownShapefiles\frab_border.sbx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownShapefiles\frab_border.shp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\FrabitztownShapefiles\frab_border.shx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="TestFiles\FrabtiztownGTFS\calendar.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -52,6 +108,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestFiles\FrabtiztownGTFS\trips.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\stsu.nwp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestFiles\Test.mtx">

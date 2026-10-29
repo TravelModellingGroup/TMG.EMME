@@ -1,23 +1,31 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+	 <Nullable>enable</Nullable>
+	 <Authors>University of Toronto</Authors>
+	 <Company>University of Toronto</Company>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>TMG.Emme</RootNamespace>
+	<OutputPath>..\..\..\XTMF2-Dev\Modules\</OutputPath>
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.IO.Pipes" Version="4.3.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\TMG-Framework\TMG-Framework\src\TMG-Framework\TMG-Framework.csproj" />
-    <ProjectReference Include="..\..\TMG-Framework\XTMF2\src\XTMF2.Interfaces\XTMF2.Interfaces.csproj" />
-    <ProjectReference Include="..\..\TMG-Framework\XTMF2\src\XTMF2\XTMF2.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<Reference Include="XTMF2">
+			<HintPath>..\..\..\XTMF2-Dev\XTMF2.dll</HintPath>
+		</Reference>
+		<Reference Include="XTMF2.Interfaces">
+			<HintPath>..\..\..\XTMF2-Dev\XTMF2.Interfaces.dll</HintPath>
+		</Reference>
+		<Reference Include="TMG-Framework">
+			<HintPath>..\..\..\XTMF2-Dev\Modules\TMG-Framework.dll</HintPath>
+		</Reference>
+	</ItemGroup>
 
   <ItemGroup>
     <None Update="ModellerBridge.py">
