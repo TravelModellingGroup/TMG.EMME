@@ -13,16 +13,12 @@ for integrating into larger model systems.
 
 ### Requirements
 
-1. DotNet Core 3.0 SDK
-2. EMME version 4.4.2 or above.
+1. DotNet 10 SDK
+2. EMME 2025 or above.
 
 ### Clone the TMG.EMME repository
 
 > git clone https://github.com/TravelModellingGroup/TMG.EMME
-
-### Update Submodules
-
-> git submodule update --recursive --remote
 
 ### Building
 
@@ -71,21 +67,21 @@ The recommended database dimensions for the __DebugProject__ is shown below:
 | Component    | Dimension  |
 |----------|-------|
 | Scenarios | 5 |
-| Full matrices | 10 |
-| Centroids | 3750 |
-| Regular nodes | 43124 |
-| Links | 187500 |
+| Full matrices | 100 |
+| Centroids | 100 |
+| Regular nodes | 1000 |
+| Links | 20000 |
 | Transit vehicles | 30 |
-| Transit lines | 15000 |
-| Transit segments | 600000 |
-| Extra attribute values | 5000000 |
+| Transit lines | 100 |
+| Transit segments | 10000 |
+| Extra attribute values | 500000 |
 
-Upon succesfully creating the Emme project. click the modeller icon in Emme (the blue cube icon) and then upload the TMGToolbox2.
+Upon successfully creating the Emme project. click the modeller icon in Emme (the blue cube icon) and then upload the TMGToolbox2.
 Use the TMGToolbox2 tool import network and upload the Frabitztown network located in this repo called test.nwp. 
 
-Ensure the Emme system path is correct under your system environment varaibles and set the EMME system path to the following: 
+Ensure the Emme system path is correct under your system environment variables and set the EMME system path to the following: 
 ```
-C:\Program Files\Bentley\OpenPaths\EMME 25.00.00
+C:\Program Files\Bentley\OpenPaths\EMME 25.00.01
 ```
 You do need to sign-out or restart the machine for the path effect change to take effect. 
 
@@ -130,7 +126,7 @@ environment in Visual Studio.
 - Select *existing environment* tab/section
 - Under the section seelect **custom path, path to existing environment**
 - Then find and search for the Bentley Python path. The path is the following: 
-- ```C:\Program Files\Bentley\OpenPaths\EMME 25.00.00\Python311```
+- ```C:\Program Files\Bentley\OpenPaths\EMME 25.00.01\Python311```
 - click Add and your new python environment using the Bentley version of Python will be setup and ready to use.
 
 
