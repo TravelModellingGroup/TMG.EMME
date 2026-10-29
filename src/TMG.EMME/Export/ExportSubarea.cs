@@ -81,7 +81,6 @@ public class ExportSubarea : BaseAction<ModellerController>
         Index = 13)]
     public IFunction<float> rGap = null!;
 
-
     [Parameter(Name = "Run Title", DefaultValue = "road assignment", Description = "The name of the run to appear in the logbook.",
         Index = 14)]
     public IFunction<string> RunTitle = null!;
