@@ -44,6 +44,7 @@
     <Compile Include="src\Copy\copy_scenario.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="src\Delete\delete_extra_nodes.py" />
     <Compile Include="src\Delete\delete_scenario.py" />
     <Compile Include="src\Export\export_binary_matrix.py" />
     <Compile Include="src\Export\export_boarding_and_alighting.py" />

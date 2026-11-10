@@ -862,6 +862,7 @@ def _mergeLineSegments(network, line, segmentNumbersToRemove, segment_aggregator
     # only one segent will be remove from a line at a given time. This is
     # just to catch looped lines).
     segmentNumbersToRemove.sort(reverse=True)
+    attributes = network.attributes("TRANSIT_SEGMENT")
     for index2 in segmentNumbersToRemove:
         baseSegment1 = line.segment(index2 - 1)
         baseSegment2 = line.segment(index2)
@@ -869,16 +870,20 @@ def _mergeLineSegments(network, line, segmentNumbersToRemove, segment_aggregator
         proxy.segments.pop(index2)
         proxySegment = proxy.segments[index2 - 1]
 
-        for attName in network.attributes("TRANSIT_SEGMENT"):
-            if not attName in segment_aggregators:
-                func = __AVG
+        for attName in attributes:
+            if attName[0] == '#':
+                cast = str
+                func = __FIRST
             else:
-                func = segment_aggregators[attName]
+                if not attName in segment_aggregators:
+                    func = __AVG
+                else:
+                    func = segment_aggregators[attName]
 
-            if attName in __ATTRIBUTE_CASTS:
-                cast = __ATTRIBUTE_CASTS[attName]
-            else:
-                cast = float
+                if attName in __ATTRIBUTE_CASTS:
+                    cast = __ATTRIBUTE_CASTS[attName]
+                else:
+                    cast = float
 
             newVal = func(attName, baseSegment1, baseSegment2)
             proxySegment[attName] = cast(newVal)
