@@ -19,6 +19,7 @@
 */
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using TMG.Emme;
 
 namespace TMG.Emme.Test.Calculate;
 
@@ -36,7 +37,7 @@ public class CalculateNetworkAttributeTest : TestBase
             JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("scenario_number", ScenarioNumber);
-                writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.Link);
+                writer.WriteNumber("domain", (int)Domains.Link);
                 writer.WriteString("expression", "sqrt((xi - xj) ^ 2 + (yi - yj) ^ 2)");
                 writer.WriteString("node_selection", "all");
                 writer.WriteString("link_selection", "all");
@@ -52,7 +53,7 @@ public class CalculateNetworkAttributeTest : TestBase
         var module = new TMG.Emme.Calculate.CalculateNetworkAttribute()
         {
             ScenarioNumber = Helper.CreateParameter(ScenarioNumber),
-            Domain = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Domains.Link),
+            Domain = Helper.CreateParameter(Domains.Link),
             Expression = Helper.CreateParameter("sqrt((xi - xj) ^ 2 + (yi - yj) ^ 2)"),
             NodeSelection = Helper.CreateParameter("all"),
             LinkSelection = Helper.CreateParameter("all"),
@@ -71,7 +72,7 @@ public class CalculateNetworkAttributeTest : TestBase
             JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("scenario_number", ScenarioNumber);
-                writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.Node);
+                writer.WriteNumber("domain", (int)Domains.Node);
                 writer.WriteString("expression", "sqrt((xi) ^ 2 + (yi ) ^ 2)");
                 writer.WriteString("node_selection", "all");
                 writer.WriteString("link_selection", "all");
@@ -87,7 +88,7 @@ public class CalculateNetworkAttributeTest : TestBase
         var module = new TMG.Emme.Calculate.CalculateNetworkAttribute()
         {
             ScenarioNumber = Helper.CreateParameter(ScenarioNumber),
-            Domain = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Domains.Node),
+            Domain = Helper.CreateParameter(Domains.Node),
             Expression = Helper.CreateParameter("sqrt((xi) ^ 2 + (yi) ^ 2)"),
             NodeSelection = Helper.CreateParameter("all"),
             LinkSelection = Helper.CreateParameter("all"),
@@ -106,7 +107,7 @@ public class CalculateNetworkAttributeTest : TestBase
             JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("scenario_number", ScenarioNumber);
-                writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.TransitLine);
+                writer.WriteNumber("domain", (int)Domains.TransitLine);
                 writer.WriteString("expression", "ut1");
                 writer.WriteString("node_selection", "None");
                 writer.WriteString("link_selection", "None");
@@ -122,7 +123,7 @@ public class CalculateNetworkAttributeTest : TestBase
         var module = new TMG.Emme.Calculate.CalculateNetworkAttribute()
         {
             ScenarioNumber = Helper.CreateParameter(ScenarioNumber),
-            Domain = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Domains.TransitLine),
+            Domain = Helper.CreateParameter(Domains.TransitLine),
             Expression = Helper.CreateParameter("ut1"),
             NodeSelection = Helper.CreateParameter("None"),
             LinkSelection = Helper.CreateParameter("None"),
@@ -141,7 +142,7 @@ public class CalculateNetworkAttributeTest : TestBase
             JSONParameterBuilder.BuildParameters(writer =>
             {
                 writer.WriteNumber("scenario_number", ScenarioNumber);
-                writer.WriteNumber("domain", (int)Emme.Calculate.CalculateNetworkAttribute.Domains.TransitSegment);
+                writer.WriteNumber("domain", (int)Domains.TransitSegment);
                 writer.WriteString("expression", "sqrt((xi) ^ 2 + (yi ) ^ 2)");
                 writer.WriteString("node_selection", "None");
                 writer.WriteString("link_selection", "all");
@@ -157,7 +158,7 @@ public class CalculateNetworkAttributeTest : TestBase
         var module = new TMG.Emme.Calculate.CalculateNetworkAttribute()
         {
             ScenarioNumber = Helper.CreateParameter(ScenarioNumber),
-            Domain = Helper.CreateParameter(Emme.Calculate.CalculateNetworkAttribute.Domains.TransitSegment),
+            Domain = Helper.CreateParameter(Domains.TransitSegment),
             Expression = Helper.CreateParameter("sqrt((xi) ^ 2 + (yi ) ^ 2)"),
             NodeSelection = Helper.CreateParameter("None"),
             LinkSelection = Helper.CreateParameter("all"),
