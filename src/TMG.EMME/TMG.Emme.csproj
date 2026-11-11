@@ -31,6 +31,7 @@
     <None Update="ModellerBridge.py">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+	  <InternalsVisibleTo Include="TMG.EMME.Test" />
   </ItemGroup>
 
 </Project>
