@@ -222,7 +222,7 @@ public sealed class ModellerController : IDisposable
             string toPrint;
             while (true)
             {
-                using var reader = new BinaryReader(pipe, Encoding.Unicode, true);
+                using var reader = CreatePipeReader(pipe);
                 int result = reader.ReadInt32();
                 switch (result)
                 {
@@ -290,6 +290,11 @@ public sealed class ModellerController : IDisposable
         {
             throw new XTMFRuntimeException(caller, "I/O Connection with EMME ended while waiting for data, with:\r\n" + e.Message);
         }
+    }
+
+    internal static BinaryReader CreatePipeReader(Stream pipe)
+    {
+        return new BinaryReader(pipe, Encoding.UTF8, true);
     }
 
     /// <summary>

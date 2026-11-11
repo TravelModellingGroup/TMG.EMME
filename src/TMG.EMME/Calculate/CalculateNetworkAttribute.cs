@@ -25,32 +25,31 @@ namespace TMG.Emme.Calculate;
     DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
 public class CalculateNetworkAttribute : BaseAction<ModellerController>
 {
-    [Parameter(Name = "Scenario Number", Description = "Scenario to run",
-        Index = 0, DefaultValue = "0")]
-    public IFunction<int> ScenarioNumber;
+    [Parameter(Name = "Scenario Number", Description = "Scenario to run", Index = 0, DefaultValue = "0")]
+    public IFunction<int> ScenarioNumber = null!;
 
     [Parameter(Name = "Domain", Description = "The Emme domain type in the result. Options: Link, Node, Transit_Line, Transit_Segment",
         Index = 1, DefaultValue = "Link")]
-    public IFunction<Domains> Domain;
+    public IFunction<Domains> Domain = null!;
 
     [Parameter(Name = "Expression", Description = "The expression to compute. E.g. sqrt((xi - xj) ^ 2 + (yi - yj) ^ 2)",
         Index = 2, DefaultValue = "sqrt((xi - xj) ^ 2 + (yi - yj) ^ 2)")]
-    public IFunction<string> Expression;
+    public IFunction<string> Expression = null!;
 
     [Parameter(Name = "Node Selection", Description = "The nodes to include in the calculation. Default: all", Index = 3, DefaultValue = "all")]
-    public IFunction<string> NodeSelection;
+    public IFunction<string> NodeSelection = null!;
 
     [Parameter(Name = "Link Selection", Description = "The links to include in the calculation. Default: all", Index = 4, DefaultValue = "all")]
-    public IFunction<string> LinkSelection;
+    public IFunction<string> LinkSelection = null!;
 
     [Parameter(Name = "Transit Line Selection", Description = "The transit lines to include in the calculation. Default: all", Index = 5, DefaultValue = "all")]
-    public IFunction<string> TransitLineSelection;
+    public IFunction<string> TransitLineSelection = null!;
 
     [Parameter(Name = "Result", Description = "The attributes to save the result into, leave blank to not save", Index = 6)]
-    public IFunction<string> Result;
+    public IFunction<string> Result = null!;
 
     [Parameter(Name = "Aggregation", Description = "The aggregation value", Index = 7, DefaultValue = "0")]
-    public IFunction<Aggregations> Aggregation;
+    public IFunction<Aggregations> Aggregation = null!;
 
     public override void Invoke(ModellerController context)
     {

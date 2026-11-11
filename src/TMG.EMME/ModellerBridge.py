@@ -180,79 +180,63 @@ class XTMFBridge:
         return self.Modeller.tool(toolName)
     
     def SendString(self, stringToSend):
-        msg = array.array('u', six.text_type(stringToSend))
-        length = len(msg) * msg.itemsize
-        tempLength = length
-        bytes = 0
-        #figure out how many bytes we are going to need to store the length
-        #string
-        while tempLength > 0:
-            tempLength = tempLength >> 7
-            bytes += 1
-        lengthArray = array.array('B')
-        if length <= 0:
-            lengthArray.append(0)
-        else:
-            tempLength = length
-            for i in range(bytes):
-                current = int(tempLength >> 7)
-                current = int(current << 7)
-                diff = tempLength - current
-                if tempLength < 128:
-                    lengthArray.append(diff)
-                else:
-                    lengthArray.append(diff + 128)
-                tempLength = tempLength >> 7
-        lengthArray.tofile(self.XTMFPipe)
-        msg.tofile(self.XTMFPipe)
+        msg = six.text_type(stringToSend).encode('utf-8')
+        length = len(msg)
+        lengthArray = bytearray()
+        while length >= 128:
+            lengthArray.append((length & 127) | 128)
+            length >>= 7
+        lengthArray.append(length)
+
+        for data in (lengthArray, msg):
+            offset = 0
+            while offset < len(data):
+                written = self.XTMFPipe.write(data[offset:])
+                if written is None or written <= 0:
+                    raise IOError("Unable to write the complete message to the XTMF pipe.")
+                offset += written
+        self.XTMFPipe.flush()
         return
     
     def SendToolDoesNotExistError(self, namespace):
-        self.IOLock.acquire()
-        self.SendSignal(self.SignalSendToolDoesNotExistsError)
-        self.SendString("A tool with the following namespace could not be found: %s" % namespace)
-        self.IOLock.release()
+        with self.IOLock:
+            self.SendSignal(self.SignalSendToolDoesNotExistsError)
+            self.SendString("A tool with the following namespace could not be found: %s" % namespace)
         return
 
     def SendIncompatibleTool(self, namespace):
-        self.IOLock.acquire()
-        self.SendSignal(self.SignalIncompatibleTool)
-        self.SendString("The tool with the following namespace did not have an entry point for XTMF2: %s" % namespace)
-        self.IOLock.release()
+        with self.IOLock:
+            self.SendSignal(self.SignalIncompatibleTool)
+            self.SendString("The tool with the following namespace did not have an entry point for XTMF2: %s" % namespace)
 
     def SendParameterError(self, problem):
-        self.IOLock.acquire()
-        self.SendSignal(self.SignalParameterError)
-        self.SendString(problem)
-        self.IOLock.release()
+        with self.IOLock:
+            self.SendSignal(self.SignalParameterError)
+            self.SendString(problem)
         return
         
     def SendRuntimeError(self, problem):
-        self.IOLock.acquire()
-        self.SendSignal(self.SignalRuntimeError)
-        self.SendString(problem)
-        self.IOLock.release()
+        with self.IOLock:
+            self.SendSignal(self.SignalRuntimeError)
+            self.SendString(problem)
         return
     
     def SendSuccess(self):
-        self.IOLock.acquire()
-        intArray = array.array('l')
-        intArray.append(self.SignalRunComplete)
-        intArray.tofile(self.XTMFPipe)
-        self.IOLock.release()
+        with self.IOLock:
+            intArray = array.array('l')
+            intArray.append(self.SignalRunComplete)
+            intArray.tofile(self.XTMFPipe)
         return
     
     def SendReturnSuccess(self, returnValue):
-        self.IOLock.acquire()
-        self.SendSignal(self.SignalRunCompleteWithParameter)
-        self.SendString(str(returnValue))
-        self.IOLock.release()
+        with self.IOLock:
+            self.SendSignal(self.SignalRunCompleteWithParameter)
+            self.SendString(str(returnValue))
         return
 
     def SignalToolExists(self):
-        self.IOLock.acquire()
-        self.SendSignal(self.SignalCheckToolExists)
-        self.IOLock.release()
+        with self.IOLock:
+            self.SendSignal(self.SignalCheckToolExists)
         return
     
     def SendSignal(self, signal):
@@ -262,19 +246,17 @@ class XTMFBridge:
         return
     
     def SendPrintSignal(self, stringToPrint):
-        self.IOLock.acquire()
-        self.SendSignal(self.SignalSendPrintMessage)
-        self.SendString(stringToPrint)
-        self.IOLock.release()
+        with self.IOLock:
+            self.SendSignal(self.SignalSendPrintMessage)
+            self.SendString(stringToPrint)
         return
 
     def ReportProgress(self, progress):
-        self.IOLock.acquire()
-        self.SendSignal(self.SignalProgressReport)
-        floatArray = array.array('f')
-        floatArray.append(float(progress))
-        floatArray.tofile(self.XTMFPipe)
-        self.IOLock.release()   
+        with self.IOLock:
+            self.SendSignal(self.SignalProgressReport)
+            floatArray = array.array('f')
+            floatArray.append(float(progress))
+            floatArray.tofile(self.XTMFPipe)
         return
 
     def EnsureModellerToolExists(self, macroName):
@@ -358,7 +340,6 @@ class XTMFBridge:
             for file, line, func, text in stackList:
                 msg += "\n  File '%s', line %s, in %s" % (file, line, func)
             self.SendRuntimeError(msg)
-            print (msg)
         return
 
     def SwitchToDatabank(self, emmeApplication, databankName):
