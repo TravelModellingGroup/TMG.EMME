@@ -18,6 +18,7 @@
 */
 
 using XTMF2;
+using TMG.Emme;
 
 namespace TMG.Emme.Calculate;
 
@@ -66,11 +67,6 @@ public class CalculateNetworkAttribute : BaseAction<ModellerController>
         }), LogbookLevel.Standard);
 
     }
-    public enum Domains
-    {
-        Link = 0, Node = 1, TransitLine = 2, TransitSegment = 3
-    }
-
     public enum Aggregations
     {
         Default = 0,
