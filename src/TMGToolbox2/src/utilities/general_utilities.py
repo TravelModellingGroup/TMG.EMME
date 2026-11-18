@@ -931,10 +931,9 @@ class assign_traffic_util:
 
     def create_time_attribute_list(self, scenario, demand_matrix_list, temp_attribute_list):
         time_attribute_list = []
-        time_attribute = create_temp_attribute(scenario, "ltime", "LINK", default_value=0.0, assignment_type="traffic")
-        time_attribute_list = len(demand_matrix_list) * [time_attribute]
-        for att in time_attribute_list:
-            temp_attribute_list.append(att)
+        for i in range(len(demand_matrix_list)):
+            time_attribute = create_temp_attribute(scenario, "ltime", "LINK", default_value=0.0, assignment_type="traffic")
+            time_attribute_list.append(time_attribute)
         return time_attribute_list
 
     def create_cost_attribute_list(self, scenario, demand_matrix_list, temp_attribute_list):
@@ -950,13 +949,11 @@ class assign_traffic_util:
         return cost_attribute_list
 
     def create_transit_traffic_attribute_list(self, scenario, demand_matrix_list, temp_attribute_list):
-        t_traffic_attribute = create_temp_attribute(
+        background_transit_attribute = create_temp_attribute(
             scenario, "tvph", "LINK", default_value=0.0, assignment_type="traffic"
         )
-        transit_traffic_attribute_list = len(demand_matrix_list) * [t_traffic_attribute]
-        for att in transit_traffic_attribute_list:
-            temp_attribute_list.append(att)
-        return transit_traffic_attribute_list
+        temp_attribute_list.append(background_transit_attribute)
+        return temp_attribute_list
 
     def create_volume_attribute(self, scenario, volume_attribute):
         volume_attribute_at = scenario.extra_attribute(volume_attribute)

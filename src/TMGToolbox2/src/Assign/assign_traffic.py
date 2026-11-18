@@ -67,7 +67,7 @@ Scenario: TypeAlias = inro.emme.database.scenario.Scenario
 
 class PathAnalysisParams(TypedDict):
     """
-    Paramters for the path analysis string input parameter
+    Parameters for the path analysis string input parameter
     """
     attribute_id: str 
     aggregation_matrix: str 
@@ -83,7 +83,7 @@ class PathAnalysisParams(TypedDict):
 
 class TrafficClassesParams(TypedDict):
     """
-    Parameters for the traffic classes string input paramter
+    Parameters for the traffic classes string input parameter
     """
     name: str 
     mode: str 
@@ -245,6 +245,10 @@ class AssignTraffic(_m.Tool()):
                         self.number_of_processors,
                     )
                     self._tracker.complete_subtask()
+
+                    # TODO: We should redo how we generate SOLA specs to avoid lots of lists and just rely on the parameters dict.
+                    (
+                        )
 
                     # Assign traffic to road network
                     with _m.logbook_trace("Running Road Assignments."):

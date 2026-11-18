@@ -41,14 +41,13 @@ public sealed class CreateExtraAttributes : BaseAction<ModellerController>
 
     [Module(Name = "Extra Attribute", Description = "Defines an EMME extra attribute.",
         DocumentationLink = "http://tmg.utoronto.ca/doc/2.0")]
-    public sealed class AttributeDefinition : IModule
+    public sealed class AttributeDefinition : BaseFunction<AttributeDefinition>
     {
         [Parameter(DefaultValue = "@attribute", Index = 0, Name = "Attribute ID",
             Description = "The ID of the extra attribute.")]
         public IFunction<string> Id = null!;
 
-        [Parameter(DefaultValue = "LINK", Index = 1, Name = "Domain",
-            Description = "The EMME domain for the extra attribute.")]
+        [Parameter(DefaultValue = "Link", Index = 1, Name = "Domain", Description = "The EMME domain for the extra attribute.")]
         public IFunction<Domains> Domain = null!;
 
         [Parameter(DefaultValue = "0.0", Index = 2, Name = "Default Value",
@@ -59,13 +58,6 @@ public sealed class CreateExtraAttributes : BaseAction<ModellerController>
             Description = "Initialize an existing attribute of the same domain to the default value.")]
         public IFunction<bool> ResetToDefault = null!;
 
-        public string? Name { get; set; }
-
-        public bool RuntimeValidation(ref string? error)
-        {
-            return true;
-        }
-
         public void WriteParameters(System.Text.Json.Utf8JsonWriter writer)
         {
             writer.WriteStartObject();
@@ -74,6 +66,11 @@ public sealed class CreateExtraAttributes : BaseAction<ModellerController>
             writer.WriteNumber("default_value", DefaultValue.Invoke());
             writer.WriteBoolean("reset_to_default", ResetToDefault.Invoke());
             writer.WriteEndObject();
+        }
+
+        public override AttributeDefinition Invoke()
+        {
+            return this;
         }
     }
 }
