@@ -801,7 +801,7 @@ def getExtents(network):
 class assign_traffic_util:
     def load_atts(self, scenario, parameters, modeller_namespace):
         traffic_classes = parameters["traffic_classes"]
-        time_matrix_ids = [mtx["time_matrix"] for mtx in traffic_classes]
+        time_matrix_ids = ["mf" + str(mtx["time_matrix"]) for mtx in traffic_classes]
         peak_hr_factors = [str(phf["peak_hour_factor"]) for phf in traffic_classes]
         link_costs = [str(lc["link_cost"]) for lc in traffic_classes]
         atts = {
@@ -834,19 +834,18 @@ class assign_traffic_util:
         Load input matrices creates and returns a list of (input) matrices based on matrix_name supplied.
         E.g of matrix_name: "demand_matrix", matrix_id: "mf2"
         """
-
-        def exception(mtx_id):
-            raise Exception("Matrix %s was not found!" % mtx_id)
-
         traffic_classes = parameters["traffic_classes"]
         mtx_name = matrix_name
 
-        mtx_list = [
-            _bank.matrix(tc[mtx_name])
-            if tc[mtx_name] == "mf0" or _bank.matrix(tc[mtx_name]).id == tc[mtx_name]
-            else exception(tc[mtx_name])
-            for tc in traffic_classes
-        ]
+        mtx_list = []
+        for tc in traffic_classes:
+            number = tc[mtx_name]
+            matrx_name = "mf" + str(number)
+            matrix = _bank.matrix(matrx_name)
+            if matrix is None:
+                raise Exception("Matrix %s was not found!" % matrix_name)
+            mtx_list.append(matrix)    
+            
         return mtx_list
 
     def load_attribute_list(self, parameters, demand_matrix_list):
@@ -1106,7 +1105,7 @@ class assign_traffic_util:
                                 "path_value": multiply_path_value[i][j],
                             },
                         },
-                        "results": {"od_values": matrix_list[i][j]},
+                        "results": {"od_values": ("mf" + str(matrix_list[i][j]) if matrix_list[i][j] > 0 else None) },
                         "analyzed_demand": None,
                     }
                     SOLA_path_analysis[i].append(path)

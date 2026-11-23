@@ -40,10 +40,10 @@ public class ExportBoardingAndAlightingTest : TestBase
         }
         Helper.ImportFrabitztownNetwork(ScenarioNumber);
         Helper.ImportBinaryMatrix(ScenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
-        Helper.RunAssignTraffic(ScenarioNumber, "mf10", 11);
+        Helper.RunAssignTraffic(ScenarioNumber, 10, 11);
         Helper.ImportBinaryMatrix(ScenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
         Helper.RunAssignBoardingPenalty([ScenarioNumber]);
-        Helper.RunAssignTransit(ScenarioNumber, "mf10");
+        Helper.RunAssignTransit(ScenarioNumber, 10);
     }
 
     [TestMethod]

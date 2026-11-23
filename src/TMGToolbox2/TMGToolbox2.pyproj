@@ -79,6 +79,7 @@
     <Folder Include="src\Convert\" />
     <Folder Include="src\Copy\" />
     <Folder Include="src\Generate\" />
+    <Folder Include="src\Set\" />
     <Folder Include="src\Process\" />
     <Folder Include="src\Process\Transit\" />
     <Folder Include="src\Process\Road\" />
@@ -87,6 +88,7 @@
   <ItemGroup>
     <Content Include="Build Consolidated Toolbox.bat" />
     <Content Include="Build Toolbox.bat" />
+    <Content Include="src\Set\set_screen_line.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>

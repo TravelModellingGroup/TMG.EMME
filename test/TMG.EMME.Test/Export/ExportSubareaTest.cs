@@ -36,10 +36,10 @@ public class ExportSubareaTest : TestBase
     {
         Helper.ImportFrabitztownNetwork(ScenarioNumber);
         Helper.ImportBinaryMatrix(ScenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
-        Helper.RunAssignTraffic(ScenarioNumber, "mf10", 11);
+        Helper.RunAssignTraffic(ScenarioNumber, 10, 11);
         Helper.ImportBinaryMatrix(ScenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
         Helper.RunAssignBoardingPenalty(new[] { ScenarioNumber });
-        Helper.RunAssignTransit(ScenarioNumber, "mf10");
+        Helper.RunAssignTransit(ScenarioNumber, 10);
     }
 
     [TestMethod]
@@ -80,10 +80,10 @@ public class ExportSubareaTest : TestBase
                 writer.WriteStartObject();
                 writer.WriteString("name", "traffic class 1");
                 writer.WriteString("mode", "c");
-                writer.WriteString("demand_matrix", "mf10");
-                writer.WriteString("time_matrix", "mf0");
-                writer.WriteString("cost_matrix", "mf4");
-                writer.WriteString("toll_matrix", "mf0");
+                writer.WriteNumber("demand_matrix", 10);
+                writer.WriteNumber("time_matrix", 0);
+                writer.WriteNumber("cost_matrix", 4);
+                writer.WriteNumber("toll_matrix", 0);
                 writer.WriteNumber("peak_hour_factor", 1);
                 writer.WriteString("volume_attribute", "@auto_volume1");
                 writer.WriteString("link_toll_attribute", " @toll");
@@ -91,16 +91,15 @@ public class ExportSubareaTest : TestBase
                 writer.WriteNumber("link_cost", 0.0);
                 writer.WriteStartArray("path_analyses");
                 writer.WriteStartObject();
-                writer.WriteString("attribute_id", "1");
-                writer.WriteString("aggregation_matrix", "");
+                writer.WriteString("attribute_id", "@auto_volume1");
+                writer.WriteNumber("aggregation_matrix", 0);
                 writer.WriteString("aggregation_operator", "max");
                 writer.WriteString("lower_bound", "7");
                 writer.WriteString("upper_bound", "7");
                 writer.WriteString("path_selection", "all");
-                writer.WriteString("multiply_path_prop_by_demand", "7");
-                writer.WriteString("multiply_path_prop_by_value", "7");
-                writer.WriteString("analysis_attributes", "");
-                writer.WriteString("analysis_attributes_matrix", "mf0");
+                writer.WriteNumber("multiply_path_prop_by_demand", 7);
+                writer.WriteNumber("multiply_path_prop_by_value", 7);
+                writer.WriteNumber("analysis_attributes_matrix", 0);
                 writer.WriteEndObject();
                 writer.WriteEndArray();
                 writer.WriteEndObject();
@@ -140,10 +139,10 @@ public class ExportSubareaTest : TestBase
                 {
                     Name = "c",
                     Mode = Helper.CreateParameter('c'),
-                    DemandMatrixNumber = Helper.CreateParameter("mf10"),
-                    TimeMatrix = Helper.CreateParameter("mf0"),
-                    CostMatrix = Helper.CreateParameter("mf4"),
-                    TollMatrix = Helper.CreateParameter("mf0"),
+                    DemandMatrixNumber = Helper.CreateParameter(10),
+                    TimeMatrix = Helper.CreateParameter(0),
+                    CostMatrix = Helper.CreateParameter(4),
+                    TollMatrix = Helper.CreateParameter(0),
                     PeakHourFactor = Helper.CreateParameter(1.0f),
                     VolumeAttribute = Helper.CreateParameter("@auto_volume1"),
                     LinkTollAttribute = Helper.CreateParameter("@toll"),

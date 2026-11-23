@@ -79,19 +79,19 @@ public class AssignTraffic : BaseAction<ModellerController>
 
         [Parameter(Name = "Demand Matrix", DefaultValue = "0", Description = "The id of the demand matrix to use.",
             Index = 1)]
-        public IFunction<string> DemandMatrixNumber = null!;
+        public IFunction<int> DemandMatrixNumber = null!;
 
         [Parameter(Name = "Time Matrix", DefaultValue = "0", Description = "The matrix number to save in vehicle travel times",
             Index = 2)]
-        public IFunction<string> TimeMatrix = null!;
+        public IFunction<int> TimeMatrix = null!;
 
         [Parameter(Name = "Cost Matrix", DefaultValue = "0", Description = "The matrix number to save the total cost into.",
             Index = 3)]
-        public IFunction<string> CostMatrix = null!;
+        public IFunction<int> CostMatrix = null!;
 
         [Parameter(Name = "Toll Matrix", DefaultValue = "0", Description = "The matrix to save the toll costs into.",
             Index = 4)]
-        public IFunction<string> TollMatrix = null!;
+        public IFunction<int> TollMatrix = null!;
 
         [Parameter(Name = "Peak Hour Factor", DefaultValue = "1", Description = "A factor to apply to the demand in order to build a representative hour.",
             Index = 9)]
@@ -127,10 +127,10 @@ public class AssignTraffic : BaseAction<ModellerController>
             writer.WriteStartObject();
             writer.WriteString("name", Name);
             writer.WriteString("mode", Mode.Invoke().ToString());
-            writer.WriteString("demand_matrix", DemandMatrixNumber.Invoke());
-            writer.WriteString("time_matrix", TimeMatrix.Invoke());
-            writer.WriteString("cost_matrix", CostMatrix.Invoke());
-            writer.WriteString("toll_matrix", TollMatrix.Invoke());
+            writer.WriteNumber("demand_matrix", DemandMatrixNumber.Invoke());
+            writer.WriteNumber("time_matrix", TimeMatrix.Invoke());
+            writer.WriteNumber("cost_matrix", CostMatrix.Invoke());
+            writer.WriteNumber("toll_matrix", TollMatrix.Invoke());
             writer.WriteNumber("peak_hour_factor", PeakHourFactor.Invoke());
             writer.WriteString("volume_attribute", VolumeAttribute.Invoke());
             writer.WriteString("link_toll_attribute", LinkTollAttribute.Invoke());
@@ -156,7 +156,7 @@ public class AssignTraffic : BaseAction<ModellerController>
 
         [Parameter(Name = "Aggregation Matrix", DefaultValue = "0", Description = "The matrix number to store the results into",
             Index = 1)]
-        public IFunction<string> AggregationMatrix = null!;
+        public IFunction<int> AggregationMatrix = null!;
 
         [Parameter(Name = "Operator", DefaultValue = "+", Description = "The operator to use to aggregate the matrix. Example:'+' for emissions",
             Index = 2)]
@@ -164,11 +164,11 @@ public class AssignTraffic : BaseAction<ModellerController>
 
         [Parameter(Name = "Lower Bound for Path Selector", DefaultValue = "None", Description = "Lower Bound for Path Selector None The number to use for the lower bound in path selection",
             Index = 3)]
-        public IFunction<string> LowerBound = null!;
+        public IFunction<float> LowerBound = null!;
 
         [Parameter(Name = "Upper Bound for Path Selector", DefaultValue = "None", Description = "Upper Bound for Path Selector None The number to use for the upper bound in path selection",
             Index = 4)]
-        public IFunction<string> UpperBound = null!;
+        public IFunction<float> UpperBound = null!;
 
         [Parameter(Name = "Path Selection", DefaultValue = "ALL", Description = "The paths that will be used for analysis",
             Index = 5)]
@@ -176,19 +176,15 @@ public class AssignTraffic : BaseAction<ModellerController>
 
         [Parameter(Name = "Multiply Path Prop By Demand", DefaultValue = "true", Description = "Choose whether to multiply the path proportion by the analyzed demand",
             Index = 6)]
-        public IFunction<string> MultiplyPathPropByDemand = null!;
+        public IFunction<bool> MultiplyPathPropByDemand = null!;
 
         [Parameter(Name = "Multiply Path Prop By Value", DefaultValue = "true", Description = "Choose whether to multiply the path proportion by the path value",
             Index = 7)]
-        public IFunction<string> MultiplyPathPropByValue = null!;
+        public IFunction<bool> MultiplyPathPropByValue = null!;
 
-        [Parameter(Name = "Analysis Attributes", DefaultValue = "@auto_volume", Description = "The analysis attributes",
+        [Parameter(Name = "Analyzed Demand", DefaultValue = "0", Description = "The matrix containing the demand to be analyzed, leave 0 for it to be loaded from the current run.",
             Index = 8)]
-        public IFunction<string> AnalysisAttributes = null!;
-
-        [Parameter(Name = "Analysis Attributes Matrix Id", DefaultValue = "0", Description = "The matrix number to store the results into",
-            Index = 21)]
-        public IFunction<string> AnalysisAttributesMatrixId = null!;
+        public IFunction<int> AnalyzedDemand = null!;
 
         public override PathAnalysis Invoke()
         {
@@ -199,15 +195,14 @@ public class AssignTraffic : BaseAction<ModellerController>
         {
             writer.WriteStartObject();
             writer.WriteString("attribute_id", AttributeId.Invoke());
-            writer.WriteString("aggregation_matrix", AggregationMatrix.Invoke());
+            writer.WriteNumber("aggregation_matrix", AggregationMatrix.Invoke());
             writer.WriteString("aggregation_operator", AggregationOperator.Invoke());
-            writer.WriteString("lower_bound", LowerBound.Invoke());
-            writer.WriteString("upper_bound", UpperBound.Invoke());
+            writer.WriteNumber("lower_bound", LowerBound.Invoke());
+            writer.WriteNumber("upper_bound", UpperBound.Invoke());
             writer.WriteString("path_selection", PathSelection.Invoke());
-            writer.WriteString("multiply_path_prop_by_demand", MultiplyPathPropByDemand.Invoke());
-            writer.WriteString("multiply_path_prop_by_value", MultiplyPathPropByValue.Invoke());
-            writer.WriteString("analysis_attributes", AnalysisAttributes.Invoke());
-            writer.WriteString("analysis_attributes_matrix", AnalysisAttributesMatrixId.Invoke());
+            writer.WriteBoolean("multiply_path_prop_by_demand", MultiplyPathPropByDemand.Invoke());
+            writer.WriteBoolean("multiply_path_prop_by_value", MultiplyPathPropByValue.Invoke());
+            writer.WriteNumber("analyzed_demand", AnalyzedDemand.Invoke());
             writer.WriteEndObject();
         }
     }

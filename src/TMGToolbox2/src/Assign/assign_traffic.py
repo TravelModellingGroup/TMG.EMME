@@ -78,7 +78,7 @@ class PathAnalysisParams(TypedDict):
     multiply_path_prop_by_demand: str 
     multiply_path_prop_by_value: str
     analysis_attributes: str 
-    analysis_attributes_matrix: str
+    analyzed_demand: str
 
 
 class TrafficClassesParams(TypedDict):
@@ -182,6 +182,12 @@ class AssignTraffic(_m.Tool()):
             attributes=self._traffic_util.load_atts(scenario, parameters, self.__MODELLER_NAMESPACE__),
         ):
             self._tracker.reset()
+
+            # TODO: We should redo how we generate SOLA specs to avoid lots of lists and just rely on the parameters dict.
+            (attribute_list, matrix_list, operator_list, lower_bound_list,
+                        upper_bound_list, selected_list, multiply_path_demand_list, multiply_path_value_list) = \
+                        self.create_path_analysis_lists(scenario, parameters)
+
             with _util.temporary_matrix_manager() as temp_matrix_list:
                 demand_matrix_list = self._traffic_util.init_input_matrices(load_input_matrix_list, temp_matrix_list)
                 cost_matrix_list = self._traffic_util.init_output_matrices(
@@ -246,16 +252,14 @@ class AssignTraffic(_m.Tool()):
                     )
                     self._tracker.complete_subtask()
 
-                    # TODO: We should redo how we generate SOLA specs to avoid lots of lists and just rely on the parameters dict.
-                    (
-                        )
+                    
+                        
 
                     # Assign traffic to road network
                     with _m.logbook_trace("Running Road Assignments."):
                         completed_path_analysis = False
                         if completed_path_analysis is False:
                             attributes = self._traffic_util.load_attribute_list(parameters, demand_matrix_list)
-                            attribute_list = attributes[0]
                             volume_attribute_list = attributes[1]
                             mode_list = self._traffic_util.load_mode_list(parameters)
 
@@ -268,13 +272,13 @@ class AssignTraffic(_m.Tool()):
                                 cost_attribute_list,
                                 time_matrix_list,
                                 attribute_list,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
+                                matrix_list,
+                                operator_list,
+                                lower_bound_list,
+                                upper_bound_list,
+                                selected_list,
+                                multiply_path_demand_list,
+                                multiply_path_value_list,
                                 parameters,
                                 multiprocessing,
                             )
@@ -286,6 +290,57 @@ class AssignTraffic(_m.Tool()):
 
                         print("Primary assignment complete at %s iterations." % number)
                         print("Stopping criterion was %s with a value of %s." % (stopping_criterion, value))
+
+    def create_path_analysis_lists(self, scenario:Scenario, parameters: ParametersParams) -> tuple[list[str], list[str], list[float], list[float], list[str], list[str], list[str]]:
+        
+        # Each of these are lists of lists of path analysis parameters,
+        # There can be multiple Path analyses for each traffic class, so the format is list[class][analysis]
+        # If there are no path analyses for a traffic class, the list will be empty for that class.
+        attribute_list = []
+        matrix_list = []
+        operator_list = []
+        lower_bound_list = []
+        upper_bound_list = []
+        selected_list = []
+        multiply_path_demand_list = []
+        multiply_path_value_list = []
+
+        for tc in parameters["traffic_classes"]:
+            # Create a list for this class for each of the types
+            tc_attribute_list = []
+            tc_matrix_list = []
+            tc_operator_list = []
+            tc_lower_bound_list = []
+            tc_upper_bound_list = []
+            tc_selected_list = []
+            tc_multiply_path_demand_list = []
+            tc_multiply_path_value_list = []
+            for pa in tc["path_analyses"]:
+                matrix_name = "mf" + str(pa["aggregation_matrix"])
+                tc_attribute_list.append(pa["attribute_id"])
+                tc_matrix_list.append(pa["aggregation_matrix"])
+                tc_operator_list.append(pa["aggregation_operator"])
+                tc_lower_bound_list.append(pa["lower_bound"])
+                tc_upper_bound_list.append(pa["upper_bound"])
+                tc_selected_list.append(pa["path_selection"])
+                tc_multiply_path_demand_list.append(pa["multiply_path_prop_by_demand"])
+                tc_multiply_path_value_list.append(pa["multiply_path_prop_by_value"])
+
+                # Ensure that the matrices already exist
+                mtx = scenario.emmebank.matrix(matrix_name)
+                if mtx is None and matrix_name != "mf0":
+                    scenario.emmebank.create_matrix(matrix_name, 0.0)
+
+            attribute_list.append(tc_attribute_list)
+            matrix_list.append(tc_matrix_list)
+            operator_list.append(tc_operator_list)
+            lower_bound_list.append(tc_lower_bound_list)
+            upper_bound_list.append(tc_upper_bound_list)
+            selected_list.append(tc_selected_list)
+            multiply_path_demand_list.append(tc_multiply_path_demand_list)
+            multiply_path_value_list.append(tc_multiply_path_value_list)
+
+        return (attribute_list, matrix_list, operator_list, lower_bound_list, upper_bound_list, selected_list, multiply_path_demand_list, multiply_path_value_list)
 
     def _load_stopping_criteria(self, report: dict) -> tuple[int, str, int| str]:
         stopping_criterion: str = report["stopping_criterion"]
