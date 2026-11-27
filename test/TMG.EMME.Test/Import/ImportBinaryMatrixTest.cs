@@ -17,6 +17,8 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.IO.Compression;
 using System.IO;
 
 namespace TMG.Emme.Test.Import;
@@ -29,6 +31,32 @@ public class ImportBinaryMatrixTest : TestBase
     {
         Helper.ImportFrabitztownNetwork(1);
         Helper.ImportBinaryMatrix(1, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+    }
+
+    [TestMethod]
+    public void ImportBinaryMatrixCompressed()
+    {
+        Helper.ImportFrabitztownNetwork(1);
+        var sourceFile = Path.GetFullPath("TestFiles/Test.mtx");
+        var compressedFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".mtx.gz");
+        try
+        {
+            using (var source = File.OpenRead(sourceFile))
+            using (var destination = File.Create(compressedFile))
+            using (var gzip = new GZipStream(destination, CompressionLevel.Optimal))
+            {
+                source.CopyTo(gzip);
+            }
+
+            Helper.ImportBinaryMatrix(1, 10, compressedFile);
+        }
+        finally
+        {
+            if (File.Exists(compressedFile))
+            {
+                File.Delete(compressedFile);
+            }
+        }
     }
 
     [TestMethod]

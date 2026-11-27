@@ -46,6 +46,7 @@ from inro.emme.matrix import MatrixData as _matrix_data
 import shutil
 import os
 import gzip
+import tempfile
 from typing import TypeAlias, TypedDict
 
 _m.InstanceType = object
@@ -248,13 +249,17 @@ class ImportBinaryMatrix(_m.Tool()):
                     matrix.description = parameters["matrix_description"]
 
             if str(parameters["binary_matrix_file"])[-2:] == "gz":
-                new_file = "matrix.mtx"
-                with gzip.open(parameters["binary_matrix_file"], "rb") as zip_file, open(
-                    new_file, "wb"
-                ) as non_zip_file:
-                    shutil.copyfileobj(zip_file, non_zip_file)
-                data = _matrix_data.load(new_file)
-                os.remove(new_file)
+                file_descriptor, new_file = tempfile.mkstemp(suffix=".mtx")
+                os.close(file_descriptor)
+                try:
+                    with gzip.open(parameters["binary_matrix_file"], "rb") as zip_file, open(
+                        new_file, "wb"
+                    ) as non_zip_file:
+                        shutil.copyfileobj(zip_file, non_zip_file)
+                    data = _matrix_data.load(new_file)
+                finally:
+                    if os.path.exists(new_file):
+                        os.remove(new_file)
             else:
                 data = _matrix_data.load(parameters["binary_matrix_file"])
 
