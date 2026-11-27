@@ -117,7 +117,7 @@ public class AssignTransit : BaseAction<ModellerController>
     {
         [Parameter(Name = "Board Penalty Matrix", Description = "The ID of the FULL matrix in which to save the applied boarding penalties.  Enter mf0 to skip this matrix.",
             Index = 0)]
-        public IFunction<string> BoardPenaltyMatrix = null!;
+        public IFunction<int> BoardPenaltyMatrix = null!;
 
         [Parameter(Name = "Board Penalty Perception", Description = "Perception factor applied to boarding penalty component.",
             Index = 1)]
@@ -125,15 +125,15 @@ public class AssignTransit : BaseAction<ModellerController>
 
         [Parameter(Name = "Congestion Matrix", Description = "The ID of the FULL matrix in which to save transit congestion. Enter mf0 to skip saving this matrix",
             Index = 2)]
-        public IFunction<string> CongestionMatrix = null!;
+        public IFunction<int> CongestionMatrix = null!;
 
         [Parameter(Name = "Demand Matrix", Description = "The ID of the full matrix containing transit demand ODs",
             Index = 3)]
-        public IFunction<string> DemandMatrix = null!;
+        public IFunction<int> DemandMatrix = null!;
 
         [Parameter(Name = "Fare Matrix", Description = "The ID of the FULL matrix in which to save transit fares. Enter mf0 to skip saving this matrix",
             Index = 4)]
-        public IFunction<string> FareMatrix = null!;
+        public IFunction<int> FareMatrix = null!;
 
         [Parameter(Name = "Fare Perception", Description = "Perception factor applied to path transit fares, in $/hr.",
             Index = 5)]
@@ -141,11 +141,11 @@ public class AssignTransit : BaseAction<ModellerController>
 
         [Parameter(Name = "InVehicle Time Matrix", Description = "The ID of the FULL matrix in which to save in-vehicle travel time. Enter mf0 to skip saving this matrix",
             Index = 6)]
-        public IFunction<string> InVehicleTimeMatrix = null!;
+        public IFunction<int> InVehicleTimeMatrix = null!;
 
         [Parameter(Name = "Impedance Matrix", Description = "The ID of the FULL matrix in which to save the impedance.",
             Index = 25)]
-        public IFunction<string> ImpedanceMatrix = null!;
+        public IFunction<int> ImpedanceMatrix = null!;
 
         [Parameter(Name = "Link Fare Attribute Id", Description = "The ID of the LINK extra attribute containing actual fare costs.",
             Index = 7)]
@@ -157,7 +157,7 @@ public class AssignTransit : BaseAction<ModellerController>
 
         [Parameter(Name = " Perceived Travel Time Matrix", Description = "The ID of the FULL matrix in which to save the incurred penalties. Enter mf0 to skip saving this matrix",
             Index = 9)]
-        public IFunction<string> PerceivedTravelTimeMatrix = null!;
+        public IFunction<int> PerceivedTravelTimeMatrix = null!;
 
         [Parameter(Name = "Segment Fare Attribute Id", Description = "The ID of the SEGMENT extra attribute containing actual fare costs.",
             Index = 10)]
@@ -169,7 +169,7 @@ public class AssignTransit : BaseAction<ModellerController>
 
         [Parameter(Name = "Wait Time Matrix", Description = "The ID of the FULL matrix in which to save total waiting time. Enter mf0 to skip saving this matrix",
             Index = 12)]
-        public IFunction<string> WaitTimeMatrix = null!;
+        public IFunction<int> WaitTimeMatrix = null!;
 
         [Parameter(Name = "Walk Time Perception Attribute Id", Description = "The ID of the LINK extra attribute in which to store walk time perception. Should have a default value of 1.0.",
             Index = 13)]
@@ -177,7 +177,7 @@ public class AssignTransit : BaseAction<ModellerController>
 
         [Parameter(Name = "Walk Time Matrix", Description = "The ID of the FULL matrix in which to save total walk time. Enter mf0 to skip saving this matrix",
             Index = 14)]
-        public IFunction<string> WalkTimeMatrix = null!;
+        public IFunction<int> WalkTimeMatrix = null!;
 
         [SubModule(Name = "Walk Perceptions", Description = "Contains the walk perception values fo this multi-class assignment", 
             Index = 15, Required = false)]
@@ -194,22 +194,22 @@ public class AssignTransit : BaseAction<ModellerController>
         {
             writer.WriteStartObject();
             writer.WriteString("name", Name);
-            writer.WriteString("board_penalty_matrix", BoardPenaltyMatrix.Invoke());
+            writer.WriteNumber("board_penalty_matrix", BoardPenaltyMatrix.Invoke());
             writer.WriteNumber("board_penalty_perception", BoardingPenaltyPerception.Invoke());
-            writer.WriteString("congestion_matrix", CongestionMatrix.Invoke());
-            writer.WriteString("demand_matrix", DemandMatrix.Invoke());
-            writer.WriteString("fare_matrix", FareMatrix.Invoke());
+            writer.WriteNumber("congestion_matrix", CongestionMatrix.Invoke());
+            writer.WriteNumber("demand_matrix", DemandMatrix.Invoke());
+            writer.WriteNumber("fare_matrix", FareMatrix.Invoke());
             writer.WriteNumber("fare_perception", FarePerception.Invoke());
-            writer.WriteString("in_vehicle_time_matrix", InVehicleTimeMatrix.Invoke());
-            writer.WriteString("impedance_matrix", ImpedanceMatrix.Invoke());
+            writer.WriteNumber("in_vehicle_time_matrix", InVehicleTimeMatrix.Invoke());
+            writer.WriteNumber("impedance_matrix", ImpedanceMatrix.Invoke());
             writer.WriteString("link_fare_attribute_id", LinkFareAttributeId.Invoke());
             writer.WriteString("mode", Mode.Invoke());
-            writer.WriteString("perceived_travel_time_matrix", PerceivedTravelTimeMatrix.Invoke());
+            writer.WriteNumber("perceived_travel_time_matrix", PerceivedTravelTimeMatrix.Invoke());
             writer.WriteString("segment_fare_attribute", SegmentFareAttributeId.Invoke());
             writer.WriteNumber("wait_time_perception", WaitTimePerception.Invoke());
-            writer.WriteString("wait_time_matrix", WaitTimeMatrix.Invoke());
+            writer.WriteNumber("wait_time_matrix", WaitTimeMatrix.Invoke());
             writer.WriteString("walk_time_perception_attribute", WalkTimePerceptionAttributeId.Invoke());
-            writer.WriteString("walk_time_matrix", WalkTimeMatrix.Invoke());
+            writer.WriteNumber("walk_time_matrix", WalkTimeMatrix.Invoke());
             writer.WriteStartArray("walk_perceptions");
             foreach (var walkPerceptions in WalkPerceptions)
             {

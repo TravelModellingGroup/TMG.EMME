@@ -305,7 +305,7 @@ class AssignTransit(_m.Tool()):
         for i in range(0, len(matrix_name)):
             mtx_dict[matrix_name[i]] = [transit_class[matrix_name[i]] for transit_class in transit_classes]
         for mtx_name, mtx_ids in mtx_dict.items():
-            mtx = [None if id == "mf0" else _bank.matrix(id) for id in mtx_ids]
+            mtx = [None if id == 0 else _bank.matrix("mf" + str(id)) for id in mtx_ids]
             mtx_dict[mtx_name] = mtx
         return mtx_dict
 
@@ -315,16 +315,17 @@ class AssignTransit(_m.Tool()):
         matrix_name supplied. E.g of matrix_name: "demand_matrix" and matrix_id: "mf2"
         """
 
-        def exception(mtx_id):
-            raise Exception("Matrix %s was not found!" % mtx_id)
-
         transit_classes: list[dict] = parameters["transit_classes"]
-        mtx_list = [
-            _bank.matrix(transit_class[matrix_name])
-            if transit_class[matrix_name] == "mf0" or _bank.matrix(transit_class[matrix_name]) is not None
-            else exception(transit_class[matrix_name])
-            for transit_class in transit_classes
-        ]
+        mtx_list = []
+        for transit_class in transit_classes:
+            mx_number = transit_class[matrix_name]
+            matrix = _bank.matrix("mf" + str(mx_number))
+            
+            if matrix is None:
+                raise Exception(
+                    "The input matrix %s for transit class %s is not defined!" % (matrix_name, transit_class["name"])
+                )
+            mtx_list.append(matrix)
         return mtx_list
 
     def _init_input_matrices(self, load_input_matrix_list: list, temp_matrix_list: list) -> list:
@@ -346,7 +347,7 @@ class AssignTransit(_m.Tool()):
         transit_classes: list[dict] = parameters["transit_classes"]
         for transit_class in transit_classes:
             matrix_id = transit_class["impedance_matrix"]
-            if matrix_id != "mf0":
+            if matrix_id != 0:
                 _util.initialize_matrix(
                     id=matrix_id,
                     description="Transit Perceived Travel times for %s" % transit_class["name"],

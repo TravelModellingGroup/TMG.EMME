@@ -49,22 +49,22 @@ public class AssignTransitTest : TestBase
                 writer.WriteStartArray("transit_classes");
                 writer.WriteStartObject();
                 writer.WriteString("name", "transit_class_1");
-                writer.WriteString("board_penalty_matrix", "mf0");
+                writer.WriteNumber("board_penalty_matrix", 0);
                 writer.WriteNumber("board_penalty_perception", 1.0f);
-                writer.WriteString("congestion_matrix", "mf0");
-                writer.WriteString("demand_matrix", "mf10");
-                writer.WriteString("fare_matrix", "mf0");
+                writer.WriteNumber("congestion_matrix", 0);
+                writer.WriteNumber("demand_matrix", 10);
+                writer.WriteNumber("fare_matrix", 0);
                 writer.WriteNumber("fare_perception", 20.0f);
-                writer.WriteString("in_vehicle_time_matrix", "mf0");
-                writer.WriteString("impedance_matrix", "mf0");
+                writer.WriteNumber("in_vehicle_time_matrix", 0);
+                writer.WriteNumber("impedance_matrix", 0);
                 writer.WriteString("link_fare_attribute_id", "@lfare");
                 writer.WriteString("mode", "*");
-                writer.WriteString("perceived_travel_time_matrix", "mf0");
+                writer.WriteNumber("perceived_travel_time_matrix", 0);
                 writer.WriteString("segment_fare_attribute", "@sfare");
                 writer.WriteNumber("wait_time_perception", 2.299f);
-                writer.WriteString("wait_time_matrix", "mf0");
+                writer.WriteNumber("wait_time_matrix", 0);
                 writer.WriteString("walk_time_perception_attribute", "@walkp");
-                writer.WriteString("walk_time_matrix", "mf0");
+                writer.WriteNumber("walk_time_matrix", 0);
                 writer.WriteStartArray("walk_perceptions");
                 writer.WriteStartObject();
                 writer.WriteString("filter", "i=1,999999");
@@ -156,22 +156,22 @@ public class AssignTransitTest : TestBase
             new Emme.Assign.AssignTransit.TransitClass()
             {
                 Name = "TransitClass1",
-                BoardPenaltyMatrix = Helper.CreateParameter("mf0"),
+                BoardPenaltyMatrix = Helper.CreateParameter(0),
                 BoardingPenaltyPerception = Helper.CreateParameter(1.0f),
-                CongestionMatrix = Helper.CreateParameter("mf0"),
-                DemandMatrix = Helper.CreateParameter("mf10"),
-                FareMatrix = Helper.CreateParameter("mf0"),
+                CongestionMatrix = Helper.CreateParameter(0),
+                DemandMatrix = Helper.CreateParameter(10),
+                FareMatrix = Helper.CreateParameter(0),
                 FarePerception = Helper.CreateParameter(20.0f),
-                InVehicleTimeMatrix = Helper.CreateParameter("mf0"),
-                ImpedanceMatrix = Helper.CreateParameter("mf0"),
+                InVehicleTimeMatrix = Helper.CreateParameter(0),
+                ImpedanceMatrix = Helper.CreateParameter(0),
                 LinkFareAttributeId = Helper.CreateParameter("@lfare"),
                 Mode = Helper.CreateParameter("*"),
-                PerceivedTravelTimeMatrix = Helper.CreateParameter("mf0"),
+                PerceivedTravelTimeMatrix = Helper.CreateParameter(0),
                 SegmentFareAttributeId = Helper.CreateParameter("@sfare"),
                 WaitTimePerception = Helper.CreateParameter(3.254213f),
-                WaitTimeMatrix = Helper.CreateParameter("mf0"),
+                WaitTimeMatrix = Helper.CreateParameter(0),
                 WalkTimePerceptionAttributeId = Helper.CreateParameter("@walkp"),
-                WalkTimeMatrix = Helper.CreateParameter("mf0"),
+                WalkTimeMatrix = Helper.CreateParameter(0),
                 WalkPerceptions =  Helper.CreateParameters(walkPerceptions),
             }
         };
@@ -246,7 +246,7 @@ public class AssignTransitTest : TestBase
         
         // Setup a road assignment
         Helper.ImportBinaryMatrix(ScenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
-        Helper.RunAssignTraffic(ScenarioNumber, "mf10", 11);
+        Helper.RunAssignTraffic(ScenarioNumber, 10, 11);
         
         Helper.ImportBinaryMatrix(ScenarioNumber, 10, Path.GetFullPath("TestFiles/Test0.25.mtx"));
         // Update Boarding Penalty

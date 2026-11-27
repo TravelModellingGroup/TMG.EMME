@@ -115,19 +115,19 @@ public class ExportSubarea : BaseAction<ModellerController>
 
         [Parameter(Name = "Demand Matrix", DefaultValue = "0", Description = "The id of the demand matrix to use.",
             Index = 1)]
-        public IFunction<string> DemandMatrixNumber = null!;
+        public IFunction<int> DemandMatrixNumber = null!;
 
         [Parameter(Name = "Time Matrix", DefaultValue = "0", Description = "The matrix number to save in vehicle travel times",
             Index = 2)]
-        public IFunction<string> TimeMatrix = null!;
+        public IFunction<int> TimeMatrix = null!;
 
         [Parameter(Name = "Cost Matrix", DefaultValue = "0", Description = "The matrix number to save the total cost into.",
             Index = 3)]
-        public IFunction<string> CostMatrix = null!;
+        public IFunction<int> CostMatrix = null!;
 
         [Parameter(Name = "Toll Matrix", DefaultValue = "0", Description = "The matrix to save the toll costs into.",
             Index = 4)]
-        public IFunction<string> TollMatrix = null!;
+        public IFunction<int> TollMatrix = null!;
 
         [Parameter(Name = "Peak Hour Factor", DefaultValue = "1", Description = "A factor to apply to the demand in order to build a representative hour.",
         Index = 10)]
@@ -165,10 +165,10 @@ public class ExportSubarea : BaseAction<ModellerController>
             writer.WriteStartObject();
             writer.WriteString("name", Name);
             writer.WriteString("mode", Mode.Invoke().ToString());
-            writer.WriteString("demand_matrix", DemandMatrixNumber.Invoke());
-            writer.WriteString("time_matrix", TimeMatrix.Invoke());
-            writer.WriteString("cost_matrix", CostMatrix.Invoke());
-            writer.WriteString("toll_matrix", TollMatrix.Invoke());
+            writer.WriteNumber("demand_matrix", DemandMatrixNumber.Invoke());
+            writer.WriteNumber("time_matrix", TimeMatrix.Invoke());
+            writer.WriteNumber("cost_matrix", CostMatrix.Invoke());
+            writer.WriteNumber("toll_matrix", TollMatrix.Invoke());
             writer.WriteNumber("peak_hour_factor", PeakHourFactor.Invoke());
             writer.WriteString("volume_attribute", VolumeAttribute.Invoke());
             writer.WriteString("link_toll_attribute", LinkTollAttribute.Invoke());

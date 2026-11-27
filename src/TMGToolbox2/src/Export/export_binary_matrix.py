@@ -43,6 +43,10 @@ ExportBinaryMatrix
     2.0.0 further code refactoring by Amit
     
 """
+import gzip
+import os
+import shutil
+import tempfile
 from sqlite3 import paramstyle
 import inro
 import inro.modeller as _m
@@ -115,7 +119,20 @@ class ExportBinaryMatrix(_m.Tool()):
                 data = matrix.get_data(scenario)
             else:
                 data = matrix.get_data()
-            data.save(parameters["file_location"])
+            file_location = parameters["file_location"]
+            if file_location.lower().endswith(".gz"):
+                suffix = os.path.splitext(file_location[:-3])[1]
+                file_descriptor, temporary_file = tempfile.mkstemp(suffix=suffix)
+                os.close(file_descriptor)
+                try:
+                    data.save(temporary_file)
+                    with open(temporary_file, "rb") as source, gzip.open(file_location, "wb") as destination:
+                        shutil.copyfileobj(source, destination)
+                finally:
+                    if os.path.exists(temporary_file):
+                        os.remove(temporary_file)
+            else:
+                data.save(file_location)
             self._tracker.complete_task()
 
     def _get_atts(self, matrix_id: str, file_location: str, scenario: Scenario) -> dict[str, str]:

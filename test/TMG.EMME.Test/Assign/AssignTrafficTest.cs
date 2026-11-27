@@ -18,6 +18,7 @@
 */
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -30,7 +31,7 @@ public class AssignTrafficTest : TestBase
     const int ScenarioNumber = 1;
 
     [TestMethod]
-    public void AssignTraffic()
+    public void AssignTrafficDirectToolCall()
     {
         SetupDatabase();
 
@@ -58,10 +59,10 @@ public class AssignTrafficTest : TestBase
                 writer.WriteStartObject();
                 writer.WriteString("name", "traffic class 1");
                 writer.WriteString("mode", "c");
-                writer.WriteString("demand_matrix", "mf10");
-                writer.WriteString("time_matrix", "mf0");
-                writer.WriteString("cost_matrix", "mf4");
-                writer.WriteString("toll_matrix", "mf0");
+                writer.WriteNumber("demand_matrix", 10);
+                writer.WriteNumber("time_matrix", 0);
+                writer.WriteNumber("cost_matrix", 4);
+                writer.WriteNumber("toll_matrix", 0);
                 writer.WriteNumber("peak_hour_factor", 1);
                 writer.WriteString("volume_attribute", "@auto_volume1");
                 writer.WriteString("link_toll_attribute", " @toll");
@@ -69,16 +70,16 @@ public class AssignTrafficTest : TestBase
                 writer.WriteNumber("link_cost", 0.0);
                 writer.WriteStartArray("path_analyses");
                 writer.WriteStartObject();
-                writer.WriteString("attribute_id", "1");
-                writer.WriteString("aggregation_matrix", "");
-                writer.WriteString("aggregation_operator", "max");
-                writer.WriteString("lower_bound", "7");
-                writer.WriteString("upper_bound", "7");
-                writer.WriteString("path_selection", "all");
-                writer.WriteString("multiply_path_prop_by_demand", "7");
-                writer.WriteString("multiply_path_prop_by_value", "7");
+                writer.WriteString("attribute_id", "@auto_volume1");
+                writer.WriteNumber("aggregation_matrix", 0);
+                writer.WriteString("aggregation_operator", ".max.");
+                writer.WriteNumber("lower_bound", 7);
+                writer.WriteNumber("upper_bound", 7);
+                writer.WriteString("path_selection", "SELECTED");
+                writer.WriteBoolean("multiply_path_prop_by_demand", true);
+                writer.WriteBoolean("multiply_path_prop_by_value", true);
                 writer.WriteString("analysis_attributes", "");
-                writer.WriteString("analysis_attributes_matrix", "mf0");
+                writer.WriteNumber("analyzed_demand", 0);
                 writer.WriteEndObject();
                 writer.WriteEndArray();
                 writer.WriteEndObject();
@@ -97,16 +98,15 @@ public class AssignTrafficTest : TestBase
             new Emme.Assign.AssignTraffic.PathAnalysis()
             {
                 Name = "PathAnalysis",
-                AttributeId = Helper.CreateParameter("1"),
-                AggregationMatrix = Helper.CreateParameter(""),
-                AggregationOperator = Helper.CreateParameter("max"),
-                LowerBound = Helper.CreateParameter("7"),
-                UpperBound = Helper.CreateParameter("7"),
-                PathSelection = Helper.CreateParameter("all"),
-                MultiplyPathPropByDemand = Helper.CreateParameter("7"),
-                MultiplyPathPropByValue = Helper.CreateParameter("7"),
-                AnalysisAttributes = Helper.CreateParameter(""),
-                AnalysisAttributesMatrixId = Helper.CreateParameter("mf0"),
+                AttributeId = Helper.CreateParameter("@auto_volume1"),
+                AggregationMatrix = Helper.CreateParameter(0),
+                AggregationOperator = Helper.CreateParameter(".max."),
+                LowerBound = Helper.CreateParameter(7.0f),
+                UpperBound = Helper.CreateParameter(7.0f),
+                PathSelection = Helper.CreateParameter("SELECTED"),
+                MultiplyPathPropByDemand = Helper.CreateParameter(true),
+                MultiplyPathPropByValue = Helper.CreateParameter(true),
+                AnalyzedDemand = Helper.CreateParameter(0),
             }
         };
 
@@ -115,11 +115,129 @@ public class AssignTrafficTest : TestBase
             new Emme.Assign.AssignTraffic.TrafficClass()
             {
                 Name = "TrafficClass1",
+                Mode = Helper.CreateParameter('j'),
+                DemandMatrixNumber = Helper.CreateParameter(10),
+                TimeMatrix = Helper.CreateParameter(0),
+                CostMatrix = Helper.CreateParameter(4),
+                TollMatrix = Helper.CreateParameter(0),
+                PeakHourFactor = Helper.CreateParameter(1f),
+                VolumeAttribute = Helper.CreateParameter("@auto_volume1"),
+                LinkTollAttribute = Helper.CreateParameter("@toll"),
+                TollWeight = Helper.CreateParameter(1.0f),
+                LinkCost = Helper.CreateParameter(0.0f),
+                PathAnalyses = Helper.CreateParameters(pathAnalyses),
+            },
+
+        };
+        var module = new Emme.Assign.AssignTraffic()
+        {
+            Name = "AssignTraffic",
+            BackgroundTransit = Helper.CreateParameter(true),
+            brGap = Helper.CreateParameter(0f),
+            Iterations = Helper.CreateParameter(100),
+            normGap = Helper.CreateParameter(0f),
+            PerformanceFlag = Helper.CreateParameter(true),
+            rGap = Helper.CreateParameter(0f),
+            RunTitle = Helper.CreateParameter("road assignment"),
+            ScenarioNumber = Helper.CreateParameter(1),
+            SOLAFlag = Helper.CreateParameter(true),
+            MixedUseTTFRanges = Helper.CreateParameter(new RangeSet(new List<Range> { new Range(3, 128) })),
+            TrafficClasses = trafficClasses,
+        };
+        module.Invoke(Helper.Modeller);
+    }
+
+    [TestMethod]
+    public void AssignTrafficModuleMultiClass()
+    {
+        SetupDatabase();
+
+        var pathAnalyses = new[]
+        {
+            new Emme.Assign.AssignTraffic.PathAnalysis()
+            {
+                Name = "PathAnalysis",
+                AttributeId = Helper.CreateParameter("@auto_volume1"),
+                AggregationMatrix = Helper.CreateParameter(0),
+                AggregationOperator = Helper.CreateParameter(".max."),
+                LowerBound = Helper.CreateParameter(7.0f),
+                UpperBound = Helper.CreateParameter(7.0f),
+                PathSelection = Helper.CreateParameter("SELECTED"),
+                MultiplyPathPropByDemand = Helper.CreateParameter(true),
+                MultiplyPathPropByValue = Helper.CreateParameter(true),
+                AnalyzedDemand = Helper.CreateParameter(0),
+            }
+        };
+
+        var trafficClasses = new[]
+        {
+            new Emme.Assign.AssignTraffic.TrafficClass()
+            {
+                Name = "TrafficClass1",
+                Mode = Helper.CreateParameter('j'),
+                DemandMatrixNumber = Helper.CreateParameter(10),
+                TimeMatrix = Helper.CreateParameter(0),
+                CostMatrix = Helper.CreateParameter(4),
+                TollMatrix = Helper.CreateParameter(0),
+                PeakHourFactor = Helper.CreateParameter(1f),
+                VolumeAttribute = Helper.CreateParameter("@auto_volume1"),
+                LinkTollAttribute = Helper.CreateParameter("@toll"),
+                TollWeight = Helper.CreateParameter(1.0f),
+                LinkCost = Helper.CreateParameter(0.0f),
+                PathAnalyses = Helper.CreateParameters(pathAnalyses),
+            },
+
+            new Emme.Assign.AssignTraffic.TrafficClass()
+            {
+                Name = "TrafficClass2",
+                Mode = Helper.CreateParameter('j'),
+                DemandMatrixNumber = Helper.CreateParameter(11),
+                TimeMatrix = Helper.CreateParameter(0),
+                CostMatrix = Helper.CreateParameter(4),
+                TollMatrix = Helper.CreateParameter(0),
+                PeakHourFactor = Helper.CreateParameter(1f),
+                VolumeAttribute = Helper.CreateParameter("@auto_volume2"),
+                LinkTollAttribute = Helper.CreateParameter("@toll"),
+                TollWeight = Helper.CreateParameter(1.0f),
+                LinkCost = Helper.CreateParameter(0.0f),
+                PathAnalyses = Helper.CreateParameters(pathAnalyses),
+            }
+        };
+        var module = new Emme.Assign.AssignTraffic()
+        {
+            Name = "AssignTraffic",
+            BackgroundTransit = Helper.CreateParameter(true),
+            brGap = Helper.CreateParameter(0f),
+            Iterations = Helper.CreateParameter(100),
+            normGap = Helper.CreateParameter(0f),
+            PerformanceFlag = Helper.CreateParameter(true),
+            rGap = Helper.CreateParameter(0f),
+            RunTitle = Helper.CreateParameter("road assignment"),
+            ScenarioNumber = Helper.CreateParameter(1),
+            SOLAFlag = Helper.CreateParameter(true),
+            MixedUseTTFRanges = Helper.CreateParameter(new RangeSet(new List<Range> { new Range(3, 128) })),
+            TrafficClasses = trafficClasses,
+        };
+        module.Invoke(Helper.Modeller);
+    }
+
+    [TestMethod]
+    public void AssignTrafficModuleNoPathAnalysis()
+    {
+        SetupDatabase();
+
+        Emme.Assign.AssignTraffic.PathAnalysis[] pathAnalyses = [];
+
+        var trafficClasses = new[]
+        {
+            new Emme.Assign.AssignTraffic.TrafficClass()
+            {
+                Name = "TrafficClass1",
                 Mode = Helper.CreateParameter('c'),
-                DemandMatrixNumber = Helper.CreateParameter("mf10"),
-                TimeMatrix = Helper.CreateParameter("mf0"),
-                CostMatrix = Helper.CreateParameter("mf4"),
-                TollMatrix = Helper.CreateParameter("mf0"),
+                DemandMatrixNumber = Helper.CreateParameter(10),
+                TimeMatrix = Helper.CreateParameter(0),
+                CostMatrix = Helper.CreateParameter(4),
+                TollMatrix = Helper.CreateParameter(0),
                 PeakHourFactor = Helper.CreateParameter(1f),
                 VolumeAttribute = Helper.CreateParameter("@auto_volume1"),
                 LinkTollAttribute = Helper.CreateParameter("@toll"),
@@ -150,5 +268,6 @@ public class AssignTrafficTest : TestBase
     {
         Helper.ImportFrabitztownNetwork(ScenarioNumber);
         Helper.ImportBinaryMatrix(ScenarioNumber, 10, Path.GetFullPath("TestFiles/Test.mtx"));
+        Helper.ImportBinaryMatrix(ScenarioNumber, 11, Path.GetFullPath("TestFiles/Test.mtx"));
     }
 }

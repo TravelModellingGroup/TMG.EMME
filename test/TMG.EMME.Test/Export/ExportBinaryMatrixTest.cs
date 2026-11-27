@@ -17,6 +17,7 @@
     along with TMG.EMME for XTMF2.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO.Compression;
 using System.IO;
 
 namespace TMG.Emme.Test.Export;
@@ -41,6 +42,42 @@ public class ExportBinaryMatrixTest : TestBase
                  writer.WriteNumber("scenario_number", 1);
              }), LogbookLevel.Standard));
         Assert.IsTrue(File.Exists("OutputTestFiles/testEBM.mtx"), "Even though the module executed successfully, we did not get the output file!");
+    }
+
+    [TestMethod]
+    public void ExportBinaryMatrixCompressed()
+    {
+        SetupTest();
+        var uncompressedFile = Path.GetFullPath("OutputTestFiles/testEBM.mtx");
+        var compressedFile = Path.GetFullPath("OutputTestFiles/testEBM.mtx.gz");
+
+        Assert.IsTrue(
+            Helper.Modeller.Run(null, "tmg2.Export.export_binary_matrix",
+             JSONParameterBuilder.BuildParameters(writer =>
+             {
+                 writer.WriteNumber("matrix_type", (int)Emme.Export.ExportBinaryMatrix.MatrixTypes.MF);
+                 writer.WriteNumber("matrix_number", 10);
+                 writer.WriteString("file_location", uncompressedFile);
+                 writer.WriteNumber("scenario_number", ScenarioNumber);
+             }), LogbookLevel.Standard));
+        Assert.IsTrue(
+            Helper.Modeller.Run(null, "tmg2.Export.export_binary_matrix",
+             JSONParameterBuilder.BuildParameters(writer =>
+             {
+                 writer.WriteNumber("matrix_type", (int)Emme.Export.ExportBinaryMatrix.MatrixTypes.MF);
+                 writer.WriteNumber("matrix_number", 10);
+                 writer.WriteString("file_location", compressedFile);
+                 writer.WriteNumber("scenario_number", ScenarioNumber);
+             }), LogbookLevel.Standard));
+
+        Assert.IsTrue(File.Exists(compressedFile), "The compressed matrix export file was not created.");
+        using (var compressedStream = File.OpenRead(compressedFile))
+        using (var gzip = new GZipStream(compressedStream, CompressionMode.Decompress))
+        using (var decompressed = new MemoryStream())
+        {
+            gzip.CopyTo(decompressed);
+            CollectionAssert.AreEqual(File.ReadAllBytes(uncompressedFile), decompressed.ToArray());
+        }
     }
 
     [TestMethod]
@@ -72,6 +109,10 @@ public class ExportBinaryMatrixTest : TestBase
             if (File.Exists("OutputTestFiles/testEBM.mtx"))
             {
                 File.Delete("OutputTestFiles/testEBM.mtx");
+            }
+            if (File.Exists("OutputTestFiles/testEBM.mtx.gz"))
+            {
+                File.Delete("OutputTestFiles/testEBM.mtx.gz");
             }
         }
         Helper.ImportFrabitztownNetwork(ScenarioNumber);

@@ -173,7 +173,7 @@ internal static class Helper
                     writer.WriteString("extra_attributes", "all");
                 }), LogbookLevel.Standard));
     }
-    internal static void RunAssignTransit(int scenarioNumber, string demandMatrixId)
+    internal static void RunAssignTransit(int scenarioNumber, int demandMatrixId)
     {
         Assert.IsTrue(
             Helper.Modeller.Run(null, "tmg2.Assign.assign_transit",
@@ -192,22 +192,22 @@ internal static class Helper
                 writer.WriteStartArray("transit_classes");
                 writer.WriteStartObject();
                 writer.WriteString("name", "transit_class_1");
-                writer.WriteString("board_penalty_matrix", "mf0");
+                writer.WriteNumber("board_penalty_matrix", 0);
                 writer.WriteNumber("board_penalty_perception", 1.0f);
-                writer.WriteString("congestion_matrix", "mf0");
-                writer.WriteString("demand_matrix", demandMatrixId);
-                writer.WriteString("fare_matrix", "mf0");
+                writer.WriteNumber("congestion_matrix", 0);
+                writer.WriteNumber("demand_matrix", demandMatrixId);
+                writer.WriteNumber("fare_matrix", 0);
                 writer.WriteNumber("fare_perception", 20.0f);
-                writer.WriteString("in_vehicle_time_matrix", "mf0");
-                writer.WriteString("impedance_matrix", "mf0");
+                writer.WriteNumber("in_vehicle_time_matrix", 0);
+                writer.WriteNumber("impedance_matrix", 0);
                 writer.WriteString("link_fare_attribute_id", "@lfare");
                 writer.WriteString("mode", "*");
-                writer.WriteString("perceived_travel_time_matrix", "mf0");
+                writer.WriteNumber("perceived_travel_time_matrix", 0);
                 writer.WriteString("segment_fare_attribute", "@sfare");
                 writer.WriteNumber("wait_time_perception", 2.299f);
-                writer.WriteString("wait_time_matrix", "mf0");
+                writer.WriteNumber("wait_time_matrix", 0);
                 writer.WriteString("walk_time_perception_attribute", "@walkp");
-                writer.WriteString("walk_time_matrix", "mf0");
+                writer.WriteNumber("walk_time_matrix", 0);
                 writer.WriteStartArray("walk_perceptions");
                 writer.WriteStartObject();
                 writer.WriteString("filter", "i=1,999999");
@@ -277,7 +277,7 @@ internal static class Helper
             }), LogbookLevel.Standard));
     }
 
-    internal static void RunAssignTraffic(int scenarioNumber, string demandMatrixId, int iterations)
+    internal static void RunAssignTraffic(int scenarioNumber, int demandMatrixId, int iterations)
     {
         Assert.IsTrue(
             Helper.Modeller.Run(null, "tmg2.Assign.assign_traffic",
@@ -303,10 +303,10 @@ internal static class Helper
                 writer.WriteStartObject();
                 writer.WriteString("name", "traffic class 1");
                 writer.WriteString("mode", "c");
-                writer.WriteString("demand_matrix", demandMatrixId);
-                writer.WriteString("time_matrix", "mf0");
-                writer.WriteString("cost_matrix", "mf4");
-                writer.WriteString("toll_matrix", "mf0");
+                writer.WriteNumber("demand_matrix", demandMatrixId);
+                writer.WriteNumber("time_matrix", 0);
+                writer.WriteNumber("cost_matrix", 4);
+                writer.WriteNumber("toll_matrix", 0);
                 writer.WriteNumber("peak_hour_factor", 1);
                 writer.WriteString("volume_attribute", "@auto_volume1");
                 writer.WriteString("link_toll_attribute", " @toll");
@@ -314,16 +314,15 @@ internal static class Helper
                 writer.WriteNumber("link_cost", 0.0);
                 writer.WriteStartArray("path_analyses");
                 writer.WriteStartObject();
-                writer.WriteString("attribute_id", "1");
-                writer.WriteString("aggregation_matrix", "");
-                writer.WriteString("aggregation_operator", "max");
-                writer.WriteString("lower_bound", "7");
-                writer.WriteString("upper_bound", "7");
-                writer.WriteString("path_selection", "all");
-                writer.WriteString("multiply_path_prop_by_demand", "7");
-                writer.WriteString("multiply_path_prop_by_value", "7");
-                writer.WriteString("analysis_attributes", "");
-                writer.WriteString("analysis_attributes_matrix", "mf0");
+                writer.WriteString("attribute_id", "@auto_volume1");
+                writer.WriteNumber("aggregation_matrix", 0);
+                writer.WriteString("aggregation_operator", ".max.");
+                writer.WriteNumber("lower_bound", 7);
+                writer.WriteNumber("upper_bound", 7);
+                writer.WriteString("path_selection", "SELECTED");
+                writer.WriteBoolean("multiply_path_prop_by_demand", true);
+                writer.WriteBoolean("multiply_path_prop_by_value", true);
+                writer.WriteNumber("analysis_attributes_matrix", 0);
                 writer.WriteEndObject();
                 writer.WriteEndArray();
                 writer.WriteEndObject();
